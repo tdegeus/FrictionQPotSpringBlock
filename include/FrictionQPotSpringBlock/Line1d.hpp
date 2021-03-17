@@ -12,24 +12,23 @@
 namespace FrictionQPotSpringBlock {
 namespace Line1d {
 
-inline std::vector<std::string> versionInfo()
+inline std::vector<std::string> version_dependencies()
 {
     std::vector<std::string> ret;
 
-    ret.push_back(fmt::format("xtensor={0:d}.{1:d}.{2:d}",
-        XTENSOR_VERSION_MAJOR,
-        XTENSOR_VERSION_MINOR,
-        XTENSOR_VERSION_PATCH));
+    ret.push_back("frictionqpotspringblock=" + version());
 
-    ret.push_back(fmt::format("frictionqpotspringblock={0:d}.{1:d}.{2:d}",
-        FRICTIONQPOTSPRINGBLOCK_VERSION_MAJOR,
-        FRICTIONQPOTSPRINGBLOCK_VERSION_MINOR,
-        FRICTIONQPOTSPRINGBLOCK_VERSION_PATCH));
+    ret.push_back("qpot=" +
+        detail::unquote(std::string(QUOTE(QPOT_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(QPOT_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(QPOT_VERSION_PATCH))));
 
-    ret.push_back(fmt::format("qpot={0:d}.{1:d}.{2:d}",
-        QPOT_VERSION_MAJOR,
-        QPOT_VERSION_MINOR,
-        QPOT_VERSION_PATCH));
+    ret.push_back("goosefem=" + GooseFEM::version());
+
+    ret.push_back("xtensor=" +
+        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_PATCH))));
 
     return ret;
 }
