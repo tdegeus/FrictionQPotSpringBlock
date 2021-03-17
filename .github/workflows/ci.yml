@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  standard:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - runs-on: ubuntu-latest
+            config: -DBUILD_TESTS=1 -DBUILD_EXAMPLES=1
+            prop: tests, examples & docs
+          - runs-on: macos-latest
+            config: -DBUILD_TESTS=1
+            prop: tests
+          - runs-on: windows-latest
+            config: -DBUILD_TESTS=1 -G Ninja
+            prop: tests
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    name: "${{ matrix.runs-on }} • x64 ${{ matrix.args }}"
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+
+    - name: Basic GitHub action setup
+      uses: actions/checkout@v2
+
+    - name: Set conda environment
+      if: runner.os != 'Windows'
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: environment.yaml
+        environment-name: myenv
+
+    - name: Set conda environment
+      if: runner.os == 'Windows'
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        mamba-version: "*"
+        channels: conda-forge,defaults
+        channel-priority: true
+        environment-file: environment.yaml
+        activate-environment: test
+        auto-activate-base: false
+
+    - name: Select Clang (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        conda install -c conda-forge clang_win-64 ninja
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Configure using CMake
+      run: cmake -Bbuild ${{ matrix.config }}
+
+    - name: Build C++ ${{ matrix.prop }}
+      working-directory: build
+      run: cmake --build .
+
+    - name: Run C++ tests
+      working-directory: build
+      run: ctest --output-on-failure
+
+    # - name: Build and install Python module
+    #   run: |
+    #     python setup.py build
+    #     python setup.py install
+
+    # - name: Run Python tests
+    #   run: python test/UniformSingleLayer2d_LocalTriggerFineLayer.py
+
+    # - name: Build doxygen-docs
+    #   if: runner.os == 'Linux'
+    #   working-directory: build
+    #   run: make docs
+
+    # - name: Check doxygen-docs (error on warning)
+    #   if: runner.os == 'Linux'
+    #   working-directory: build
+    #   run: make check_docs

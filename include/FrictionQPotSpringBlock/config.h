@@ -1,52 +1,58 @@
-/*
+/**
+Defines used in the library.
 
-(c - MIT) T.W.J. de Geus (Tom) | www.geus.me | github.com/tdegeus/FrictionQPotSpringBlock
-
+\file config.h
+\copyright Copyright 2020. Tom de Geus. All rights reserved.
+\license This project is released under the GNU Public License (MIT).
 */
 
 #ifndef FRICTIONQPOTSPRINGBLOCK_CONFIG_H
 #define FRICTIONQPOTSPRINGBLOCK_CONFIG_H
 
-#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+/**
+\cond
+*/
+#define Q(x) #x
+#define QUOTE(x) Q(x)
 
-    #define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr) \
-        FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
-
-    #define FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, file, line) \
-        if (!(expr)) { \
-            throw std::runtime_error( \
-                std::string(file) + ':' + std::to_string(line) + \
-                ": assertion failed (" #expr ") \n\t"); \
-        }
-
-#else
-
-    #define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr)
-
-#endif
-
-#define FRICTIONQPOTSPRINGBLOCK_REQUIRE(expr) \
-    FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, __FILE__, __LINE__)
-
-#define FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, file, line) \
+#define FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, file, line) \
     if (!(expr)) { \
         throw std::runtime_error( \
             std::string(file) + ':' + std::to_string(line) + \
             ": assertion failed (" #expr ") \n\t"); \
     }
+/**
+\endcond
+*/
 
-#define FRICTIONQPOTSPRINGBLOCK_VERSION_MAJOR 0
-#define FRICTIONQPOTSPRINGBLOCK_VERSION_MINOR 0
-#define FRICTIONQPOTSPRINGBLOCK_VERSION_PATCH 1
+/**
+All assertions are implementation as::
 
-#define FRICTIONQPOTSPRINGBLOCK_VERSION_AT_LEAST(x, y, z) \
-    (FRICTIONQPOTSPRINGBLOCK_VERSION_MAJOR > x || (FRICTIONQPOTSPRINGBLOCK_VERSION_MAJOR >= x && \
-    (FRICTIONQPOTSPRINGBLOCK_VERSION_MINOR > y || (FRICTIONQPOTSPRINGBLOCK_VERSION_MINOR >= y && \
-                                                   FRICTIONQPOTSPRINGBLOCK_VERSION_PATCH >= z))))
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(...)
 
-#define FRICTIONQPOTSPRINGBLOCK_VERSION(x, y, z) \
-    (FRICTIONQPOTSPRINGBLOCK_VERSION_MAJOR == x && \
-     FRICTIONQPOTSPRINGBLOCK_VERSION_MINOR == y && \
-     FRICTIONQPOTSPRINGBLOCK_VERSION_PATCH == z)
+They can be enabled by::
+
+    #define FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+
+(before including FrictionQPotSpringBlock).
+The advantage is that:
+
+-   File and line-number are displayed if the assertion fails.
+-   FrictionQPotSpringBlock's assertions can be enabled/disabled independently from those of other libraries.
+
+\throw std::runtime_error
+*/
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+#define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr) FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
+#else
+#define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr)
+#endif
+
+/**
+Assertions that cannot be disable.
+
+\throw std::runtime_error
+*/
+#define FRICTIONQPOTSPRINGBLOCK_REQUIRE(expr) FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, __FILE__, __LINE__)
 
 #endif

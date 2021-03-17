@@ -3,8 +3,6 @@
 #include <xtensor/xrandom.hpp>
 #include <FrictionQPotSpringBlock/Line1d.h>
 
-#define ISCLOSE(a, b) REQUIRE_THAT((a), Catch::WithinAbs((b), 1e-8));
-
 TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
 {
 

@@ -1,15 +1,19 @@
-/*
+/**
+Line in 1d.
 
-(c - MIT) T.W.J. de Geus (Tom) | www.geus.me | github.com/tdegeus/FrictionQPotSpringBlock
-
+\file Line1d.h
+\copyright Copyright 2020. Tom de Geus. All rights reserved.
+\license This project is released under the GNU Public License (MIT).
 */
 
 #ifndef FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 #define FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 
 #include "config.h"
+#include "version.h"
 
 #include <QPot/Redraw.hpp>
+#include <GooseFEM/version.h>
 #include <GooseFEM/Iterate.h>
 #include <xtensor/xtensor.hpp>
 #include <xtensor/xnorm.hpp>
@@ -19,11 +23,17 @@
 namespace FrictionQPotSpringBlock {
 namespace Line1d {
 
-// -------------------------------------
-// Return versions of returned libraries
-// -------------------------------------
+/**
+Return versions of this library and of all of its dependencies.
+The output is a list of strings, e.g.::
 
-inline std::vector<std::string> versionInfo();
+    "frictionqpotspringblock=0.1.0",
+    "xtensor=0.20.1"
+    ...
+
+\return List of strings.
+*/
+inline std::vector<std::string> version_dependencies();
 
 // ------
 // System
