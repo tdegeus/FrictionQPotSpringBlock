@@ -156,20 +156,30 @@ void System::timeStep()
     }
 }
 
-size_t System::minimise()
+double System::residual() const
 {
-    GooseFEM::Iterate::StopList check(10);
-    double F = xt::norm_l2(m_f_frame)();
-    double eps = std::numeric_limits<double>::epsilon();
+    double Fext = xt::norm_l2(m_f_frame)();
+    double Fnorm = (Fext < std::numeric_limits<double>::epsilon()) ? 1 : Fext;
+    return xt::norm_l2(m_f)() / Fnorm;
+}
 
-    for (size_t iter = 0; iter < 1e9; ++iter) {
+void System::quench()
+{
+    m_v.fill(0.0);
+    m_a.fill(0.0);
+}
+
+size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
+{
+    GooseFEM::Iterate::StopList stop(niter_tol);
+
+    for (size_t iiter = 0; iiter < max_iter; ++iiter) {
+
         this->timeStep();
-        F = xt::norm_l2(m_f_frame)();
-        double  Fnorm = (F < eps) ? 1 : F;
-        if (check.stop(xt::norm_l2(m_f)() / Fnorm, 1e-5) && iter > 20) {
-            m_v.fill(0.0);
-            m_a.fill(0.0);
-            return iter;
+
+        if (stop.stop(this->residual(), tol)) {
+            this->quench();
+            return iiter;
         }
     }
 
@@ -178,7 +188,7 @@ size_t System::minimise()
 
 void System::advanceRightElastic(double eps)
 {
-    double dx = xt::amin(this->getYieldDistanceRight())();
+    double dx = xt::amin(this->yieldDistanceRight())();
     if (dx < eps / 2.0) {
         return;
     }
@@ -196,62 +206,72 @@ void System::advanceRightKick(double eps)
     this->computeForce();
 }
 
-double System::get_x_frame() const
+double System::x_frame() const
 {
     return m_x_frame;
 }
 
-xt::xtensor<double, 1> System::get_x() const
+xt::xtensor<double, 1> System::x() const
 {
     return m_x;
 }
 
-xt::xtensor<double, 1> System::get_v() const
+xt::xtensor<double, 1> System::v() const
 {
     return m_v;
 }
 
-xt::xtensor<double, 1> System::get_f() const
+xt::xtensor<double, 1> System::a() const
+{
+    return m_a;
+}
+
+xt::xtensor<double, 1> System::f() const
 {
     return m_f;
 }
 
-xt::xtensor<double, 1> System::get_f_potential() const
+xt::xtensor<double, 1> System::f_potential() const
 {
     return m_f_potential;
 }
 
-xt::xtensor<double, 1> System::get_f_frame() const
+xt::xtensor<double, 1> System::f_frame() const
 {
     return m_f_frame;
 }
 
-xt::xtensor<double, 1> System::get_f_neighbours() const
+xt::xtensor<double, 1> System::f_neighbours() const
 {
     return m_f_neighbours;
 }
 
-xt::xtensor<double, 1> System::currentYieldLeft() const
+xt::xtensor<double, 1> System::f_damping() const
+{
+    return m_f_damping;
+}
+
+xt::xtensor<double, 1> System::yieldLeft() const
 {
     return m_y.currentYieldLeft();
 }
 
-xt::xtensor<double, 1> System::currentYieldRight() const
+xt::xtensor<double, 1> System::yieldRight() const
 {
     return m_y.currentYieldRight();
 }
 
-xt::xtensor<int, 1> System::getYieldIndex() const
+xt::xtensor<int, 1> System::yieldIndex() const
 {
     return m_y.currentIndex();
 }
 
-xt::xtensor<double, 1> System::getYieldDistanceRight() const
+xt::xtensor<double, 1> System::yieldDistanceRight() const
 {
     return m_y.currentYieldRight() - m_x;
 }
 
-xt::xtensor<double, 1> System::getYieldDistanceLeft() const
+xt::xtensor<double, 1> System::yieldDistanceLeft() const
 {
     return m_x - m_y.currentYieldLeft();
 }
