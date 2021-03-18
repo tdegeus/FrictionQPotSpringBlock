@@ -1,5 +1,6 @@
 
 #include <FrictionQPotSpringBlock/Line1d.h>
+#include <fmt/core.h>
 #include <xtensor/xrandom.hpp>
 #include <xtensor/xcsv.hpp>
 #include <fstream>

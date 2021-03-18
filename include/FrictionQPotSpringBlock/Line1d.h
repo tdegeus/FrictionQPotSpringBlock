@@ -18,7 +18,6 @@ Line in 1d.
 #include <xtensor/xtensor.hpp>
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
-#include <fmt/core.h>
 #include <string>
 
 namespace FrictionQPotSpringBlock {

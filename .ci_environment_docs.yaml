@@ -1,9 +1,0 @@
-channels:
-  - conda-forge
-dependencies:
-  - cmake
-  - setuptools_scm
-  - qpot
-  - goosefem
-  - xtensor
-  - doxygen
