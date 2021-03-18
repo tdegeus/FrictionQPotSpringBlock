@@ -46,8 +46,8 @@ int main()
         }
 
         // Extract output data.
-        ret(0, inc) = sys.get_x_frame();
-        ret(1, inc) = xt::mean(sys.get_f_frame())();
+        ret(0, inc) = sys.x_frame();
+        ret(1, inc) = xt::mean(sys.f_frame())();
     }
 
     std::ofstream outfile("Load.txt");

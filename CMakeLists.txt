@@ -115,7 +115,6 @@ endif()
 
 if(BUILD_DOCS)
     find_package(Doxygen REQUIRED)
-    find_package(GMatTensor REQUIRED)
 
     get_target_property(QPot_INCLUDE QPot INTERFACE_INCLUDE_DIRECTORIES)
 
