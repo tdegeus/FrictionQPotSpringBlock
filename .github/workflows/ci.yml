@@ -19,6 +19,7 @@ jobs:
           - runs-on: ubuntu-latest
             config: -DBUILD_TESTS=1 -DBUILD_EXAMPLES=1
             prop: tests, examples & docs
+            gcc: 8
           - runs-on: macos-latest
             config: -DBUILD_TESTS=1
             prop: tests
@@ -55,6 +56,15 @@ jobs:
         environment-file: environment.yaml
         activate-environment: test
         auto-activate-base: false
+
+    - name: Dummy version
+      run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=ci" >> $GITHUB_ENV
+
+    - name: Select GCC (Linux)
+      if: matrix.gcc
+      run: |
+        echo "CC=gcc-${{ matrix.gcc }}" >> $GITHUB_ENV
+        echo "CXX=g++-${{ matrix.gcc }}" >> $GITHUB_ENV
 
     - name: Select Clang (Windows)
       if: runner.os == 'Windows'
