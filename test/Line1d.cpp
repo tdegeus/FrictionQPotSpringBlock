@@ -24,7 +24,7 @@ SECTION("System::advanceRightElastic")
 
     sys.advanceRightElastic(0.2);
 
-    xt::xtensor<double, 1> x = 0.9 * xt::ones<double>({N});
+    xt::xtensor<double, 1> x = (0.5 - 0.1) * xt::ones<double>({N});
 
     REQUIRE(xt::allclose(x, sys.get_x()));
 }
