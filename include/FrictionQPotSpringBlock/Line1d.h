@@ -19,6 +19,7 @@ Line in 1d.
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
 #include <fmt/core.h>
+#include <string>
 
 namespace FrictionQPotSpringBlock {
 namespace Line1d {
@@ -49,6 +50,13 @@ public:
     template <class F>
     System(size_t N, F function_to_draw_distances);
 
+    /**
+    Number of particles.
+
+    \return unsigned int
+    */
+    size_t N() const;
+
     // Change parameters.
     void set_dt(double dt);
     void set_eta(double eta);
@@ -60,12 +68,12 @@ public:
 
     // Return state variables.
     double get_x_frame() const; // position of loading frame
-    xt::xtensor<double,1> get_x() const; // positions
-    xt::xtensor<double,1> get_v() const; // velocities
-    xt::xtensor<double,1> get_f() const; // total force
-    xt::xtensor<double,1> get_f_potential() const; // force associated to potentials
-    xt::xtensor<double,1> get_f_frame() const; // force associated to the loading frame
-    xt::xtensor<double,1> get_f_neighbours() const; // force associated to neighbours
+    xt::xtensor<double, 1> get_x() const; // positions
+    xt::xtensor<double, 1> get_v() const; // velocities
+    xt::xtensor<double, 1> get_f() const; // total force
+    xt::xtensor<double, 1> get_f_potential() const; // force associated to potentials
+    xt::xtensor<double, 1> get_f_frame() const; // force associated to the loading frame
+    xt::xtensor<double, 1> get_f_neighbours() const; // force associated to neighbours
 
     // Effectuate time step. Updates x, v, a, f.
     void timeStep();
@@ -80,10 +88,24 @@ public:
     // Event driven: advance right by "delta_x".
     void advanceRightKick(double delta_x);
 
+    /**
+    Current yield position left of each point.
+
+    \return [#N].
+    */
+    xt::xtensor<double, 1> currentYieldLeft() const;
+
+    /**
+    Current yield position right of each point.
+
+    \return [#N].
+    */
+    xt::xtensor<double, 1> currentYieldRight() const;
+
     // Obtain information on the potential energy landscape.
-    xt::xtensor<int,1> getYieldIndex() const;
-    xt::xtensor<double,1> getYieldDistanceRight() const;
-    xt::xtensor<double,1> getYieldDistanceLeft() const;
+    xt::xtensor<int, 1> getYieldIndex() const;
+    xt::xtensor<double, 1> getYieldDistanceRight() const;
+    xt::xtensor<double, 1> getYieldDistanceLeft() const;
 
 protected:
 
@@ -99,19 +121,19 @@ protected:
 protected:
 
     // State variables.
-    xt::xtensor<double,1> m_f; // resultant force
-    xt::xtensor<double,1> m_f_potential; // force related to local potentials
-    xt::xtensor<double,1> m_f_neighbours; // force related to interaction with neighbours
-    xt::xtensor<double,1> m_f_frame; // force related to loading frame
-    xt::xtensor<double,1> m_f_damping; // force related to damping
-    xt::xtensor<double,1> m_x; // position
-    xt::xtensor<double,1> m_v; // velocity
-    xt::xtensor<double,1> m_v_n; // velocity (last time-step)
-    xt::xtensor<double,1> m_a; // acceleration
-    xt::xtensor<double,1> m_a_n; // acceleration (last time-step)
+    xt::xtensor<double, 1> m_f; // resultant force
+    xt::xtensor<double, 1> m_f_potential; // force related to local potentials
+    xt::xtensor<double, 1> m_f_neighbours; // force related to interaction with neighbours
+    xt::xtensor<double, 1> m_f_frame; // force related to loading frame
+    xt::xtensor<double, 1> m_f_damping; // force related to damping
+    xt::xtensor<double, 1> m_x; // position
+    xt::xtensor<double, 1> m_v; // velocity
+    xt::xtensor<double, 1> m_v_n; // velocity (last time-step)
+    xt::xtensor<double, 1> m_a; // acceleration
+    xt::xtensor<double, 1> m_a_n; // acceleration (last time-step)
     QPot::RedrawList m_y; // potential energy landscape
-    xt::xtensor<double,1> m_y_l; // current yielding position, left
-    xt::xtensor<double,1> m_y_r; // current yielding position, right
+    xt::xtensor<double, 1> m_y_l; // current yielding position, left
+    xt::xtensor<double, 1> m_y_r; // current yielding position, right
 
     // Basic parameters.
     size_t m_N; // number of points

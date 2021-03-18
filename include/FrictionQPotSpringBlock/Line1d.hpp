@@ -52,6 +52,11 @@ System::System(size_t N, F func) : m_N(N)
     m_y_r = xt::zeros<double>({m_N});
 }
 
+size_t System::N() const
+{
+    return m_N;
+}
+
 void System::set_dt(double arg)
 {
     m_dt = arg;
@@ -196,47 +201,57 @@ double System::get_x_frame() const
     return m_x_frame;
 }
 
-xt::xtensor<double,1> System::get_x() const
+xt::xtensor<double, 1> System::get_x() const
 {
     return m_x;
 }
 
-xt::xtensor<double,1> System::get_v() const
+xt::xtensor<double, 1> System::get_v() const
 {
     return m_v;
 }
 
-xt::xtensor<double,1> System::get_f() const
+xt::xtensor<double, 1> System::get_f() const
 {
     return m_f;
 }
 
-xt::xtensor<double,1> System::get_f_potential() const
+xt::xtensor<double, 1> System::get_f_potential() const
 {
     return m_f_potential;
 }
 
-xt::xtensor<double,1> System::get_f_frame() const
+xt::xtensor<double, 1> System::get_f_frame() const
 {
     return m_f_frame;
 }
 
-xt::xtensor<double,1> System::get_f_neighbours() const
+xt::xtensor<double, 1> System::get_f_neighbours() const
 {
     return m_f_neighbours;
 }
 
-xt::xtensor<int,1> System::getYieldIndex() const
+xt::xtensor<double, 1> System::currentYieldLeft() const
+{
+    return m_y.currentYieldLeft();
+}
+
+xt::xtensor<double, 1> System::currentYieldRight() const
+{
+    return m_y.currentYieldRight();
+}
+
+xt::xtensor<int, 1> System::getYieldIndex() const
 {
     return m_y.currentIndex();
 }
 
-xt::xtensor<double,1> System::getYieldDistanceRight() const
+xt::xtensor<double, 1> System::getYieldDistanceRight() const
 {
     return m_y.currentYieldRight() - m_x;
 }
 
-xt::xtensor<double,1> System::getYieldDistanceLeft() const
+xt::xtensor<double, 1> System::getYieldDistanceLeft() const
 {
     return m_x - m_y.currentYieldLeft();
 }

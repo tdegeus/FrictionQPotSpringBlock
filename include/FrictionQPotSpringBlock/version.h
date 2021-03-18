@@ -10,6 +10,7 @@ Version information.
 #define FRICTIONQPOTSPRINGBLOCK_VERSION_H
 
 #include <string>
+#include <algorithm>
 
 #include "config.h"
 
