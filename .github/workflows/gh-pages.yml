@@ -11,6 +11,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
 
     - name: Basic GitHub action setup
@@ -19,7 +23,7 @@ jobs:
     - name: Set conda environment (using micromamba for speed)
       uses: mamba-org/provision-with-micromamba@main
       with:
-        environment-file: environment.yaml
+        environment-file: .ci_environment_docs.yaml
         environment-name: myenv
 
     - name: Configure using CMake
