@@ -128,6 +128,32 @@ public:
     double x_frame() const;
 
     /**
+    Set the position of each particle.
+    This updates the appropriate forces.
+    As a rule of thumb this should be only way to update positions (even when deriving).
+
+    \param arg [#N].
+    \return ``true`` is there was a redraw.
+    */
+    bool set_x(const xt::xtensor<double, 1>& arg);
+
+    /**
+    Set the velocity of each particle.
+    This updates the appropriate forces.
+    As a rule of thumb this should be only way to update positions (even when deriving).
+
+    \param arg [#N].
+    */
+    void set_v(const xt::xtensor<double, 1>& arg);
+
+    /**
+    Set the acceleration of each particle.
+
+    \param arg [#N].
+    */
+    void set_a(const xt::xtensor<double, 1>& arg);
+
+    /**
     Position of each particle.
 
     \return [#N].
@@ -199,8 +225,10 @@ public:
     /**
     Effectuates time step using the velocity Verlet algorithm.
     Updates #x, #v, #a, and #f.
+
+    \return ``true`` is there was a redraw.
     */
-    void timeStep();
+    bool timeStep();
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -216,21 +244,23 @@ public:
 
     \return The number of iterations.
     */
-    size_t minimise(double tol = 1e-5, size_t niter_tol = 20, size_t max_iter = 1000000);
+    size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
 
     /**
     Event driven advance right to closest yielding point, leaving ``delta_x / 2`` as margin.
 
     \param delta_x Margin.
+    \return ``true`` is there was a redraw.
     */
-    void advanceRightElastic(double delta_x);
+    bool advanceRightElastic(double delta_x);
 
     /**
     Event driven: advance right by ``delta_x``.
 
     \param delta_x Step size.
+    \return ``true`` is there was a redraw.
     */
-    void advanceRightKick(double delta_x);
+    bool advanceRightKick(double delta_x);
 
     /**
     Current yield position to the left (for each particle).
@@ -276,8 +306,10 @@ protected:
 
     /**
     Compute #f_potential based on the current #x.
+
+    \return ``true`` is there was a redraw.
     */
-    void computeForcePotential();
+    bool computeForcePotential();
 
     /**
     Compute #f_neighbours based on the current #x.

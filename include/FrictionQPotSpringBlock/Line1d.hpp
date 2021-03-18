@@ -18,10 +18,7 @@ inline std::vector<std::string> version_dependencies()
 
     ret.push_back("frictionqpotspringblock=" + version());
 
-    ret.push_back("qpot=" +
-        detail::unquote(std::string(QUOTE(QPOT_VERSION_MAJOR))) + "." +
-        detail::unquote(std::string(QUOTE(QPOT_VERSION_MINOR))) + "." +
-        detail::unquote(std::string(QUOTE(QPOT_VERSION_PATCH))));
+    ret.push_back("qpot=" + QPot::version());
 
     ret.push_back("goosefem=" + GooseFEM::version());
 
@@ -50,6 +47,12 @@ System::System(size_t N, F func) : m_N(N)
     m_y = QPot::RedrawList(m_x, func);
     m_y_l = xt::zeros<double>({m_N});
     m_y_r = xt::zeros<double>({m_N});
+
+    this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+    this->computeForceDamping();
+    this->computeForce();
 }
 
 size_t System::N() const
@@ -90,15 +93,42 @@ void System::set_k_frame(double arg)
 void System::set_x_frame(double arg)
 {
     m_x_frame = arg;
+    this->computeForceFrame();
     this->computeForce();
 }
 
-void System::computeForcePotential()
+bool System::set_x(const xt::xtensor<double, 1>& arg)
 {
-    m_y.setPosition(m_x);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    xt::noalias(m_x) = arg;
+    bool redraw = this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+    this->computeForce();
+    return redraw;
+}
+
+void System::set_v(const xt::xtensor<double, 1>& arg)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    xt::noalias(m_v) = arg;
+    this->computeForceDamping();
+    this->computeForce();
+}
+
+void System::set_a(const xt::xtensor<double, 1>& arg)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    xt::noalias(m_a) = arg;
+}
+
+bool System::computeForcePotential()
+{
+    bool redraw = m_y.setPosition(m_x);
     xt::noalias(m_y_l) = m_y.currentYieldLeft();
     xt::noalias(m_y_r) = m_y.currentYieldRight();
     xt::noalias(m_f_potential) = m_mu * (0.5 * (m_y_r + m_y_l) - m_x);
+    return redraw;
 }
 
 void System::computeForceNeighbours()
@@ -122,38 +152,49 @@ void System::computeForceDamping()
 
 void System::computeForce()
 {
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForceDamping();
     xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame;
 }
 
-void System::timeStep()
+bool System::timeStep()
 {
     xt::noalias(m_v_n) = m_v;
     xt::noalias(m_a_n) = m_a;
 
+    // positions
     xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
+    bool redraw = this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
 
+    // velocities
     xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
+    this->computeForceDamping();
 
+    // accelerations
     this->computeForce();
     xt::noalias(m_a) = m_f / m_m;
 
+    // velocities
     xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+    this->computeForceDamping();
 
+    // accelerations
     this->computeForce();
     xt::noalias(m_a) = m_f / m_m;
 
+    // velocities
     xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+    this->computeForceDamping();
 
+    // accelerations
     this->computeForce();
     xt::noalias(m_a) = m_f / m_m;
 
     if (xt::any(xt::isnan(m_x))) {
         throw std::runtime_error("NaN entries found");
     }
+
+    return redraw;
 }
 
 double System::residual() const
@@ -186,24 +227,32 @@ size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
     throw std::runtime_error("No convergence found");
 }
 
-void System::advanceRightElastic(double eps)
+bool System::advanceRightElastic(double eps)
 {
     double dx = xt::amin(this->yieldDistanceRight())();
     if (dx < eps / 2.0) {
-        return;
+        return false;
     }
     double deltax = dx - eps / 2.0;
     m_x += deltax;
     m_x_frame += (deltax * m_mu / m_k_frame);
+    bool redraw = this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
     this->computeForce();
+    return redraw;
 }
 
-void System::advanceRightKick(double eps)
+bool System::advanceRightKick(double eps)
 {
     double deltax = eps;
     m_x += deltax;
     m_x_frame += (deltax * m_mu / m_k_frame);
+    bool redraw = this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
     this->computeForce();
+    return redraw;
 }
 
 double System::x_frame() const
