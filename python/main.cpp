@@ -7,6 +7,8 @@ Python API
 */
 
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
+#include <pybind11/stl.h>
 #include <pyxtensor/pyxtensor.hpp>
 
 // #define QPOT_ENABLE_ASSERT
@@ -51,7 +53,6 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("function_to_draw_distances"))
 
         .def("N", &SM::System::N, "N")
-
         .def("set_dt", &SM::System::set_dt, "set_dt", py::arg("arg"))
         .def("set_eta", &SM::System::set_eta, "set_eta", py::arg("arg"))
         .def("set_m", &SM::System::set_m, "set_m", py::arg("arg"))
@@ -59,28 +60,31 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("set_k_neighbours", &SM::System::set_k_neighbours, "set_k_neighbours", py::arg("arg"))
         .def("set_k_frame", &SM::System::set_k_frame, "set_k_frame", py::arg("arg"))
         .def("set_x_frame", &SM::System::set_x_frame, "set_x_frame", py::arg("arg"))
-        .def("get_x_frame", &SM::System::get_x_frame, "get_x_frame")
-        .def("get_x", &SM::System::get_x, "get_x")
-        .def("get_v", &SM::System::get_v, "get_v")
-        .def("get_f", &SM::System::get_f, "get_f")
-        .def("get_f_potential", &SM::System::get_f_potential, "get_f_potential")
-        .def("get_f_frame", &SM::System::get_f_frame, "get_f_frame")
-        .def("get_f_neighbours", &SM::System::get_f_neighbours, "get_f_neighbours")
+        .def("x_frame", &SM::System::x_frame, "x_frame")
+        .def("x", &SM::System::x, "x")
+        .def("v", &SM::System::v, "v")
+        .def("a", &SM::System::a, "a")
+        .def("f", &SM::System::f, "f")
+        .def("f_potential", &SM::System::f_potential, "f_potential")
+        .def("f_frame", &SM::System::f_frame, "f_frame")
+        .def("f_neighbours", &SM::System::f_neighbours, "f_neighbours")
+        .def("f_damping", &SM::System::f_damping, "f_damping")
+        .def("residual", &SM::System::residual, "residual")
+        .def("quench", &SM::System::quench, "quench")
         .def("timeStep", &SM::System::timeStep, "timeStep")
-        .def("minimise", &SM::System::minimise, "minimise")
-        // .def("minimise",
-        //      &SM::System::minimise,
-        //      "minimise",
-        //      py::arg("tol") = 1e-5,
-        //      py::arg("niter_tol") = 20,
-        //      py::arg("max_iter") = 1000000)
+        .def("minimise",
+             &SM::System::minimise,
+             "minimise",
+             py::arg("tol") = 1e-5,
+             py::arg("niter_tol") = 20,
+             py::arg("max_iter") = 1000000)
         .def("advanceRightElastic", &SM::System::advanceRightElastic, "advanceRightElastic", py::arg("arg"))
         .def("advanceRightKick", &SM::System::advanceRightKick, "advanceRightKick", py::arg("arg"))
-        .def("currentYieldLeft", &SM::System::currentYieldLeft, "currentYieldLeft")
-        .def("currentYieldRight", &SM::System::currentYieldRight, "currentYieldRight")
-        .def("getYieldIndex", &SM::System::getYieldIndex, "getYieldIndex")
-        .def("getYieldDistanceRight", &SM::System::getYieldDistanceRight, "getYieldDistanceRight")
-        .def("getYieldDistanceLeft", &SM::System::getYieldDistanceLeft, "getYieldDistanceLeft")
+        .def("yieldLeft", &SM::System::yieldLeft, "yieldLeft")
+        .def("yieldRight", &SM::System::yieldRight, "yieldRight")
+        .def("yieldIndex", &SM::System::yieldIndex, "yieldIndex")
+        .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
+        .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
 
         .def("__repr__", [](const SM::System&) {
             return "<FrictionQPotSpringBlock.Line1d.System>";

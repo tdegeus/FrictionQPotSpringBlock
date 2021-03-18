@@ -19,6 +19,7 @@ dependencies:
 
   # run tests
   - catch2
+  - numpy
 
   # run examples
   - fmt

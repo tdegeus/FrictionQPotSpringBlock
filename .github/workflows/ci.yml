@@ -77,13 +77,13 @@ jobs:
       working-directory: build
       run: ctest --output-on-failure
 
-    # - name: Build and install Python module
-    #   run: |
-    #     python setup.py build
-    #     python setup.py install
+    - name: Build and install Python module
+      run: |
+        python setup.py build
+        python setup.py install
 
-    # - name: Run Python tests
-    #   run: python test/UniformSingleLayer2d_LocalTriggerFineLayer.py
+    - name: Run Python tests
+      run: python test/Line1d.py
 
     - name: Build doxygen-docs
       if: runner.os == 'Linux'
