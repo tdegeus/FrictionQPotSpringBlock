@@ -16,7 +16,6 @@ Python API
 // #define FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
 
 #include <FrictionQPotSpringBlock/version.h>
-#include <FrictionQPotSpringBlock/random.h>
 #include <FrictionQPotSpringBlock/Line1d.h>
 
 namespace py = pybind11;
@@ -31,29 +30,6 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
     m.def("version",
           &M::version,
           "Return version string.");
-
-    // ------------------------------
-    // FrictionQPotSpringBlock.random
-    // ------------------------------
-
-    {
-
-    py::module sm = m.def_submodule("random", "random");
-
-    namespace SM = FrictionQPotSpringBlock::random;
-
-    sm.def("seed",
-           &SM::seed<size_t>,
-           "Set seed.",
-           py::arg("seed"));
-
-    sm.def("gamma",
-           &SM::gamma,
-           "Function to return random number from a gamma distribution.",
-           py::arg("alpha"),
-           py::arg("beta"));
-
-    }
 
     // ------------------------------
     // FrictionQPotSpringBlock.Line1d
