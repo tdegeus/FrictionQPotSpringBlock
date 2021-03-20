@@ -1,5 +1,6 @@
 
 #include <FrictionQPotSpringBlock/Line1d.h>
+#include <QPot/random.hpp>
 #include <fmt/core.h>
 #include <xtensor/xrandom.hpp>
 #include <xtensor/xcsv.hpp>
@@ -10,8 +11,7 @@ int main()
     size_t N = 1000;
     double alpha = 0.5;
     double beta = 2.0 / alpha;
-    auto gamma = [=](std::vector<size_t> shape) {
-        return xt::random::gamma<double>(shape, alpha, beta); };
+    auto gamma = QPot::random::GammaList(alpha, beta);
 
     double xdelta = 1e-3;
 

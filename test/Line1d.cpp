@@ -9,7 +9,7 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
 SECTION("System::advanceRightElastic")
 {
     size_t N = 3;
-    auto uniform = [=](std::vector<size_t> shape) {
+    auto uniform = [=](std::array<size_t, 2> shape) {
         return xt::ones<double>(shape); };
 
     FrictionQPotSpringBlock::Line1d::System sys(N, uniform);

@@ -1,5 +1,6 @@
 
 #include <FrictionQPotSpringBlock/Line1d.h>
+#include <QPot/random.hpp>
 #include <fmt/core.h>
 #include <GooseFEM/Iterate.h>
 #include <xtensor/xrandom.hpp>
@@ -19,20 +20,18 @@ void load()
     H5Easy::File data("Load_recover.h5", H5Easy::File::Overwrite);
 
     size_t seed = static_cast<size_t>(time(NULL));
-    xt::random::seed(seed);
-
     size_t N = 1000;
     double alpha = 0.5;
     double beta = 2.0 / alpha;
-    auto gamma = [=](std::vector<size_t> shape) {
-        return xt::random::gamma<double>(shape, alpha, beta); };
+    auto gamma = QPot::random::GammaList(alpha, beta);
+    QPot::random::seed(seed);
 
     double xdelta = 1e-3;
 
-    H5Easy::dump(data, "/meta/seed", seed);
     H5Easy::dump(data, "/meta/N", N);
     H5Easy::dump(data, "/meta/alpha", alpha);
     H5Easy::dump(data, "/meta/beta", beta);
+    H5Easy::dump(data, "/meta/seed", seed);
 
     GooseFEM::Iterate::StopList stop(10);
 
@@ -112,13 +111,11 @@ void recover()
 {
     H5Easy::File data("Load_recover.h5", H5Easy::File::ReadOnly);
 
-    xt::random::seed(H5Easy::load<size_t>(data, "/meta/seed"));
-
     auto N = H5Easy::load<size_t>(data, "/meta/N");
     auto alpha = H5Easy::load<double>(data, "/meta/alpha");
     auto beta = H5Easy::load<double>(data, "/meta/beta");
-    auto gamma = [=](std::vector<size_t> shape) {
-        return xt::random::gamma<double>(shape, alpha, beta); };
+    auto gamma = QPot::random::GammaList(alpha, beta);
+    QPot::random::seed(H5Easy::load<size_t>(data, "/meta/seed"));
 
     FrictionQPotSpringBlock::Line1d::System sys(N, gamma);
 
