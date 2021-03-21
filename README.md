@@ -5,3 +5,17 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/frictionqpotspringblock.svg)](https://anaconda.org/conda-forge/frictionqpotspringblock)
 
 Spring-block friction model with local disordered potential energy landscape
+
+# Change-log
+
+## v0.2.0
+
+*   Updating to new QPot
+*   Various minor updates
+*   Using doxygen docs (publishing GH Action)
+*   Recover configuration to make random simulations deterministic: C++ and Python example
+*   Updating appropriate forces at the appropriate instances
+*   Added output "Load" example for future checking
+*   Adding Python API 
+*   Using setuptools_scm for versioning
+*   Improving CI
