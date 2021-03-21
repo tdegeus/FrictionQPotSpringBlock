@@ -6,14 +6,13 @@
 #include <xtensor/xrandom.hpp>
 #include <highfive/H5Easy.hpp>
 
+#define MYASSERT(expr) MYASSERT_IMPL(expr, __FILE__, __LINE__)
 #define MYASSERT_IMPL(expr, file, line) \
     if (!(expr)) { \
         throw std::runtime_error( \
             std::string(file) + ':' + std::to_string(line) + \
             ": assertion failed (" #expr ") \n\t"); \
     }
-
-#define MYASSERT(expr) MYASSERT_IMPL(expr, __FILE__, __LINE__)
 
 void load()
 {
