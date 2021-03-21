@@ -324,7 +324,7 @@ protected:
     /**
     Allocate the system.
 
-    \param func Function to draw yield distances.
+    \param N Number of particles.
     */
     void allocateSystem(size_t N);
 
