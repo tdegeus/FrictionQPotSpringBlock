@@ -52,6 +52,14 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("N"),
              py::arg("function_to_draw_distances"))
 
+        .def(py::init<size_t, std::function<xt::xtensor<double, 2>(std::array<size_t, 2>)>, size_t, size_t, size_t>(),
+             "System",
+             py::arg("N"),
+             py::arg("function_to_draw_distances"),
+             py::arg("ntotal"),
+             py::arg("nbuffer"),
+             py::arg("noffset"))
+
         .def("N", &SM::System::N, "N")
         .def("set_dt", &SM::System::set_dt, "set_dt", py::arg("arg"))
         .def("set_eta", &SM::System::set_eta, "set_eta", py::arg("arg"))
