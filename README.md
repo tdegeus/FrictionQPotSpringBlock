@@ -8,6 +8,10 @@ Spring-block friction model with local disordered potential energy landscape
 
 # Change-log
 
+## v0.3.0
+
+*   Adding redraw customization (#12)
+
 ## v0.2.0
 
 *   Updating to new QPot
