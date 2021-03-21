@@ -35,6 +35,7 @@ get_target_property(
 
 find_dependency(xtensor)
 find_dependency(QPot)
+find_dependency(GooseFEM)
 
 # Define support target "FrictionQPotSpringBlock::compiler_warnings"
 

@@ -57,10 +57,32 @@ public:
     Constructor.
 
     \param N Number of particles.
-    \param function_to_draw_distances Function to draw yield distances.
+    \param func Function to draw yield distances.
     */
     template <class F>
-    System(size_t N, F function_to_draw_distances);
+    System(size_t N, F func);
+
+    /**
+    Constructor.
+
+    \param N
+        Number of particles.
+
+    \param func
+        Function to draw yield distances.
+
+    \param ntotal
+        Number of yield-positions to keep in memory.
+
+    \param nbuffer
+        Number of yield-positions to buffer when shifting left/right.
+
+    \param noffset
+        Number of yield-positions from the end to consider for redrawing
+        (allows grouping of redraws for several particles).
+    */
+    template <class F>
+    System(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset);
 
     /**
     Number of particles.
@@ -298,6 +320,51 @@ public:
     xt::xtensor<double, 1> yieldDistanceLeft() const;
 
 protected:
+
+    /**
+    Allocate the system.
+
+    \param func Function to draw yield distances.
+    */
+    void allocateSystem(size_t N);
+
+    /**
+    Initialise potential energy landscape.
+    Call after System::allocateSystem.
+
+    \param func Function to draw yield distances.
+    */
+    template <class F>
+    void initYield(F func);
+
+    /**
+    Initialise potential energy landscape.
+    Call after System::allocateSystem.
+
+    \param func
+        Function to draw yield distances.
+
+    \param ntotal
+        Number of yield-positions to keep in memory.
+
+    \param nbuffer
+        Number of yield-positions to buffer when shifting left/right.
+
+    \param noffset
+        Number of yield-positions from the end to consider for redrawing
+        (allows grouping of redraws for several particles).
+    */
+    template <class F>
+    void initYield(F func, size_t ntotal, size_t nbuffer, size_t noffset);
+
+    /**
+    Initialise the system.
+    Call after System::initYield.
+
+    \param N Number of particles.
+    \param func Function to draw yield distances.
+    */
+    void initSystem();
 
     /**
     Compute #f based on the current #x and #v.

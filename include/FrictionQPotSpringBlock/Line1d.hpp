@@ -31,8 +31,24 @@ inline std::vector<std::string> version_dependencies()
 }
 
 template <class F>
-inline System::System(size_t N, F func) : m_N(N)
+inline System::System(size_t N, F func)
 {
+    this->allocateSystem(N);
+    this->initYield(func);
+    this->initSystem();
+}
+
+template <class F>
+inline System::System(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset)
+{
+    this->allocateSystem(N);
+    this->initYield(func, ntotal, nbuffer, noffset);
+    this->initSystem();
+}
+
+inline void System::allocateSystem(size_t N)
+{
+    m_N = N;
     m_f = xt::zeros<double>({m_N});
     m_f_potential = xt::zeros<double>({m_N});
     m_f_neighbours = xt::zeros<double>({m_N});
@@ -43,11 +59,26 @@ inline System::System(size_t N, F func) : m_N(N)
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
+}
 
+template <class F>
+inline void System::initYield(F func)
+{
     m_y = QPot::RedrawList(m_x, func);
-    m_y_l = xt::zeros<double>({m_N});
-    m_y_r = xt::zeros<double>({m_N});
+    m_y_l = m_y.currentYieldLeft();
+    m_y_r = m_y.currentYieldRight();
+}
 
+template <class F>
+inline void System::initYield(F func, size_t ntotal, size_t nbuffer, size_t noffset)
+{
+    m_y = QPot::RedrawList(m_x, func, ntotal, nbuffer, noffset);
+    m_y_l = m_y.currentYieldLeft();
+    m_y_r = m_y.currentYieldRight();
+}
+
+inline void System::initSystem()
+{
     this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
