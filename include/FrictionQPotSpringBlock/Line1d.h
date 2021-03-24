@@ -327,7 +327,7 @@ public:
 
     \return Reference to QPot::RedrawList.
     */
-    QPot::RedrawList& QPot();
+    QPot::RedrawList& getRedrawList();
 
 protected:
 

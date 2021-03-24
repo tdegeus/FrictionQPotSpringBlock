@@ -356,7 +356,7 @@ inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
     return m_x - m_y.currentYieldLeft();
 }
 
-inline QPot::RedrawList& System::QPot()
+inline QPot::RedrawList& System::getRedrawList()
 {
     return m_y;
 }
