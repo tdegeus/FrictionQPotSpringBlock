@@ -356,26 +356,6 @@ inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
     return m_x - m_y.currentYieldLeft();
 }
 
-inline xt::xtensor<int, 1> System::yield_currentRedraw() const
-{
-    return m_y.currentRedraw();
-}
-
-inline void System::yield_redraw(const xt::xtensor<int, 1>& index)
-{
-    m_y.redraw(index);
-}
-
-inline void System::yield_redrawRight(const xt::xtensor<size_t, 1>& index)
-{
-    m_y.redrawRight(index);
-}
-
-inline void System::yield_redrawLeft(const xt::xtensor<size_t, 1>& index)
-{
-    m_y.redrawLeft(index);
-}
-
 inline QPot::RedrawList& System::QPot()
 {
     return m_y;
