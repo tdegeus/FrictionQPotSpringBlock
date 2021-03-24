@@ -28,7 +28,7 @@ target_link_libraries(${test_name} PRIVATE
     FrictionQPotSpringBlock::compiler_warnings)
 
 if(ASSERT)
-    target_link_libraries(${test_name} PRIVATE FrictionQPotSpringBlock::assert)
+    target_link_libraries(${test_name} PRIVATE FrictionQPotSpringBlock::assert QPot::assert)
 endif()
 
 if(DEBUG)

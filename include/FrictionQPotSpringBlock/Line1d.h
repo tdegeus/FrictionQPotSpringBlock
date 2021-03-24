@@ -319,6 +319,19 @@ public:
     */
     xt::xtensor<double, 1> yieldDistanceLeft() const;
 
+    /**
+
+    */
+    xt::xtensor<int, 1> yield_currentRedraw() const;
+
+    void yield_redraw(const xt::xtensor<int, 1>& index);
+
+    void yield_redrawRight(const xt::xtensor<size_t, 1>& index);
+
+    void yield_redrawLeft(const xt::xtensor<size_t, 1>& index);
+
+    QPot::RedrawList& QPot();
+
 protected:
 
     /**
