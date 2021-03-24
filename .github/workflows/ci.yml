@@ -82,6 +82,14 @@ jobs:
         python setup.py build
         python setup.py install
 
+    - name: Stack trace
+      if: runner.os == 'Linux'
+      working-directory: test
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y gdb
+        echo "r Line1d.py" | gdb python
+
     - name: Run Python tests
       run: python test/Line1d.py
 
