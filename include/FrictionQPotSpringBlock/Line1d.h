@@ -286,6 +286,7 @@ public:
 
     /**
     Current yield position to the left (for each particle).
+    See QPot::RedrawList::currentYieldLeft().
 
     \return [#N].
     */
@@ -293,6 +294,7 @@ public:
 
     /**
     Current yield position to the right (for each particle).
+    See QPot::RedrawList::currentYieldRight().
 
     \return [#N].
     */
@@ -318,6 +320,14 @@ public:
     \return [#N].
     */
     xt::xtensor<double, 1> yieldDistanceLeft() const;
+
+    /**
+    Get a reference to QPot::RedrawList.
+    Use with caution: reference is valid until this class goes out of scope.
+
+    \return Reference to QPot::RedrawList.
+    */
+    QPot::RedrawList& QPot();
 
 protected:
 

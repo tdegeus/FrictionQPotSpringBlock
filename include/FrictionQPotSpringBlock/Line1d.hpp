@@ -356,6 +356,11 @@ inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
     return m_x - m_y.currentYieldLeft();
 }
 
+inline QPot::RedrawList& System::QPot()
+{
+    return m_y;
+}
+
 } // namespace Line1d
 } // namespace FrictionQPotSpringBlock
 
