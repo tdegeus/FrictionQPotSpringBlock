@@ -86,9 +86,10 @@ jobs:
       if: runner.os == 'Linux'
       working-directory: test
       run: |
+        conda install -c conda-forge pytest
         sudo apt-get update -y
         sudo apt-get install -y gdb
-        echo "r Line1d.py" | gdb python
+        gdb --batch --eval-command run --eval-command bt --args python -m pytest Line1d.py
 
     - name: Run Python tests
       run: python test/Line1d.py
