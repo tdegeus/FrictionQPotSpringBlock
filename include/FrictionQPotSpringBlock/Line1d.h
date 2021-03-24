@@ -320,16 +320,34 @@ public:
     xt::xtensor<double, 1> yieldDistanceLeft() const;
 
     /**
+    See QPot::RedrawList::currentRedraw()
 
+    \return Per particle the direction of redraw (0 = no redraw).
     */
     xt::xtensor<int, 1> yield_currentRedraw() const;
 
     void yield_redraw(const xt::xtensor<int, 1>& index);
 
+    /**
+    See QPot::RedrawList::redrawRight()
+
+    \param index List of particles.
+    */
     void yield_redrawRight(const xt::xtensor<size_t, 1>& index);
 
+    /**
+    See QPot::RedrawList::redrawRight()
+
+    \param index List of particles.
+    */
     void yield_redrawLeft(const xt::xtensor<size_t, 1>& index);
 
+    /**
+    Get a reference to QPot::RedrawList.
+    Use with caution: reference is valid until this class goes out of scope.
+
+    \return Reference to QPot::RedrawList.
+    */
     QPot::RedrawList& QPot();
 
 protected:
