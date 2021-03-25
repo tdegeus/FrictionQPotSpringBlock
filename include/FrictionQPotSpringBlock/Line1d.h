@@ -329,6 +329,33 @@ public:
     */
     QPot::RedrawList& getRedrawList();
 
+    /**
+    Wrapper around QPot::RedrawList::redraw().
+    Favour getRedrawList().redraw().
+
+    \param iredraw See QPot::RedrawList::currentRedraw().
+    */
+    [[ deprecated ]]
+    void getRedrawList_redraw(const xt::xtensor<int, 1>& iredraw);
+
+    /**
+    Wrapper around QPot::RedrawList::redrawRight().
+    Favour getRedrawList().redrawRight().
+
+    \param index List of particles for which to redraw to the right.
+    */
+    [[ deprecated ]]
+    void getRedrawList_redrawRight(const xt::xtensor<size_t, 1>& index);
+
+    /**
+    Wrapper around QPot::RedrawList::redrawLeft().
+    Favour getRedrawList().redrawLeft().
+
+    \param index List of particles for which to redraw to the left.
+    */
+    [[ deprecated ]]
+    void getRedrawList_redrawLeft(const xt::xtensor<size_t, 1>& index);
+
 protected:
 
     /**

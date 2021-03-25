@@ -15,6 +15,11 @@ Defines used in the library.
 #define Q(x) #x
 #define QUOTE(x) Q(x)
 
+#define FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, file, line) \
+    std::cout << \
+        std::string(file) + ':' + std::to_string(line) + \
+        ": " message ") \n\t"; \
+
 #define FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, file, line) \
     if (!(expr)) { \
         throw std::runtime_error( \
@@ -54,5 +59,35 @@ Assertions that cannot be disable.
 \throw std::runtime_error
 */
 #define FRICTIONQPOTSPRINGBLOCK_REQUIRE(expr) FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, __FILE__, __LINE__)
+
+/**
+All warnings are implemented as::
+
+    FRICTIONQPOTSPRINGBLOCK_WARNING(...)
+
+They can be disabled by::
+
+    #define FRICTIONQPOTSPRINGBLOCK_DISABLE_WARNING
+*/
+#ifdef FRICTIONQPOTSPRINGBLOCK_DISABLE_WARNING
+#define FRICTIONQPOTSPRINGBLOCK_WARNING(message)
+#else
+#define FRICTIONQPOTSPRINGBLOCK_WARNING(message) FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, __FILE__, __LINE__)
+#endif
+
+/**
+All warnings specific to the Python API are implemented as::
+
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(...)
+
+They can be enabled by::
+
+    #define FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
+*/
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
+#define FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(message) FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, __FILE__, __LINE__)
+#else
+#define FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(message)
+#endif
 
 #endif
