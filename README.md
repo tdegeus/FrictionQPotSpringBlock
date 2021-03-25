@@ -8,6 +8,10 @@ Spring-block friction model with local disordered potential energy landscape
 
 # Change-log
 
+## v0.3.2
+
+*   Wrapping some QPot::RedrawList function for Python API that has a mysterious bug using the reference (#16)
+
 ## v0.3.1
 
 *   Reconstruction using new QPot features (#14)
