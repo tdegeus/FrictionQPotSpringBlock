@@ -96,7 +96,10 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("yieldIndex", &SM::System::yieldIndex, "yieldIndex")
         .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
         .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
-        .def("QPot", &SM::System::QPot, "QPot", py::return_value_policy::reference_internal)
+        .def("getRedrawList", &SM::System::getRedrawList, "getRedrawList", py::return_value_policy::reference_internal)
+        .def("getRedrawList_redraw", &SM::System::getRedrawList_redraw, "getRedrawList_redraw")
+        .def("getRedrawList_redrawRight", &SM::System::getRedrawList_redrawRight, "getRedrawList_redrawRight")
+        .def("getRedrawList_redrawLeft", &SM::System::getRedrawList_redrawLeft, "getRedrawList_redrawLeft")
 
         .def("__repr__", [](const SM::System&) {
             return "<FrictionQPotSpringBlock.Line1d.System>";

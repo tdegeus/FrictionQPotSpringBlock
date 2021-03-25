@@ -356,9 +356,27 @@ inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
     return m_x - m_y.currentYieldLeft();
 }
 
-inline QPot::RedrawList& System::QPot()
+inline QPot::RedrawList& System::getRedrawList()
 {
     return m_y;
+}
+
+inline void System::getRedrawList_redraw(const xt::xtensor<int, 1>& iredraw)
+{
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("Use this.getRedrawList().redraw(...)");
+    m_y.redraw(iredraw);
+}
+
+inline void System::getRedrawList_redrawRight(const xt::xtensor<size_t, 1>& index)
+{
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("Use this.getRedrawList().redrawRight(...)");
+    m_y.redrawRight(index);
+}
+
+inline void System::getRedrawList_redrawLeft(const xt::xtensor<size_t, 1>& index)
+{
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("Use this.getRedrawList().redrawLeft(...)");
+    m_y.redrawLeft(index);
 }
 
 } // namespace Line1d
