@@ -83,14 +83,14 @@ jobs:
         python setup.py install
 
     - name: Cloning pyxtenor
-      run: git clone git@github.com:tdegeus/pyxtensor.git
+      run: git clone https://github.com/tdegeus/pyxtensor.git
 
     - name: Installing pyxtensor
       working-directory: pyxtensor
       run: python -m pip install .
 
     - name: Cloning QPot
-      run: git clone git@github.com:tdegeus/QPot.git
+      run: git clone https://github.com/tdegeus/QPot.git
 
     - name: Installing QPot
       working-directory: QPot
