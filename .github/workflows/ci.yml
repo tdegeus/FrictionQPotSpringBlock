@@ -82,6 +82,15 @@ jobs:
         python setup.py build
         python setup.py install
 
+    - name: Cloning QPot
+      run: git clone https://github.com/tdegeus/QPot.git
+
+    - name: Installing QPot
+      working-directory: QPot
+      run: |
+        python setup.py build
+        python setup.py install
+
     - name: Run Python tests
       run: python test/Line1d.py
 
