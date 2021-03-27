@@ -79,7 +79,7 @@ jobs:
 
     - name: Get conda-forge's compiler
       if: runner.os != 'Windows'
-      run: cxx-compiler
+      run: mamba install -c conda-forge cxx-compiler
 
     - name: Build and install Python module
       run: |
