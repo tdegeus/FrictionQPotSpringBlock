@@ -20,7 +20,7 @@ dependencies:
   # run tests
   - catch2
   - numpy
-  - python-qpot
+  # - python-qpot
 
   # run examples
   - fmt

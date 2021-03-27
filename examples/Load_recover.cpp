@@ -44,7 +44,7 @@ void load()
     sys.set_k_frame(1.0 / double(N));
 
     size_t ninc = 1000;
-    bool redraw;
+    bool redraw = false;
     size_t nredraw = 0;
 
     for (size_t inc = 0; inc < ninc; ++inc) {
