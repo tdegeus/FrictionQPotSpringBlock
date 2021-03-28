@@ -9,7 +9,6 @@ endif()
 set(WARNINGS ON)
 set(ASSERT ON)
 set(DEBUG ON)
-option(XSIMD "Use xsimd optimisations" ON)
 
 set(CMAKE_BUILD_TYPE Release)
 
@@ -17,6 +16,7 @@ set(test_name "unit-tests")
 
 find_package(Catch2 REQUIRED)
 find_package(xtensor REQUIRED)
+find_package(xsimd)
 
 add_executable(${test_name}
     main.cpp
@@ -35,9 +35,8 @@ if(DEBUG)
     target_link_libraries(${test_name} PRIVATE FrictionQPotSpringBlock::debug)
 endif()
 
-if(XSIMD)
+if(xsimd_FOUND)
     find_package(xtensor REQUIRED)
-    find_package(xsimd REQUIRED)
     target_link_libraries(${test_name} PRIVATE xtensor::optimize xtensor::use_xsimd)
 endif()
 
