@@ -6,9 +6,6 @@ dependencies:
   - goosefem
   - qpot
 
-  # optional dependencies
-  - xsimd
-
   # build tools
   - cmake
   - setuptools_scm

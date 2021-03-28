@@ -77,10 +77,6 @@ jobs:
       working-directory: build
       run: ctest --output-on-failure
 
-    - name: Get conda-forge's compiler
-      if: runner.os != 'Windows'
-      run: conda install -c conda-forge cxx-compiler
-
     - name: Build and install Python module
       run: |
         python setup.py build
