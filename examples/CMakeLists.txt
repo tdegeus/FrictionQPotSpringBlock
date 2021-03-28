@@ -24,16 +24,18 @@ foreach(testsourcefile ${APP_SOURCES})
     set(HIGHFIVE_USE_XTENSOR 1)
 
     find_package(xtensor REQUIRED)
-    find_package(xsimd REQUIRED)
+    find_package(xsimd QUIET)
     find_package(HighFive REQUIRED)
     find_package(fmt REQUIRED)
 
     target_link_libraries(${testname} PUBLIC
         FrictionQPotSpringBlock
-        xtensor::optimize
-        xtensor::use_xsimd
         fmt::fmt
         HighFive)
+
+    if(xsimd_FOUND)
+        target_link_libraries(${testname} PRIVATE xtensor::optimize xtensor::use_xsimd)
+    endif()
 
     if(WARNINGS)
         target_link_libraries(${testname} PRIVATE FrictionQPotSpringBlock::compiler_warnings)

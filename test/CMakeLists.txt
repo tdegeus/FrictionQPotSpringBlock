@@ -12,32 +12,31 @@ set(DEBUG ON)
 
 set(CMAKE_BUILD_TYPE Release)
 
-set(test_name "unit-tests")
+set(testname "unit-tests")
 
 find_package(Catch2 REQUIRED)
 find_package(xtensor REQUIRED)
-find_package(xsimd)
+find_package(xsimd QUIET)
 
-add_executable(${test_name}
+add_executable(${testname}
     main.cpp
     Line1d.cpp)
 
-target_link_libraries(${test_name} PRIVATE
+target_link_libraries(${testname} PRIVATE
     Catch2::Catch2
     FrictionQPotSpringBlock
     FrictionQPotSpringBlock::compiler_warnings)
 
 if(ASSERT)
-    target_link_libraries(${test_name} PRIVATE FrictionQPotSpringBlock::assert QPot::assert)
+    target_link_libraries(${testname} PRIVATE FrictionQPotSpringBlock::assert QPot::assert)
 endif()
 
 if(DEBUG)
-    target_link_libraries(${test_name} PRIVATE FrictionQPotSpringBlock::debug)
+    target_link_libraries(${testname} PRIVATE FrictionQPotSpringBlock::debug)
 endif()
 
 if(xsimd_FOUND)
-    find_package(xtensor REQUIRED)
-    target_link_libraries(${test_name} PRIVATE xtensor::optimize xtensor::use_xsimd)
+    target_link_libraries(${testname} PRIVATE xtensor::optimize xtensor::use_xsimd)
 endif()
 
-add_test(NAME ${test_name} COMMAND ${test_name})
+add_test(NAME ${testname} COMMAND ${testname})
