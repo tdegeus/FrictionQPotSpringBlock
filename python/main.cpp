@@ -14,6 +14,7 @@ Python API
 // #define QPOT_ENABLE_ASSERT
 // #define GOOSEFEM_ENABLE_ASSERT
 // #define FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+#define FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
 
 #include <FrictionQPotSpringBlock/version.h>
 #include <FrictionQPotSpringBlock/Line1d.h>

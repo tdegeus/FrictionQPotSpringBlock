@@ -40,7 +40,7 @@ class Test_main(unittest.TestCase):
         other = FrictionQPotSpringBlock.Line1d.System(N, random)
 
         for i in redraw:
-            other.getRedrawList_redraw(i)
+            other.getRedrawList().redraw(i)
 
         other.set_x(system.x());
 
@@ -79,9 +79,9 @@ class Test_main(unittest.TestCase):
 
         for d, p in zip(direction, particles):
             if d > 0:
-                other.getRedrawList_redrawRight(p)
+                other.getRedrawList().redrawRight(p)
             else:
-                other.getRedrawList_redrawLeft(p)
+                other.getRedrawList().redrawLeft(p)
 
         other.set_x(system.x());
 
