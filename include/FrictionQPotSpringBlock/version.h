@@ -34,7 +34,7 @@ Tip: use the environment variable ``SETUPTOOLS_SCM_PRETEND_VERSION``
 to overwrite the automatic version.
 */
 #ifndef FRICTIONQPOTSPRINGBLOCK_VERSION
-#define FRICTIONQPOTSPRINGBLOCK_VERSION "@FRICTIONQPOTSPRINGBLOCK_VERSION@"
+#define FRICTIONQPOTSPRINGBLOCK_VERSION "@FrictionQPotSpringBlock_VERSION@"
 #endif
 
 namespace FrictionQPotSpringBlock {
