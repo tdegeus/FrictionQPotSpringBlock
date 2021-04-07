@@ -23,7 +23,7 @@ jobs:
             config: -DBUILD_TESTS=1
             prop: tests
           - runs-on: windows-latest
-            config: -DBUILD_TESTS=1 -G Ninja
+            config: -DBUILD_TESTS=1
             prop: tests
 
     defaults:
@@ -53,27 +53,27 @@ jobs:
         channels: conda-forge,defaults
         channel-priority: true
         environment-file: environment.yaml
-        activate-environment: test
+        activate-environment: myenv
         auto-activate-base: false
 
-    - name: Select Clang (Windows)
+    - name: Set dummy version
+      run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=ci" >> $GITHUB_ENV
+
+    - name: Configure using CMake (!Windows)
+      if: runner.os != 'Windows'
+      run: cmake -Bbuild ${{ matrix.config }}
+
+    - name: Configure using CMake (Windows)
       if: runner.os == 'Windows'
       run: |
         conda install -c conda-forge clang_win-64 ninja
-        echo "CC=clang" >> $GITHUB_ENV
-        echo "CXX=clang++" >> $GITHUB_ENV
-
-    - name: Dummy version
-      run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=ci" >> $GITHUB_ENV
-
-    - name: Configure using CMake
-      run: cmake -Bbuild ${{ matrix.config }}
+        cmake -Bbuild -G Ninja ${{ matrix.config }} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 
     - name: Build C++ ${{ matrix.prop }}
       working-directory: build
       run: cmake --build .
 
-    - name: Run C++ tests
+    - name: Run C++ ${{ matrix.prop }}
       working-directory: build
       run: ctest --output-on-failure
 
@@ -83,7 +83,8 @@ jobs:
         python setup.py install
 
     - name: Run Python tests
-      run: python test/Line1d.py
+      working-directory: test
+      run: python Line1d.py
 
     - name: Build doxygen-docs (error on warning)
       if: runner.os == 'Linux'
