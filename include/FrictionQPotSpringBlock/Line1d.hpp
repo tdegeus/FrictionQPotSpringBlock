@@ -689,6 +689,31 @@ inline xt::xtensor<double, 1> System::f_damping() const
     return m_f_damping;
 }
 
+template <class T>
+inline OverdampedSystem::OverdampedSystem(size_t N, const T& x_y)
+{
+    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
+    this->init(N, x_y, istart);
+}
+
+template <class T, class I>
+inline OverdampedSystem::OverdampedSystem(size_t N, const T& x_y, const I& istart)
+{
+    this->init(N, x_y, istart);
+}
+
+inline void OverdampedSystem::timeStep()
+{
+    xt::noalias(m_x) = m_x + m_dt * m_f;
+    this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+
+    if (xt::any(xt::isnan(m_x))) {
+        throw std::runtime_error("NaN entries found");
+    }
+}
+
 } // namespace Line1d
 } // namespace FrictionQPotSpringBlock
 

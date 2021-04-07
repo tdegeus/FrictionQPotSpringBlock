@@ -224,14 +224,14 @@ public:
 
     \param arg double.
     */
-    void set_eta(double arg);
+    virtual void set_eta(double arg);
 
     /**
     Set particle mass (same for all particles).
 
     \param arg double.
     */
-    void set_m(double arg);
+    virtual void set_m(double arg);
 
     /**
     Set elastic stiffness (same for all particles).
@@ -309,14 +309,14 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<double, 1> v() const;
+    virtual xt::xtensor<double, 1> v() const;
 
     /**
     Acceleration of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> a() const;
+    virtual xt::xtensor<double, 1> a() const;
 
     /**
     Resultant force acting on each particle.
@@ -351,7 +351,7 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_damping() const;
+    virtual xt::xtensor<double, 1> f_damping() const;
 
     /**
      * The time, see set_t().
@@ -383,7 +383,7 @@ public:
     Effectuates time step using the velocity Verlet algorithm.
     Updates #x, #v, #a, and #f.
     */
-    void timeStep();
+    virtual void timeStep();
 
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
@@ -562,6 +562,47 @@ protected:
     double m_k_neighbours = 1.0; ///< See #set_k_neighbours.
     double m_k_frame = 1.0; ///< See #set_k_frame.
     double m_x_frame; ///< See #set_x_frame.
+};
+
+/**
+Similar to System, but without mass: with overdamped dynamics.
+*/
+class OverdampedSystem : public System {
+
+    OverdampedSystem() = default;
+
+    /**
+    Constructor.
+
+    \param N Number of particles.
+    \param y Initial yield positions [#N, n_yield].
+    */
+    template <class T>
+    OverdampedSystem(size_t N, const T& y);
+
+    /**
+    Constructor.
+
+    \param N Number of particles.
+    \param y Initial yield positions [#N, n_yield].
+    \param istart Starting index corresponding to y[:, 0], [#N].
+    */
+    template <class T, class I>
+    OverdampedSystem(size_t N, const T& y, const I& istart);
+
+    void set_m(double) override = 0;
+    void set_eta(double) override = 0;
+
+    xt::xtensor<double, 1> v() const override = 0;
+    xt::xtensor<double, 1> a() const override = 0;
+    xt::xtensor<double, 1> f_damping() const override = 0;
+
+    /**
+    Effectuates time step using the Verlet algorithm.
+    Updates #x, #v, and #f.
+    */
+    void timeStep() override;
+
 };
 
 } // namespace Line1d
