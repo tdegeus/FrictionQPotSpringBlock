@@ -104,14 +104,14 @@ public:
 
     \param arg double.
     */
-    void set_eta(double arg);
+    virtual void set_eta(double arg);
 
     /**
     Set particle mass (same for all particles).
 
     \param arg double.
     */
-    void set_m(double arg);
+    virtual void set_m(double arg);
 
     /**
     Set elastic stiffness (same for all particles).
@@ -166,14 +166,14 @@ public:
 
     \param arg [#N].
     */
-    void set_v(const xt::xtensor<double, 1>& arg);
+    virtual void set_v(const xt::xtensor<double, 1>& arg);
 
     /**
     Set the acceleration of each particle.
 
     \param arg [#N].
     */
-    void set_a(const xt::xtensor<double, 1>& arg);
+    virtual void set_a(const xt::xtensor<double, 1>& arg);
 
     /**
     Position of each particle.
@@ -187,14 +187,14 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<double, 1> v() const;
+    virtual xt::xtensor<double, 1> v() const;
 
     /**
     Acceleration of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> a() const;
+    virtual xt::xtensor<double, 1> a() const;
 
     /**
     Resultant force acting on each particle.
@@ -229,7 +229,7 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_damping() const;
+    virtual xt::xtensor<double, 1> f_damping() const;
 
     /**
     Residual: the ratio between the norm of #f and #f_frame.
@@ -250,7 +250,7 @@ public:
 
     \return ``true`` is there was a redraw.
     */
-    bool timeStep();
+    virtual bool timeStep();
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -453,6 +453,64 @@ protected:
     double m_k_neighbours = 1.0; ///< See #set_k_neighbours.
     double m_k_frame = 1.0; ///< See #set_k_frame.
     double m_x_frame; ///< See #set_x_frame.
+};
+
+/**
+Similar to System, but without mass: with overdamped dynamics.
+*/
+class OverdampedSystem : public System {
+
+    OverdampedSystem() = default;
+
+    /**
+    Constructor.
+
+    \param N Number of particles.
+    \param func Function to draw yield distances.
+    */
+    template <class F>
+    OverdampedSystem(size_t N, F func);
+
+    /**
+    Constructor.
+
+    \param N
+        Number of particles.
+
+    \param func
+        Function to draw yield distances.
+
+    \param ntotal
+        Number of yield-positions to keep in memory.
+
+    \param nbuffer
+        Number of yield-positions to buffer when shifting left/right.
+
+    \param noffset
+        Number of yield-positions from the end to consider for redrawing
+        (allows grouping of redraws for several particles).
+    */
+    template <class F>
+    OverdampedSystem(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset);
+
+    void set_m(double) override = 0;
+    void set_eta(double) override = 0;
+
+    void set_v(const xt::xtensor<double, 1>&) override = 0;
+    void set_a(const xt::xtensor<double, 1>&) override = 0;
+
+    xt::xtensor<double, 1> v() const override = 0;
+    xt::xtensor<double, 1> a() const override = 0;
+    xt::xtensor<double, 1> f_damping() const override = 0;
+
+    /**
+    Effectuates time step using the Verlet algorithm.
+    Updates #x, #v, and #f.
+
+    \return ``true`` is there was a redraw.
+    */
+    bool timeStep() override;
+
 };
 
 } // namespace Line1d
