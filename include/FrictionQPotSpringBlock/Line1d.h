@@ -12,7 +12,7 @@ Line in 1d.
 #include "config.h"
 #include "version.h"
 
-#include <QPot/Redraw.hpp>
+#include <QPot/Chunked.hpp>
 #include <GooseFEM/version.h>
 #include <GooseFEM/Iterate.h>
 #include <xtensor/xtensor.hpp>
@@ -57,32 +57,18 @@ public:
     Constructor.
 
     \param N Number of particles.
-    \param func Function to draw yield distances.
+    \param x_y Initial yield positions.
     */
-    template <class F>
-    System(size_t N, F func);
+    System(size_t N, const xt::xtensor<double, 2>& x_y);
 
     /**
     Constructor.
 
-    \param N
-        Number of particles.
-
-    \param func
-        Function to draw yield distances.
-
-    \param ntotal
-        Number of yield-positions to keep in memory.
-
-    \param nbuffer
-        Number of yield-positions to buffer when shifting left/right.
-
-    \param noffset
-        Number of yield-positions from the end to consider for redrawing
-        (allows grouping of redraws for several particles).
+    \param N Number of particles.
+    \param x_y Initial yield positions.
+    \param istart Starting index corresponding to x_y[:, 0]
     */
-    template <class F>
-    System(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset);
+    System(size_t N, const xt::xtensor<double, 2>& x_y, const xt::xtensor<long, 1>& istart);
 
     /**
     Number of particles.
@@ -90,6 +76,58 @@ public:
     \return unsigned int
     */
     size_t N() const;
+
+    /**
+    Return reference to the underlying QPot::Chunked storage
+    */
+    QPot::Chunked& y(size_t p);
+
+    template <class T>
+    void set_y(size_t p, long istart, const T& x_y);
+
+    template <class T>
+    void shift_y(size_t p, long istart, const T& x_y, size_t nbuffer = 0);
+
+    template <class T>
+    void shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffer = 0);
+
+    xt::xtensor<double, 1> ymin_chunk() const;
+
+    xt::xtensor<double, 1> yleft() const;
+
+    xt::xtensor<double, 1> yright() const;
+
+    xt::xtensor<long, 1> istart() const;
+
+    xt::xtensor<bool, 1> boundcheck_left(size_t n = 0) const;
+
+    xt::xtensor<bool, 1> boundcheck_right(size_t n = 0) const;
+
+    bool redraw(const xt::xtensor<double, 1>& arg);
+
+    bool shift(size_t n) const;
+
+    /**
+    Current index in the global potential energy landscape (for each particle).
+    \todo remark const if underlying function is marked const
+
+    \return [#N].
+    */
+    xt::xtensor<long, 1> yieldIndex();
+
+    /**
+    Distance to yield to the right (for each particle).
+
+    \return [#N].
+    */
+    xt::xtensor<double, 1> yieldDistanceRight() const;
+
+    /**
+    Distance to yield to the left (for each particle).
+
+    \return [#N].
+    */
+    xt::xtensor<double, 1> yieldDistanceLeft() const;
 
     /**
     Set time step.
@@ -155,9 +193,8 @@ public:
     As a rule of thumb this should be only way to update positions (even when deriving).
 
     \param arg [#N].
-    \return ``true`` is there was a redraw.
     */
-    bool set_x(const xt::xtensor<double, 1>& arg);
+    void set_x(const xt::xtensor<double, 1>& arg);
 
     /**
     Set the velocity of each particle.
@@ -247,10 +284,8 @@ public:
     /**
     Effectuates time step using the velocity Verlet algorithm.
     Updates #x, #v, #a, and #f.
-
-    \return ``true`` is there was a redraw.
     */
-    bool timeStep();
+    void timeStep();
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -272,136 +307,26 @@ public:
     Event driven advance right to closest yielding point, leaving ``delta_x / 2`` as margin.
 
     \param delta_x Margin.
-    \return ``true`` is there was a redraw.
     */
-    bool advanceRightElastic(double delta_x);
+    void advanceRightElastic(double delta_x);
 
     /**
     Event driven: advance right by ``delta_x``.
 
     \param delta_x Step size.
-    \return ``true`` is there was a redraw.
     */
-    bool advanceRightKick(double delta_x);
-
-    /**
-    Current yield position to the left (for each particle).
-    See QPot::RedrawList::currentYieldLeft().
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldLeft() const;
-
-    /**
-    Current yield position to the right (for each particle).
-    See QPot::RedrawList::currentYieldRight().
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldRight() const;
-
-    /**
-    Current index in the local potential energy landscape (for each particle).
-
-    \return [#N].
-    */
-    xt::xtensor<int, 1> yieldIndex() const;
-
-    /**
-    Distance to yield to the right (for each particle).
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldDistanceRight() const;
-
-    /**
-    Distance to yield to the left (for each particle).
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldDistanceLeft() const;
-
-    /**
-    Get a reference to QPot::RedrawList.
-    Use with caution: reference is valid until this class goes out of scope.
-
-    \return Reference to QPot::RedrawList.
-    */
-    QPot::RedrawList& getRedrawList();
-
-    /**
-    Wrapper around QPot::RedrawList::redraw().
-    Favour getRedrawList().redraw().
-
-    \param iredraw See QPot::RedrawList::currentRedraw().
-    */
-    [[ deprecated ]]
-    void getRedrawList_redraw(const xt::xtensor<int, 1>& iredraw);
-
-    /**
-    Wrapper around QPot::RedrawList::redrawRight().
-    Favour getRedrawList().redrawRight().
-
-    \param index List of particles for which to redraw to the right.
-    */
-    [[ deprecated ]]
-    void getRedrawList_redrawRight(const xt::xtensor<size_t, 1>& index);
-
-    /**
-    Wrapper around QPot::RedrawList::redrawLeft().
-    Favour getRedrawList().redrawLeft().
-
-    \param index List of particles for which to redraw to the left.
-    */
-    [[ deprecated ]]
-    void getRedrawList_redrawLeft(const xt::xtensor<size_t, 1>& index);
+    void advanceRightKick(double delta_x);
 
 protected:
 
     /**
-    Allocate the system.
-
-    \param N Number of particles.
-    */
-    void allocateSystem(size_t N);
-
-    /**
-    Initialise potential energy landscape.
-    Call after System::allocateSystem.
-
-    \param func Function to draw yield distances.
-    */
-    template <class F>
-    void initYield(F func);
-
-    /**
-    Initialise potential energy landscape.
-    Call after System::allocateSystem.
-
-    \param func
-        Function to draw yield distances.
-
-    \param ntotal
-        Number of yield-positions to keep in memory.
-
-    \param nbuffer
-        Number of yield-positions to buffer when shifting left/right.
-
-    \param noffset
-        Number of yield-positions from the end to consider for redrawing
-        (allows grouping of redraws for several particles).
-    */
-    template <class F>
-    void initYield(F func, size_t ntotal, size_t nbuffer, size_t noffset);
-
-    /**
     Initialise the system.
-    Call after System::initYield.
 
     \param N Number of particles.
-    \param func Function to draw yield distances.
+    \param x_y Initial yield positions.
+    \param istart Starting index corresponding to x_y[:, 0]
     */
-    void initSystem();
+    void init(size_t N, const xt::xtensor<double, 2>& x_y, const xt::xtensor<long, 1>& istart);
 
     /**
     Compute #f based on the current #x and #v.
@@ -410,10 +335,8 @@ protected:
 
     /**
     Compute #f_potential based on the current #x.
-
-    \return ``true`` is there was a redraw.
     */
-    bool computeForcePotential();
+    void computeForcePotential();
 
     /**
     Compute #f_neighbours based on the current #x.
@@ -442,9 +365,7 @@ protected:
     xt::xtensor<double, 1> m_a; ///< See #a.
     xt::xtensor<double, 1> m_v_n; ///< #v at last time-step.
     xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
-    QPot::RedrawList m_y; ///< Potential energy landscape.
-    xt::xtensor<double, 1> m_y_l; ///< Current yielding position left.
-    xt::xtensor<double, 1> m_y_r; ///< Current yielding position right.
+    std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     double m_dt = 0.1; ///< See #set_dt.
     double m_eta = 2.0 * std::sqrt(3.0) / 10.0; ///< See #set_eta.
