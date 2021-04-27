@@ -379,6 +379,28 @@ inline void System::getRedrawList_redrawLeft(const xt::xtensor<size_t, 1>& index
     m_y.redrawLeft(index);
 }
 
+template <class F>
+inline OverdampedSystem::OverdampedSystem(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset)
+{
+    this->allocateSystem(N);
+    this->initYield(func, ntotal, nbuffer, noffset);
+    this->initSystem();
+}
+
+inline bool OverdampedSystem::timeStep()
+{
+    xt::noalias(m_x) = m_x + m_dt * m_f;
+    bool redraw = this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+
+    if (xt::any(xt::isnan(m_x))) {
+        throw std::runtime_error("NaN entries found");
+    }
+
+    return redraw;
+}
+
 } // namespace Line1d
 } // namespace FrictionQPotSpringBlock
 
