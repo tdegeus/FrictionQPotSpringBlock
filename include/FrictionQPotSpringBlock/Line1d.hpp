@@ -186,6 +186,18 @@ inline xt::xtensor<bool, 1> System::boundcheck_right(size_t n) const
     return ret;
 }
 
+inline bool System::any_redraw() const
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        auto r = m_y[p].redraw(m_x(p));
+        if (r != 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 inline bool System::any_redraw(const xt::xtensor<double, 1>& xtrial) const
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xtrial.size() == m_N);

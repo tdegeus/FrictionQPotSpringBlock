@@ -23,7 +23,7 @@ SECTION("System::advanceRightElastic")
     REQUIRE(xt::allclose(x, sys.x()));
 }
 
-SECTION("Reconstruct sequence")
+SECTION("Reconstruct sequence, only moved chunk right")
 {
     size_t N = 3;
     auto seed = time(NULL);
@@ -68,7 +68,9 @@ SECTION("Reconstruct sequence")
 
     for (size_t i = 0; i < n; ++i) {
 
-        sys.set_x(xt::eval((double)(i) * x));
+        auto xi = xt::eval((double)(i) * x);
+        REQUIRE(!sys.any_redraw(xi));
+        sys.set_x(xi);
 
         if (sys.any_shift(ncheck)) {
             auto l = sys.boundcheck_left(nmax);
@@ -96,7 +98,7 @@ SECTION("Reconstruct sequence")
                 }
             }
 
-            REQUIRE(!sys.any_shift(ncheck));
+            REQUIRE(!sys.any_redraw());
         }
 
         regenerators.restore(state_n);
@@ -113,54 +115,5 @@ SECTION("Reconstruct sequence")
         REQUIRE(xt::allclose(sys.yright(), resys.yright()));
     }
 }
-
-// SECTION("Reconstruct sequence minimal data")
-// {
-//     size_t N = 3;
-//     auto seed = time(NULL);
-//     auto random = QPot::random::RandList();
-
-//     QPot::random::seed(seed);
-//     FrictionQPotSpringBlock::Line1d::System sys(N, random);
-
-//     size_t n = 20;
-//     xt::xtensor<double, 1> x = 100.0 * xt::ones<double>({N});
-//     std::vector<int> direction;
-//     std::vector<xt::xtensor<size_t, 1>> particles;
-
-//     for (size_t i = 0; i < n; ++i) {
-//         bool r = sys.set_x(xt::eval((double)(i) * x));
-//         if (r) {
-//             auto iredraw = sys.getRedrawList().currentRedraw();
-//             xt::xtensor<size_t, 1> r = xt::flatten_indices(xt::argwhere(iredraw > 0));
-//             xt::xtensor<size_t, 1> l = xt::flatten_indices(xt::argwhere(iredraw < 0));
-//             if (r.size() > 0) {
-//                 direction.push_back(1);
-//                 particles.push_back(r);
-//             }
-//             if (l.size() > 0) {
-//                 direction.push_back(-1);
-//                 particles.push_back(l);
-//             }
-//         }
-//     }
-
-//     QPot::random::seed(seed);
-//     FrictionQPotSpringBlock::Line1d::System other(N, random);
-
-//     for (size_t i = 0; i < direction.size(); ++i) {
-//         if (direction[i] > 0) {
-//             other.getRedrawList().redrawRight(particles[i]);
-//         }
-//         else {
-//             other.getRedrawList().redrawLeft(particles[i]);
-//         }
-//     }
-
-//     other.set_x(sys.x());
-
-//     REQUIRE(xt::allclose(sys.yieldLeft(), other.yieldLeft()));
-// }
-
 
 }

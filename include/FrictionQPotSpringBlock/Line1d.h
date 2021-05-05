@@ -143,6 +143,13 @@ public:
     xt::xtensor<bool, 1> boundcheck_right(size_t n = 0) const;
 
     /**
+    Check if any yield position chunk needs to be updated based on the current x().
+
+    \return true if redraw is needed for one of more particle.
+    */
+    bool any_redraw() const;
+
+    /**
     Check if any yield position chunk needs to be updated if the position would be updated to
     a given value.
 
@@ -244,7 +251,7 @@ public:
     This updates the appropriate forces.
     As a rule of thumb this should be only way to update positions (even when deriving).
 
-    \param arg [#N].
+    \param arg The particles' positions [#N].
     */
     void set_x(const xt::xtensor<double, 1>& arg);
 
@@ -253,14 +260,14 @@ public:
     This updates the appropriate forces.
     As a rule of thumb this should be only way to update positions (even when deriving).
 
-    \param arg [#N].
+    \param arg The particles' velocities [#N].
     */
     void set_v(const xt::xtensor<double, 1>& arg);
 
     /**
     Set the acceleration of each particle.
 
-    \param arg [#N].
+    \param arg The particles' accelerations [#N].
     */
     void set_a(const xt::xtensor<double, 1>& arg);
 
