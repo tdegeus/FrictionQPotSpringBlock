@@ -12,8 +12,14 @@ int main()
     xt::xtensor<size_t, 1> initstate = xt::arange<size_t>(N);
     xt::xtensor<size_t, 1> initseq = xt::zeros<size_t>({N});
     auto generators = prrng::auto_pcg32(initstate, initseq);
+    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
 
-    xt::xtensor<double, 2> y = 2.0 * generators.random({20000});
+    size_t nchunk = 2000;
+    size_t nbuffer = 300;
+    size_t ncheck = 200;
+    size_t nmax = 200;
+
+    xt::xtensor<double, 2> y = 2.0 * generators.random({nchunk});
     y = xt::cumsum(y, 1);
     y -= 50.0;
 
@@ -50,12 +56,34 @@ int main()
             fmt::print("inc = {0:4d}, niter = {1:d}\n", inc, niter);
         }
 
+        // change the chunk of yield positions held in memory
+        // reminder: a sequence of yield positions is taken from the random generator:
+        // each particle has one generator, with its own seed, and one sequence
+        // the assumptions are made that:
+        // - no shift is needed during minimisation
+        // - one shift suffices here
+        if (sys.any_shift(ncheck)) {
+            auto r = sys.boundcheck_right(nmax);
+            for (size_t p = 0; p < N; ++p) {
+                if (!r(p)) {
+                    QPot::Chunked& yp = sys.y(p);
+
+                    istart(p) += nchunk;
+
+                    yp.shift_dy(
+                        istart(p),
+                        xt::eval(2.0 * generators[p].random({nchunk})),
+                        nbuffer);
+                }
+            }
+        }
+
         // Extract output data.
         ret(0, inc) = sys.x_frame();
         ret(1, inc) = xt::mean(sys.f_frame())();
     }
 
-    std::ofstream outfile("Load.txt");
+    std::ofstream outfile("Load_chunked.txt");
     xt::dump_csv(outfile, ret);
     outfile.close();
 
