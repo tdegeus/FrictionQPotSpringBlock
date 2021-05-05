@@ -133,6 +133,11 @@ public:
     xt::xtensor<long, 1> istart() const;
 
     /**
+    \copydoc QPot::Chunked::istop()
+    */
+    xt::xtensor<long, 1> istop() const;
+
+    /**
     \copydoc QPot::Chunked::boundcheck_left()
     */
     xt::xtensor<bool, 1> boundcheck_left(size_t n = 0) const;
@@ -172,7 +177,7 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<long, 1> yieldIndex() const;
+    xt::xtensor<long, 1> i() const;
 
     /**
     Distance to yield to the right (for each particle).

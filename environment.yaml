@@ -16,6 +16,7 @@ dependencies:
 
   # run tests
   - catch2
+  - prrng
   - numpy
   - python-qpot
 

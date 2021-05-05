@@ -109,7 +109,7 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("x"))
 
         .def("any_shift", &SM::System::any_shift, "any_shift", py::arg("n"))
-        .def("yieldIndex", &SM::System::yieldIndex, "yieldIndex")
+        .def("i", &SM::System::i, "i")
         .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
         .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
         .def("set_dt", &SM::System::set_dt, "set_dt", py::arg("arg"))

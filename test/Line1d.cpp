@@ -108,7 +108,7 @@ SECTION("Reconstruct sequence, only moved chunk right")
         resys.set_y(istart_n, ry);
         resys.set_x(sys.x());
 
-        REQUIRE(xt::allclose(sys.yieldIndex(), resys.yieldIndex()));
+        REQUIRE(xt::allclose(sys.i(), resys.i()));
         REQUIRE(xt::allclose(sys.yieldDistanceLeft(), resys.yieldDistanceLeft()));
         REQUIRE(xt::allclose(sys.yieldDistanceRight(), resys.yieldDistanceRight()));
         REQUIRE(xt::allclose(sys.yleft(), resys.yleft()));

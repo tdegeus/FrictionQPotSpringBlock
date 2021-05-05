@@ -164,6 +164,17 @@ inline xt::xtensor<long, 1> System::istart() const
     return ret;
 }
 
+inline xt::xtensor<long, 1> System::istop() const
+{
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].istop();
+    }
+
+    return ret;
+}
+
 inline xt::xtensor<bool, 1> System::boundcheck_left(size_t n) const
 {
     xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
@@ -233,7 +244,7 @@ inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
     return m_x - this->yleft();
 }
 
-inline xt::xtensor<long, 1> System::yieldIndex() const
+inline xt::xtensor<long, 1> System::i() const
 {
     xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
 
