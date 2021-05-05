@@ -57,18 +57,18 @@ public:
     Constructor.
 
     \param N Number of particles.
-    \param x_y Initial yield positions.
+    \param y Initial yield positions.
     */
-    System(size_t N, const xt::xtensor<double, 2>& x_y);
+    System(size_t N, const xt::xtensor<double, 2>& y);
 
     /**
     Constructor.
 
     \param N Number of particles.
-    \param x_y Initial yield positions.
-    \param istart Starting index corresponding to x_y[:, 0]
+    \param y Initial yield positions.
+    \param istart Starting index corresponding to y[:, 0]
     */
-    System(size_t N, const xt::xtensor<double, 2>& x_y, const xt::xtensor<long, 1>& istart);
+    System(size_t N, const xt::xtensor<double, 2>& y, const xt::xtensor<long, 1>& istart);
 
     /**
     Number of particles.
@@ -79,41 +79,93 @@ public:
 
     /**
     Return reference to the underlying QPot::Chunked storage
+
+    \param p Particle number.
+    \return Reference.
     */
     QPot::Chunked& y(size_t p);
 
+    /**
+    \copydoc QPot::Chunked::set_y(long, const T&)
+    */
     template <class T>
-    void set_y(size_t p, long istart, const T& x_y);
+    void set_y(const xt::xtensor<long, 1>& istart, const T& y);
 
+    /**
+    \copydoc QPot::Chunked::set_y(long, const T&)
+    \param p Particle number.
+    */
     template <class T>
-    void shift_y(size_t p, long istart, const T& x_y, size_t nbuffer = 0);
+    void set_y(size_t p, long istart, const T& y);
 
+    /**
+    \copydoc QPot::Chunked::shift_y(long, const T&, size_t)
+    \param p Particle number.
+    */
     template <class T>
-    void shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffer = 0);
+    void shift_y(size_t p, long istart, const T& y, size_t nbuffer = 0);
 
+    /**
+    \copydoc QPot::Chunked::shift_dy(long, const T&, size_t)
+    \param p Particle number.
+    */
+    template <class T>
+    void shift_dy(size_t p, long istart, const T& dy, size_t nbuffer = 0);
+
+    /**
+    \copydoc QPot::Chunked::ymin_chunk()
+    */
     xt::xtensor<double, 1> ymin_chunk() const;
 
+    /**
+    \copydoc QPot::Chunked::yleft()
+    */
     xt::xtensor<double, 1> yleft() const;
 
+    /**
+    \copydoc QPot::Chunked::yright()
+    */
     xt::xtensor<double, 1> yright() const;
 
+    /**
+    \copydoc QPot::Chunked::istart()
+    */
     xt::xtensor<long, 1> istart() const;
 
+    /**
+    \copydoc QPot::Chunked::boundcheck_left()
+    */
     xt::xtensor<bool, 1> boundcheck_left(size_t n = 0) const;
 
+    /**
+    \copydoc QPot::Chunked::boundcheck_right()
+    */
     xt::xtensor<bool, 1> boundcheck_right(size_t n = 0) const;
 
-    bool redraw(const xt::xtensor<double, 1>& arg);
+    /**
+    Check if any yield position chunk needs to be updated if the position would be updated to
+    a given value.
 
-    bool shift(size_t n) const;
+    \param x Trial particle positions (internally the position is not updated).
+    \return true if redraw is needed for one of more particle.
+    */
+    bool any_redraw(const xt::xtensor<double, 1>& x) const;
+
+    /**
+    Check if any particle if within `n` potentials for the left- or the right-most yield
+    positions of the current chunk.
+
+    \param n Size of boundary region.
+    \return true if one of more particle is in the left or right boundary region.
+    */
+    bool any_shift(size_t n) const;
 
     /**
     Current index in the global potential energy landscape (for each particle).
-    \todo remark const if underlying function is marked const
 
     \return [#N].
     */
-    xt::xtensor<long, 1> yieldIndex();
+    xt::xtensor<long, 1> yieldIndex() const;
 
     /**
     Distance to yield to the right (for each particle).
@@ -323,10 +375,10 @@ protected:
     Initialise the system.
 
     \param N Number of particles.
-    \param x_y Initial yield positions.
-    \param istart Starting index corresponding to x_y[:, 0]
+    \param y Initial yield positions.
+    \param istart Starting index corresponding to y[:, 0]
     */
-    void init(size_t N, const xt::xtensor<double, 2>& x_y, const xt::xtensor<long, 1>& istart);
+    void init(size_t N, const xt::xtensor<double, 2>& y, const xt::xtensor<long, 1>& istart);
 
     /**
     Compute #f based on the current #x and #v.

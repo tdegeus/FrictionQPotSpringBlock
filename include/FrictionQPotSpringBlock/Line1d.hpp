@@ -81,25 +81,42 @@ inline void System::init(
 inline QPot::Chunked& System::y(size_t p)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-
     return m_y[p];
+}
+
+template <class T>
+inline void System::set_y(const xt::xtensor<long, 1>& istart, const T& x_y)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(istart.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.shape(0) == m_N);
+
+    for (size_t p = 0; p < m_N; ++p) {
+        m_y[p].set_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())));
+    }
 }
 
 template <class T>
 inline void System::set_y(size_t p, long istart, const T& x_y)
 {
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
     m_y[p].set_y(istart, x_y);
 }
 
 template <class T>
 inline void System::shift_y(size_t p, long istart, const T& x_y, size_t nbuffer)
 {
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
     m_y[p].shift_y(istart, x_y, nbuffer);
 }
 
 template <class T>
 inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffer)
 {
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
     m_y[p].shift_dy(istart, dx_y, nbuffer);
 }
 
@@ -169,13 +186,13 @@ inline xt::xtensor<bool, 1> System::boundcheck_right(size_t n) const
     return ret;
 }
 
-inline bool System::redraw(const xt::xtensor<double, 1>& arg)
+inline bool System::any_redraw(const xt::xtensor<double, 1>& xtrial) const
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xtrial.size() == m_N);
 
     for (size_t p = 0; p < m_N; ++p) {
-        m_y[p].set_x(arg(p));
-        if (m_y[p].redraw() != 0) {
+        auto r = m_y[p].redraw(xtrial(p));
+        if (r != 0) {
             return true;
         }
     }
@@ -183,7 +200,7 @@ inline bool System::redraw(const xt::xtensor<double, 1>& arg)
     return false;
 }
 
-inline bool System::shift(size_t n) const
+inline bool System::any_shift(size_t n) const
 {
     for (size_t p = 0; p < m_N; ++p) {
         if (!m_y[p].boundcheck_left(n) || !m_y[p].boundcheck_right(n)) {
@@ -204,7 +221,7 @@ inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
     return m_x - this->yleft();
 }
 
-inline xt::xtensor<long, 1> System::yieldIndex()
+inline xt::xtensor<long, 1> System::yieldIndex() const
 {
     xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
 
