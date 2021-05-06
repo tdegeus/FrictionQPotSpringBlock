@@ -12,12 +12,9 @@ int main()
     xt::xtensor<size_t, 1> initstate = xt::arange<size_t>(N);
     xt::xtensor<size_t, 1> initseq = xt::zeros<size_t>({N});
     auto generators = prrng::auto_pcg32(initstate, initseq);
-    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
 
-    size_t nchunk = 2000;
-    size_t nbuffer = 300;
-    size_t ncheck = 200;
-    size_t nmax = 200;
+    size_t nchunk = 2000; // size of chunk of yield positions kept in memory
+    size_t nbuffer = 100; // buffer to keep left
 
     xt::xtensor<double, 2> y = 2.0 * generators.random({nchunk});
     y = xt::cumsum(y, 1);
@@ -56,25 +53,22 @@ int main()
             fmt::print("inc = {0:4d}, niter = {1:d}\n", inc, niter);
         }
 
-        // change the chunk of yield positions held in memory
-        // reminder: a sequence of yield positions is taken from the random generator:
-        // each particle has one generator, with its own seed, and one sequence
-        // the assumptions are made that:
-        // - no shift is needed during minimisation
-        // - one shift suffices here
-        if (sys.any_shift(ncheck)) {
-            auto r = sys.boundcheck_right(nmax);
+        // Change the chunk of yield positions held in memory,
+        // such that "nbuffer" yield positions are held left of the current "x"
+        // (maximise the size of the chunk in positive direction)
+        // Reminder: a sequence of yield positions is taken from the random generator:
+        //           each particle has one generator, with its own seed, and one sequence
+        // Note:     the assumptions are made that:
+        //           - no shift is needed during minimisation
+        //           - one shift suffices here
+        if (xt::any(sys.i_chunk() > nbuffer)) {
             for (size_t p = 0; p < N; ++p) {
-                if (!r(p)) {
-                    QPot::Chunked& yp = sys.y(p);
-
-                    istart(p) += nchunk;
-
-                    yp.shift_dy(
-                        istart(p),
-                        xt::eval(2.0 * generators[p].random({nchunk})),
-                        nbuffer);
+                QPot::Chunked& yp = sys.y(p);
+                auto nb = yp.size() - yp.i_chunk() + nbuffer;
+                if (nb >= nchunk) {
+                    continue;
                 }
+                yp.shift_dy(yp.istop(), xt::eval(2.0 * generators[p].random({nchunk - nb})), nb);
             }
         }
 

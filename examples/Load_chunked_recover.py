@@ -16,7 +16,7 @@ with h5py.File(sys.argv[1], 'r') as data:
     initseq = data["/meta/initseq"][...]
     generators = prrng.pcg32_array(initstate, initseq)
 
-    nchunk = 4000
+    nchunk = 2000
 
     ymin = data["/ymin/{0:d}".format(0)][...]
     istart = data["/istart/{0:d}".format(0)][...]
@@ -64,6 +64,7 @@ with h5py.File(sys.argv[1], 'r') as data:
         test[1, inc] = np.mean(system.f_frame())
 
 assert np.allclose(ret, test)
+print('Check successful')
 
 fig, ax = plt.subplots()
 ax.plot(ret[0, :], ret[1, :])

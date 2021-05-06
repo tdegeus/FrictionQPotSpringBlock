@@ -113,6 +113,11 @@ public:
     void shift_dy(size_t p, long istart, const T& dy, size_t nbuffer = 0);
 
     /**
+    \copydoc QPot::Chunked::ymin()
+    */
+    xt::xtensor<double, 1> ymin() const;
+
+    /**
     \copydoc QPot::Chunked::ymin_chunk()
     */
     xt::xtensor<double, 1> ymin_chunk() const;
@@ -126,6 +131,11 @@ public:
     \copydoc QPot::Chunked::yright()
     */
     xt::xtensor<double, 1> yright() const;
+
+    /**
+    \copydoc QPot::Chunked::i_chunk()
+    */
+    xt::xtensor<size_t, 1> i_chunk() const;
 
     /**
     \copydoc QPot::Chunked::istart()

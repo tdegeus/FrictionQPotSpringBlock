@@ -23,7 +23,7 @@ SECTION("System::advanceRightElastic")
     REQUIRE(xt::allclose(x, sys.x()));
 }
 
-SECTION("Reconstruct sequence, only moved chunk right")
+SECTION("Chunked sequence, only move chunk right, only do so when needed")
 {
     size_t N = 3;
     auto seed = time(NULL);
@@ -106,6 +106,83 @@ SECTION("Reconstruct sequence, only moved chunk right")
         xt::view(ry, xt::all(), 0) = ymin_n;
         ry = xt::cumsum(ry, 1);
         resys.set_y(istart_n, ry);
+        resys.set_x(sys.x());
+
+        REQUIRE(xt::allclose(sys.i(), resys.i()));
+        REQUIRE(xt::allclose(sys.yieldDistanceLeft(), resys.yieldDistanceLeft()));
+        REQUIRE(xt::allclose(sys.yieldDistanceRight(), resys.yieldDistanceRight()));
+        REQUIRE(xt::allclose(sys.yleft(), resys.yleft()));
+        REQUIRE(xt::allclose(sys.yright(), resys.yright()));
+    }
+}
+
+SECTION("Chunked sequence, shift optimally left")
+{
+    size_t N = 3;
+    auto seed = time(NULL);
+    xt::xtensor<size_t, 1> initstate = seed + xt::arange<size_t>(N);
+
+    size_t nchunk = 100; // size of chunk of yield positions kept in memory
+    size_t nbuffer = 10; // buffer to keep left
+    double init_offset = 5.0; // initial negative position shift
+
+    // allocate generators
+    auto generators = prrng::auto_pcg32(initstate);
+    auto regenerators = prrng::auto_pcg32(initstate);
+    auto state = generators.state();
+    xt::xtensor<long, 1> istate = xt::zeros<long>({N});
+
+    // draw initial chunk from the generators and convert to yield positions
+    xt::xtensor<double, 2> y = 2.0 * generators.random({nchunk});
+    y = xt::cumsum(y, 1);
+    y -= init_offset;
+
+    // initialise system
+    FrictionQPotSpringBlock::Line1d::System sys(N, y);
+    FrictionQPotSpringBlock::Line1d::System resys(N, y);
+
+    // sequence of particle positions
+    size_t n = 50;
+    xt::xtensor<double, 1> x = 10.0 * xt::ones<double>({N});
+    x(0) = 5.0;
+    x(1) = 7.0;
+
+    for (size_t i = 0; i < n; ++i) {
+
+        auto xi = xt::eval((double)(i) * x);
+        sys.set_x(xi);
+        auto i0 = sys.i();
+
+        if (xt::any(sys.i_chunk() > nbuffer)) {
+            for (size_t p = 0; p < N; ++p) {
+                QPot::Chunked& yp = sys.y(p);
+                auto nb = yp.size() - yp.i_chunk() + nbuffer;
+                if (nb >= nchunk) {
+                    continue;
+                }
+                state(p) = generators[p].state();
+                istate(p) = yp.istop();
+                yp.shift_dy(yp.istop(), xt::eval(2.0 * generators[p].random({nchunk - nb})), nb);
+            }
+        }
+
+        REQUIRE(xt::all(xt::equal(sys.i(), i0)));
+        REQUIRE(xt::all(sys.i() - sys.istart() <= nbuffer));
+        REQUIRE(xt::all(xt::equal(sys.i_chunk(), sys.i() - sys.istart())));
+
+        // restore state: start with the latests draw that is quite close and reverse back
+        // in the sequence until the start of the current chunk held in memory
+        regenerators.restore(state);
+        regenerators.advance(xt::eval(sys.istart() - istate));
+
+        // generate the yield distances, convert to yield positions using the first yield position
+        // of the current chunk as memory
+        // (was also the state from which the random numbers were generated)
+        xt::xtensor<double, 2> ry = 2.0 * regenerators.random({nchunk});
+        xt::view(ry, xt::all(), 0) = sys.ymin();
+        ry = xt::cumsum(ry, 1);
+
+        resys.set_y(sys.istart(), ry);
         resys.set_x(sys.x());
 
         REQUIRE(xt::allclose(sys.i(), resys.i()));

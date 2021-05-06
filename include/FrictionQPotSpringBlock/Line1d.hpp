@@ -120,6 +120,17 @@ inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffe
     m_y[p].shift_dy(istart, dx_y, nbuffer);
 }
 
+inline xt::xtensor<double, 1> System::ymin() const
+{
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].ymin();
+    }
+
+    return ret;
+}
+
 inline xt::xtensor<double, 1> System::ymin_chunk() const
 {
     xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
@@ -148,6 +159,17 @@ inline xt::xtensor<double, 1> System::yright() const
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yright();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<size_t, 1> System::i_chunk() const
+{
+    xt::xtensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].i_chunk();
     }
 
     return ret;
