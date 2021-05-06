@@ -15,6 +15,7 @@ set(CMAKE_BUILD_TYPE Release)
 set(testname "unit-tests")
 
 find_package(Catch2 REQUIRED)
+find_package(prrng REQUIRED)
 find_package(xtensor REQUIRED)
 find_package(xsimd QUIET)
 
@@ -25,10 +26,11 @@ add_executable(${testname}
 target_link_libraries(${testname} PRIVATE
     Catch2::Catch2
     FrictionQPotSpringBlock
-    FrictionQPotSpringBlock::compiler_warnings)
+    FrictionQPotSpringBlock::compiler_warnings
+    prrng)
 
 if(ASSERT)
-    target_link_libraries(${testname} PRIVATE FrictionQPotSpringBlock::assert QPot::assert)
+    target_link_libraries(${testname} PRIVATE FrictionQPotSpringBlock::assert QPot::assert prrng::assert)
 endif()
 
 if(DEBUG)

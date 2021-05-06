@@ -12,7 +12,7 @@ Line in 1d.
 #include "config.h"
 #include "version.h"
 
-#include <QPot/Redraw.hpp>
+#include <QPot/Chunked.hpp>
 #include <GooseFEM/version.h>
 #include <GooseFEM/Iterate.h>
 #include <xtensor/xtensor.hpp>
@@ -57,32 +57,18 @@ public:
     Constructor.
 
     \param N Number of particles.
-    \param func Function to draw yield distances.
+    \param y Initial yield positions.
     */
-    template <class F>
-    System(size_t N, F func);
+    System(size_t N, const xt::xtensor<double, 2>& y);
 
     /**
     Constructor.
 
-    \param N
-        Number of particles.
-
-    \param func
-        Function to draw yield distances.
-
-    \param ntotal
-        Number of yield-positions to keep in memory.
-
-    \param nbuffer
-        Number of yield-positions to buffer when shifting left/right.
-
-    \param noffset
-        Number of yield-positions from the end to consider for redrawing
-        (allows grouping of redraws for several particles).
+    \param N Number of particles.
+    \param y Initial yield positions.
+    \param istart Starting index corresponding to y[:, 0]
     */
-    template <class F>
-    System(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset);
+    System(size_t N, const xt::xtensor<double, 2>& y, const xt::xtensor<long, 1>& istart);
 
     /**
     Number of particles.
@@ -90,6 +76,132 @@ public:
     \return unsigned int
     */
     size_t N() const;
+
+    /**
+    Return reference to the underlying QPot::Chunked storage
+
+    \param p Particle number.
+    \return Reference.
+    */
+    QPot::Chunked& y(size_t p);
+
+    /**
+    \copydoc QPot::Chunked::set_y(long, const T&)
+    */
+    template <class T>
+    void set_y(const xt::xtensor<long, 1>& istart, const T& y);
+
+    /**
+    \copydoc QPot::Chunked::set_y(long, const T&)
+    \param p Particle number.
+    */
+    template <class T>
+    void set_y(size_t p, long istart, const T& y);
+
+    /**
+    \copydoc QPot::Chunked::shift_y(long, const T&, size_t)
+    \param p Particle number.
+    */
+    template <class T>
+    void shift_y(size_t p, long istart, const T& y, size_t nbuffer = 0);
+
+    /**
+    \copydoc QPot::Chunked::shift_dy(long, const T&, size_t)
+    \param p Particle number.
+    */
+    template <class T>
+    void shift_dy(size_t p, long istart, const T& dy, size_t nbuffer = 0);
+
+    /**
+    \copydoc QPot::Chunked::ymin()
+    */
+    xt::xtensor<double, 1> ymin() const;
+
+    /**
+    \copydoc QPot::Chunked::ymin_chunk()
+    */
+    xt::xtensor<double, 1> ymin_chunk() const;
+
+    /**
+    \copydoc QPot::Chunked::yleft()
+    */
+    xt::xtensor<double, 1> yleft() const;
+
+    /**
+    \copydoc QPot::Chunked::yright()
+    */
+    xt::xtensor<double, 1> yright() const;
+
+    /**
+    \copydoc QPot::Chunked::i_chunk()
+    */
+    xt::xtensor<size_t, 1> i_chunk() const;
+
+    /**
+    \copydoc QPot::Chunked::istart()
+    */
+    xt::xtensor<long, 1> istart() const;
+
+    /**
+    \copydoc QPot::Chunked::istop()
+    */
+    xt::xtensor<long, 1> istop() const;
+
+    /**
+    \copydoc QPot::Chunked::boundcheck_left()
+    */
+    xt::xtensor<bool, 1> boundcheck_left(size_t n = 0) const;
+
+    /**
+    \copydoc QPot::Chunked::boundcheck_right()
+    */
+    xt::xtensor<bool, 1> boundcheck_right(size_t n = 0) const;
+
+    /**
+    Check if any yield position chunk needs to be updated based on the current x().
+
+    \return true if redraw is needed for one of more particle.
+    */
+    bool any_redraw() const;
+
+    /**
+    Check if any yield position chunk needs to be updated if the position would be updated to
+    a given value.
+
+    \param x Trial particle positions (internally the position is not updated).
+    \return true if redraw is needed for one of more particle.
+    */
+    bool any_redraw(const xt::xtensor<double, 1>& x) const;
+
+    /**
+    Check if any particle if within `n` potentials for the left- or the right-most yield
+    positions of the current chunk.
+
+    \param n Size of boundary region.
+    \return true if one of more particle is in the left or right boundary region.
+    */
+    bool any_shift(size_t n) const;
+
+    /**
+    Current index in the global potential energy landscape (for each particle).
+
+    \return [#N].
+    */
+    xt::xtensor<long, 1> i() const;
+
+    /**
+    Distance to yield to the right (for each particle).
+
+    \return [#N].
+    */
+    xt::xtensor<double, 1> yieldDistanceRight() const;
+
+    /**
+    Distance to yield to the left (for each particle).
+
+    \return [#N].
+    */
+    xt::xtensor<double, 1> yieldDistanceLeft() const;
 
     /**
     Set time step.
@@ -154,24 +266,23 @@ public:
     This updates the appropriate forces.
     As a rule of thumb this should be only way to update positions (even when deriving).
 
-    \param arg [#N].
-    \return ``true`` is there was a redraw.
+    \param arg The particles' positions [#N].
     */
-    bool set_x(const xt::xtensor<double, 1>& arg);
+    void set_x(const xt::xtensor<double, 1>& arg);
 
     /**
     Set the velocity of each particle.
     This updates the appropriate forces.
     As a rule of thumb this should be only way to update positions (even when deriving).
 
-    \param arg [#N].
+    \param arg The particles' velocities [#N].
     */
     void set_v(const xt::xtensor<double, 1>& arg);
 
     /**
     Set the acceleration of each particle.
 
-    \param arg [#N].
+    \param arg The particles' accelerations [#N].
     */
     void set_a(const xt::xtensor<double, 1>& arg);
 
@@ -247,10 +358,8 @@ public:
     /**
     Effectuates time step using the velocity Verlet algorithm.
     Updates #x, #v, #a, and #f.
-
-    \return ``true`` is there was a redraw.
     */
-    bool timeStep();
+    void timeStep();
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -272,136 +381,26 @@ public:
     Event driven advance right to closest yielding point, leaving ``delta_x / 2`` as margin.
 
     \param delta_x Margin.
-    \return ``true`` is there was a redraw.
     */
-    bool advanceRightElastic(double delta_x);
+    void advanceRightElastic(double delta_x);
 
     /**
     Event driven: advance right by ``delta_x``.
 
     \param delta_x Step size.
-    \return ``true`` is there was a redraw.
     */
-    bool advanceRightKick(double delta_x);
-
-    /**
-    Current yield position to the left (for each particle).
-    See QPot::RedrawList::currentYieldLeft().
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldLeft() const;
-
-    /**
-    Current yield position to the right (for each particle).
-    See QPot::RedrawList::currentYieldRight().
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldRight() const;
-
-    /**
-    Current index in the local potential energy landscape (for each particle).
-
-    \return [#N].
-    */
-    xt::xtensor<int, 1> yieldIndex() const;
-
-    /**
-    Distance to yield to the right (for each particle).
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldDistanceRight() const;
-
-    /**
-    Distance to yield to the left (for each particle).
-
-    \return [#N].
-    */
-    xt::xtensor<double, 1> yieldDistanceLeft() const;
-
-    /**
-    Get a reference to QPot::RedrawList.
-    Use with caution: reference is valid until this class goes out of scope.
-
-    \return Reference to QPot::RedrawList.
-    */
-    QPot::RedrawList& getRedrawList();
-
-    /**
-    Wrapper around QPot::RedrawList::redraw().
-    Favour getRedrawList().redraw().
-
-    \param iredraw See QPot::RedrawList::currentRedraw().
-    */
-    [[ deprecated ]]
-    void getRedrawList_redraw(const xt::xtensor<int, 1>& iredraw);
-
-    /**
-    Wrapper around QPot::RedrawList::redrawRight().
-    Favour getRedrawList().redrawRight().
-
-    \param index List of particles for which to redraw to the right.
-    */
-    [[ deprecated ]]
-    void getRedrawList_redrawRight(const xt::xtensor<size_t, 1>& index);
-
-    /**
-    Wrapper around QPot::RedrawList::redrawLeft().
-    Favour getRedrawList().redrawLeft().
-
-    \param index List of particles for which to redraw to the left.
-    */
-    [[ deprecated ]]
-    void getRedrawList_redrawLeft(const xt::xtensor<size_t, 1>& index);
+    void advanceRightKick(double delta_x);
 
 protected:
 
     /**
-    Allocate the system.
-
-    \param N Number of particles.
-    */
-    void allocateSystem(size_t N);
-
-    /**
-    Initialise potential energy landscape.
-    Call after System::allocateSystem.
-
-    \param func Function to draw yield distances.
-    */
-    template <class F>
-    void initYield(F func);
-
-    /**
-    Initialise potential energy landscape.
-    Call after System::allocateSystem.
-
-    \param func
-        Function to draw yield distances.
-
-    \param ntotal
-        Number of yield-positions to keep in memory.
-
-    \param nbuffer
-        Number of yield-positions to buffer when shifting left/right.
-
-    \param noffset
-        Number of yield-positions from the end to consider for redrawing
-        (allows grouping of redraws for several particles).
-    */
-    template <class F>
-    void initYield(F func, size_t ntotal, size_t nbuffer, size_t noffset);
-
-    /**
     Initialise the system.
-    Call after System::initYield.
 
     \param N Number of particles.
-    \param func Function to draw yield distances.
+    \param y Initial yield positions.
+    \param istart Starting index corresponding to y[:, 0]
     */
-    void initSystem();
+    void init(size_t N, const xt::xtensor<double, 2>& y, const xt::xtensor<long, 1>& istart);
 
     /**
     Compute #f based on the current #x and #v.
@@ -410,10 +409,8 @@ protected:
 
     /**
     Compute #f_potential based on the current #x.
-
-    \return ``true`` is there was a redraw.
     */
-    bool computeForcePotential();
+    void computeForcePotential();
 
     /**
     Compute #f_neighbours based on the current #x.
@@ -442,9 +439,7 @@ protected:
     xt::xtensor<double, 1> m_a; ///< See #a.
     xt::xtensor<double, 1> m_v_n; ///< #v at last time-step.
     xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
-    QPot::RedrawList m_y; ///< Potential energy landscape.
-    xt::xtensor<double, 1> m_y_l; ///< Current yielding position left.
-    xt::xtensor<double, 1> m_y_r; ///< Current yielding position right.
+    std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     double m_dt = 0.1; ///< See #set_dt.
     double m_eta = 2.0 * std::sqrt(3.0) / 10.0; ///< See #set_eta.

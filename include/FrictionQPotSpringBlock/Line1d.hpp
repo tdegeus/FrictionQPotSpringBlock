@@ -30,24 +30,30 @@ inline std::vector<std::string> version_dependencies()
     return ret;
 }
 
-template <class F>
-inline System::System(size_t N, F func)
+inline System::System(size_t N, const xt::xtensor<double, 2>& x_y)
 {
-    this->allocateSystem(N);
-    this->initYield(func);
-    this->initSystem();
+    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
+    this->init(N, x_y, istart);
 }
 
-template <class F>
-inline System::System(size_t N, F func, size_t ntotal, size_t nbuffer, size_t noffset)
+inline System::System(
+    size_t N,
+    const xt::xtensor<double, 2>& x_y,
+    const xt::xtensor<long, 1>& istart)
 {
-    this->allocateSystem(N);
-    this->initYield(func, ntotal, nbuffer, noffset);
-    this->initSystem();
+    this->init(N, x_y, istart);
 }
 
-inline void System::allocateSystem(size_t N)
+inline void System::init(
+    size_t N,
+    const xt::xtensor<double, 2>& x_y,
+    const xt::xtensor<long, 1>& istart)
 {
+    #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+    auto y0 = xt::view(x_y, xt::all(), 0);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(y0 < 0.0));
+    #endif
+
     m_N = N;
     m_f = xt::zeros<double>({m_N});
     m_f_potential = xt::zeros<double>({m_N});
@@ -59,31 +65,216 @@ inline void System::allocateSystem(size_t N)
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
-}
+    m_y.resize(m_N);
 
-template <class F>
-inline void System::initYield(F func)
-{
-    m_y = QPot::RedrawList(m_x, func);
-    m_y_l = m_y.currentYieldLeft();
-    m_y_r = m_y.currentYieldRight();
-}
+    for (size_t p = 0; p < m_N; ++p) {
+        m_y[p] = QPot::Chunked(m_x(p), xt::eval(xt::view(x_y, p, xt::all())), istart(p));
+    }
 
-template <class F>
-inline void System::initYield(F func, size_t ntotal, size_t nbuffer, size_t noffset)
-{
-    m_y = QPot::RedrawList(m_x, func, ntotal, nbuffer, noffset);
-    m_y_l = m_y.currentYieldLeft();
-    m_y_r = m_y.currentYieldRight();
-}
-
-inline void System::initSystem()
-{
     this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
     this->computeForceDamping();
     this->computeForce();
+}
+
+inline QPot::Chunked& System::y(size_t p)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    return m_y[p];
+}
+
+template <class T>
+inline void System::set_y(const xt::xtensor<long, 1>& istart, const T& x_y)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(istart.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.shape(0) == m_N);
+
+    for (size_t p = 0; p < m_N; ++p) {
+        m_y[p].set_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())));
+    }
+}
+
+template <class T>
+inline void System::set_y(size_t p, long istart, const T& x_y)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
+    m_y[p].set_y(istart, x_y);
+}
+
+template <class T>
+inline void System::shift_y(size_t p, long istart, const T& x_y, size_t nbuffer)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
+    m_y[p].shift_y(istart, x_y, nbuffer);
+}
+
+template <class T>
+inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffer)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
+    m_y[p].shift_dy(istart, dx_y, nbuffer);
+}
+
+inline xt::xtensor<double, 1> System::ymin() const
+{
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].ymin();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<double, 1> System::ymin_chunk() const
+{
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].ymin_chunk();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<double, 1> System::yleft() const
+{
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].yleft();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<double, 1> System::yright() const
+{
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].yright();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<size_t, 1> System::i_chunk() const
+{
+    xt::xtensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].i_chunk();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<long, 1> System::istart() const
+{
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].istart();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<long, 1> System::istop() const
+{
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].istop();
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<bool, 1> System::boundcheck_left(size_t n) const
+{
+    xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].boundcheck_left(n);
+    }
+
+    return ret;
+}
+
+inline xt::xtensor<bool, 1> System::boundcheck_right(size_t n) const
+{
+    xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].boundcheck_right(n);
+    }
+
+    return ret;
+}
+
+inline bool System::any_redraw() const
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        auto r = m_y[p].redraw(m_x(p));
+        if (r != 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+inline bool System::any_redraw(const xt::xtensor<double, 1>& xtrial) const
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xtrial.size() == m_N);
+
+    for (size_t p = 0; p < m_N; ++p) {
+        auto r = m_y[p].redraw(xtrial(p));
+        if (r != 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+inline bool System::any_shift(size_t n) const
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        if (!m_y[p].boundcheck_left(n) || !m_y[p].boundcheck_right(n)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+inline xt::xtensor<double, 1> System::yieldDistanceRight() const
+{
+    return this->yright() - m_x;
+}
+
+inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
+{
+    return m_x - this->yleft();
+}
+
+inline xt::xtensor<long, 1> System::i() const
+{
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].i();
+    }
+
+    return ret;
 }
 
 inline size_t System::N() const
@@ -128,15 +319,14 @@ inline void System::set_x_frame(double arg)
     this->computeForce();
 }
 
-inline bool System::set_x(const xt::xtensor<double, 1>& arg)
+inline void System::set_x(const xt::xtensor<double, 1>& arg)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
     xt::noalias(m_x) = arg;
-    bool redraw = this->computeForcePotential();
+    this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
     this->computeForce();
-    return redraw;
 }
 
 inline void System::set_v(const xt::xtensor<double, 1>& arg)
@@ -153,13 +343,13 @@ inline void System::set_a(const xt::xtensor<double, 1>& arg)
     xt::noalias(m_a) = arg;
 }
 
-inline bool System::computeForcePotential()
+inline void System::computeForcePotential()
 {
-    bool redraw = m_y.setPosition(m_x);
-    xt::noalias(m_y_l) = m_y.currentYieldLeft();
-    xt::noalias(m_y_r) = m_y.currentYieldRight();
-    xt::noalias(m_f_potential) = m_mu * (0.5 * (m_y_r + m_y_l) - m_x);
-    return redraw;
+    for (size_t p = 0; p < m_N; ++p) {
+        double x = m_x(p);
+        m_y[p].set_x(x);
+        m_f_potential(p) = m_mu * (0.5 * (m_y[p].yright() + m_y[p].yleft()) - x);
+    }
 }
 
 inline void System::computeForceNeighbours()
@@ -186,14 +376,14 @@ inline void System::computeForce()
     xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame;
 }
 
-inline bool System::timeStep()
+inline void System::timeStep()
 {
     xt::noalias(m_v_n) = m_v;
     xt::noalias(m_a_n) = m_a;
 
     // positions
     xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
-    bool redraw = this->computeForcePotential();
+    this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
 
@@ -224,8 +414,6 @@ inline bool System::timeStep()
     if (xt::any(xt::isnan(m_x))) {
         throw std::runtime_error("NaN entries found");
     }
-
-    return redraw;
 }
 
 inline double System::residual() const
@@ -258,32 +446,30 @@ inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
     throw std::runtime_error("No convergence found");
 }
 
-inline bool System::advanceRightElastic(double eps)
+inline void System::advanceRightElastic(double eps)
 {
     double dx = xt::amin(this->yieldDistanceRight())();
     if (dx < eps / 2.0) {
-        return false;
+        return;
     }
     double deltax = dx - eps / 2.0;
     m_x += deltax;
     m_x_frame += (deltax * m_mu / m_k_frame);
-    bool redraw = this->computeForcePotential();
+    this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
     this->computeForce();
-    return redraw;
 }
 
-inline bool System::advanceRightKick(double eps)
+inline void System::advanceRightKick(double eps)
 {
     double deltax = eps;
     m_x += deltax;
     m_x_frame += (deltax * m_mu / m_k_frame);
-    bool redraw = this->computeForcePotential();
+    this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
     this->computeForce();
-    return redraw;
 }
 
 inline double System::x_frame() const
@@ -329,54 +515,6 @@ inline xt::xtensor<double, 1> System::f_neighbours() const
 inline xt::xtensor<double, 1> System::f_damping() const
 {
     return m_f_damping;
-}
-
-inline xt::xtensor<double, 1> System::yieldLeft() const
-{
-    return m_y.currentYieldLeft();
-}
-
-inline xt::xtensor<double, 1> System::yieldRight() const
-{
-    return m_y.currentYieldRight();
-}
-
-inline xt::xtensor<int, 1> System::yieldIndex() const
-{
-    return m_y.currentIndex();
-}
-
-inline xt::xtensor<double, 1> System::yieldDistanceRight() const
-{
-    return m_y.currentYieldRight() - m_x;
-}
-
-inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
-{
-    return m_x - m_y.currentYieldLeft();
-}
-
-inline QPot::RedrawList& System::getRedrawList()
-{
-    return m_y;
-}
-
-inline void System::getRedrawList_redraw(const xt::xtensor<int, 1>& iredraw)
-{
-    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("Use this.getRedrawList().redraw(...)");
-    m_y.redraw(iredraw);
-}
-
-inline void System::getRedrawList_redrawRight(const xt::xtensor<size_t, 1>& index)
-{
-    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("Use this.getRedrawList().redrawRight(...)");
-    m_y.redrawRight(index);
-}
-
-inline void System::getRedrawList_redrawLeft(const xt::xtensor<size_t, 1>& index)
-{
-    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("Use this.getRedrawList().redrawLeft(...)");
-    m_y.redrawLeft(index);
 }
 
 } // namespace Line1d

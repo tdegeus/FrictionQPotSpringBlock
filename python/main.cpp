@@ -48,20 +48,70 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
 
     py::class_<SM::System>(sm, "System")
 
-        .def(py::init<size_t, std::function<xt::xtensor<double, 2>(std::array<size_t, 2>)>>(),
+        .def(py::init<size_t, const xt::xtensor<double, 2>&>(),
              "System",
              py::arg("N"),
-             py::arg("function_to_draw_distances"))
+             py::arg("y"))
 
-        .def(py::init<size_t, std::function<xt::xtensor<double, 2>(std::array<size_t, 2>)>, size_t, size_t, size_t>(),
+        .def(py::init<size_t, const xt::xtensor<double, 2>&, const xt::xtensor<long, 1>&>(),
              "System",
              py::arg("N"),
-             py::arg("function_to_draw_distances"),
-             py::arg("ntotal"),
-             py::arg("nbuffer"),
-             py::arg("noffset"))
+             py::arg("y"),
+             py::arg("istart"))
 
         .def("N", &SM::System::N, "N")
+
+        .def("set_y",
+             py::overload_cast<const xt::xtensor<long, 1>&, const xt::xtensor<double, 2>&>(
+                &SM::System::set_y<xt::xtensor<double, 2>>),
+             "Reset the chunk of all particles.",
+             py::arg("istart"),
+             py::arg("y"))
+
+        .def("set_y",
+             py::overload_cast<size_t, long, const std::vector<double>&>(
+                &SM::System::set_y<std::vector<double>>),
+             "Reset the chunk of a particles.",
+             py::arg("p"),
+             py::arg("istart"),
+             py::arg("y"))
+
+        .def("shift_y",
+             &SM::System::shift_y<std::vector<double>>,
+             "shift_y",
+             py::arg("p"),
+             py::arg("istart"),
+             py::arg("y"),
+             py::arg("nbuffer") = 0)
+
+        .def("shift_dy",
+             &SM::System::shift_dy<std::vector<double>>,
+             "shift_dy",
+             py::arg("p"),
+             py::arg("istart"),
+             py::arg("dy"),
+             py::arg("nbuffer") = 0)
+
+        .def("ymin_chunk", &SM::System::ymin_chunk, "ymin_chunk")
+        .def("yleft", &SM::System::yleft, "yleft")
+        .def("yright", &SM::System::yright, "yright")
+        .def("istart", &SM::System::istart, "istart")
+        .def("boundcheck_left", &SM::System::boundcheck_left, "boundcheck_left", py::arg("n") = 0)
+        .def("boundcheck_right", &SM::System::boundcheck_right, "boundcheck_right", py::arg("n") = 0)
+
+        .def("any_redraw",
+             py::overload_cast<>(&SM::System::any_redraw, py::const_),
+             "any_redraw")
+
+        .def("any_redraw",
+             py::overload_cast<const xt::xtensor<double, 1>&>(&SM::System::any_redraw, py::const_),
+             "any_redraw",
+             py::arg("x"))
+
+        .def("any_shift", &SM::System::any_shift, "any_shift", py::arg("n"))
+        .def("i", &SM::System::i, "i")
+        .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
+        .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
         .def("set_dt", &SM::System::set_dt, "set_dt", py::arg("arg"))
         .def("set_eta", &SM::System::set_eta, "set_eta", py::arg("arg"))
         .def("set_m", &SM::System::set_m, "set_m", py::arg("arg"))
@@ -92,15 +142,6 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("max_iter") = 1000000)
         .def("advanceRightElastic", &SM::System::advanceRightElastic, "advanceRightElastic", py::arg("arg"))
         .def("advanceRightKick", &SM::System::advanceRightKick, "advanceRightKick", py::arg("arg"))
-        .def("yieldLeft", &SM::System::yieldLeft, "yieldLeft")
-        .def("yieldRight", &SM::System::yieldRight, "yieldRight")
-        .def("yieldIndex", &SM::System::yieldIndex, "yieldIndex")
-        .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
-        .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
-        .def("getRedrawList", &SM::System::getRedrawList, "getRedrawList", py::return_value_policy::reference_internal)
-        .def("getRedrawList_redraw", &SM::System::getRedrawList_redraw, "getRedrawList_redraw")
-        .def("getRedrawList_redrawRight", &SM::System::getRedrawList_redrawRight, "getRedrawList_redrawRight")
-        .def("getRedrawList_redrawLeft", &SM::System::getRedrawList_redrawLeft, "getRedrawList_redrawLeft")
 
         .def("__repr__", [](const SM::System&) {
             return "<FrictionQPotSpringBlock.Line1d.System>";
