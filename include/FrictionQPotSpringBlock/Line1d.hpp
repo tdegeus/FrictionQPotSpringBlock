@@ -427,6 +427,8 @@ inline void System::quench()
 {
     m_v.fill(0.0);
     m_a.fill(0.0);
+    this->computeForceDamping();
+    this->computeForce();
 }
 
 inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
