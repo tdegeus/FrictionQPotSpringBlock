@@ -3,10 +3,15 @@
 [![CI](https://github.com/tdegeus/FrictionQPotSpringBlock/workflows/CI/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions)
 [![Doxygen -> gh-pages](https://github.com/tdegeus/FrictionQPotSpringBlock/workflows/gh-pages/badge.svg)](https://tdegeus.github.io/FrictionQPotSpringBlock)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/frictionqpotspringblock.svg)](https://anaconda.org/conda-forge/frictionqpotspringblock)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/python-frictionqpotspringblock.svg)](https://anaconda.org/conda-forge/python-frictionqpotspringblock)
 
-Spring-block friction model with local disordered potential energy landscape
+Spring-block friction model with local disordered potential energy landscape.
 
 # Change-log
+
+## v0.4.0
+
+*   Switch to QPot/Chunked and prrng. Drawing the energy landscape is now done manually externally, but it allows much easier reproducibility and customisation.
 
 ## v0.3.3
 
