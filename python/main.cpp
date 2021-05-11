@@ -131,15 +131,25 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("f_frame", &SM::System::f_frame, "f_frame")
         .def("f_neighbours", &SM::System::f_neighbours, "f_neighbours")
         .def("f_damping", &SM::System::f_damping, "f_damping")
+        .def("dt", &SM::System::dt, "dt")
         .def("residual", &SM::System::residual, "residual")
         .def("quench", &SM::System::quench, "quench")
         .def("timeStep", &SM::System::timeStep, "timeStep")
+
         .def("minimise",
              &SM::System::minimise,
              "minimise",
              py::arg("tol") = 1e-5,
              py::arg("niter_tol") = 20,
              py::arg("max_iter") = 1000000)
+
+        .def("minimise_timeactivity",
+             &SM::System::minimise_timeactivity,
+             "minimise_timeactivity",
+             py::arg("tol") = 1e-5,
+             py::arg("niter_tol") = 20,
+             py::arg("max_iter") = 1000000)
+
         .def("advanceRightElastic", &SM::System::advanceRightElastic, "advanceRightElastic", py::arg("arg"))
         .def("advanceRightKick", &SM::System::advanceRightKick, "advanceRightKick", py::arg("arg"))
 

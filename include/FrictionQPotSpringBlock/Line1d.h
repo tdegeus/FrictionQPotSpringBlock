@@ -343,6 +343,13 @@ public:
     xt::xtensor<double, 1> f_damping() const;
 
     /**
+    The time step, see set_dt().
+
+    \return double.
+    */
+    double dt() const;
+
+    /**
     Residual: the ratio between the norm of #f and #f_frame.
 
     \return double.
@@ -376,6 +383,23 @@ public:
     \return The number of iterations.
     */
     size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
+
+    /**
+    Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
+    Compared to minimise() this function measures the duration of an avalanche.
+
+    \param tol
+        Relative force tolerance for equilibrium. See residual() for definition.
+
+    \param niter_tol
+        Enforce the residual check for ``niter_tol`` consecutive increments.
+
+    \param max_iter
+        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+
+    \return The number of iterations elapsed during an avalanche (in units of dt()).
+    */
+    size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
 
     /**
     Event driven advance right to closest yielding point, leaving ``delta_x / 2`` as margin.
