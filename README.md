@@ -14,8 +14,8 @@ Spring-block friction model with local disordered potential energy landscape.
 *   Adding function to trigger weakest.
 *   Adding function to time avalanche.
 *   Recomputing forces after quench.
-*   Adding Python test (#21)
-*   Updating readme
+*   Adding Python test (#21).
+*   Updating readme.
 
 ## v0.4.0
 
