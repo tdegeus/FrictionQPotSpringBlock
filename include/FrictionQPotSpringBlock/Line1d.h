@@ -415,6 +415,14 @@ public:
     */
     void advanceRightKick(double delta_x);
 
+    /**
+    Trigger the closest point to yielding right: advance to the yield positions right
+    plus a margin of `delta_x / 2`.
+
+    \param delta_x Margin.
+    */
+    void triggerWeakestRight(double delta_x);
+
 protected:
 
     /**
