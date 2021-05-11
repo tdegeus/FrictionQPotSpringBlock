@@ -9,6 +9,14 @@ Spring-block friction model with local disordered potential energy landscape.
 
 # Change-log
 
+## v0.5.0
+
+*   Adding function to trigger weakest.
+*   Adding function to time avalanche.
+*   Recomputing forces after quench.
+*   Adding Python test (#21)
+*   Updating readme
+
 ## v0.4.0
 
 *   Switch to QPot/Chunked and prrng. Drawing the energy landscape is now done manually externally, but it allows much easier reproducibility and customisation.
