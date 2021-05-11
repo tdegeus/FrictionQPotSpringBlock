@@ -416,6 +416,11 @@ inline void System::timeStep()
     }
 }
 
+inline double System::dt() const
+{
+    return m_dt;
+}
+
 inline double System::residual() const
 {
     double Fext = xt::norm_l2(m_f_frame)();
@@ -442,6 +447,46 @@ inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
         if (stop.stop(this->residual(), tol)) {
             this->quench();
             return iiter;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t max_iter)
+{
+    GooseFEM::Iterate::StopList stop(niter_tol);
+
+    auto i_n = this->i();
+    long s = 0;
+    long s_n = 0;
+    size_t first_iter = 0;
+    size_t last_iter = 0;
+    bool init = true;
+
+    for (size_t iiter = 0; iiter < max_iter; ++iiter) {
+
+        this->timeStep();
+
+        s = 0;
+
+        for (size_t p = 0; p < m_N; ++p) {
+            s += std::abs(m_y[p].i() - i_n(p));
+        }
+
+        if (s != s_n) {
+            if (init) {
+                init = false;
+                first_iter = iiter;
+            }
+            last_iter = iiter;
+        }
+
+        s_n = s;
+
+        if (stop.stop(this->residual(), tol)) {
+            this->quench();
+            return last_iter - first_iter;
         }
     }
 
