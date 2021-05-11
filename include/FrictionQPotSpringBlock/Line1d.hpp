@@ -519,6 +519,18 @@ inline void System::advanceRightKick(double eps)
     this->computeForce();
 }
 
+inline void System::triggerWeakestRight(double eps)
+{
+    double dx = xt::amin(this->yieldDistanceRight())();
+    double deltax = dx + eps / 2.0;
+    m_x += deltax;
+    m_x_frame += (deltax * m_mu / m_k_frame);
+    this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+    this->computeForce();
+}
+
 inline double System::x_frame() const
 {
     return m_x_frame;
