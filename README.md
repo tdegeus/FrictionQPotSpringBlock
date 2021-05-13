@@ -9,6 +9,14 @@ Spring-block friction model with local disordered potential energy landscape.
 
 # Change-log
 
+## v0.6.0
+
+*   Updating Python API. Minor style updates. (#26)
+*   Fixing bug in event driven code. (#26)
+*   Adding advanceElastic.
+*   Adding debug assertions.
+*   Renaming "advanceRightElastic" -> "advanceEventRightElastic" (#24)
+
 ## v0.5.0
 
 *   Adding function to trigger weakest.
