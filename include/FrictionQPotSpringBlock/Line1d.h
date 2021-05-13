@@ -402,6 +402,32 @@ public:
     size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
 
     /**
+    Advance the system elastically: the particles and the frame are moved proportionally,
+    such that equilibrium is maintained.
+    Note that the displacement is uniform: all particles are moved in the same way.
+    In particular:
+
+    \f$ \Delta f^\mathrm{potential}_i = \mu \Delta x_i \f$
+
+    \f$ \Delta f^\mathrm{frame} = k (\Delta x^\mathrm{frame} - \Delta x_i) \f$
+
+    This gives two cases:
+
+    -   Given \f$ \Delta x_i \f$ one finds:
+        \f$ \Delta x^\mathrm{frame} = (k + \mu) / k \Delta x_i \f$.
+
+    -   Given \f$ \Delta x^\mathrm{frame} \f$ one finds:
+        \f$ \Delta x_i = k / (k + \mu) \Delta x^\mathrm{frame} \f$.
+
+    \param dx Displacement.
+
+    \param dx_of_frame
+        If `true`: `dx` \f$ = \Delta x^\mathrm{frame} \f$,
+        if `false`: `dx` \f$ = \Delta x_i \f$,
+    */
+    void advanceElastic(double dx, bool dx_of_frame = true);
+
+    /**
     Event driven advance right to closest yielding point, leaving ``delta_x / 2`` as margin.
 
     \param delta_x Margin.
@@ -428,8 +454,17 @@ public:
     */
 
     /**
-    Trigger the closest point to yielding right: advance to the yield positions right
-    plus a margin of `delta_x / 2`.
+    Trigger a specific particle:
+    advance to the yield positions right plus a margin of `delta_x / 2`.
+
+    \param p Particle index.
+    \param delta_x Margin.
+    */
+    void triggerRight(size_t p, double delta_x);
+
+    /**
+    Trigger the closest point to yielding right:
+    advance to the yield positions right plus a margin of `delta_x / 2`.
 
     \param delta_x Margin.
     */
