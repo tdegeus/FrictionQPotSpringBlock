@@ -561,14 +561,16 @@ inline void System::advanceElastic(double dx, bool dx_of_frame)
 inline void System::triggerRight(size_t p, double eps)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    double dx = m_y[p].yright() - m_x(p);
-    this->advanceElastic(dx + eps / 2.0, false);
+    m_x(p) = m_y[p].yright() + eps / 2.0;
+    this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+    this->computeForce();
 }
 
 inline void System::triggerWeakestRight(double eps)
 {
-    double dx = xt::amin(this->yieldDistanceRight())();
-    this->advanceElastic(dx + eps / 2.0, false);
+    this->triggerRight(xt::argmin(this->yieldDistanceRight())(), eps);
 }
 
 inline double System::x_frame() const
