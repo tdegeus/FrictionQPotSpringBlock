@@ -26,16 +26,20 @@ Defines used in the library.
             std::string(file) + ':' + std::to_string(line) + \
             ": assertion failed (" #expr ") \n\t"); \
     }
+
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
+#define FRICTIONQPOTFEM_ENABLE_ASSERT
+#endif
 /**
 \endcond
 */
 
 /**
-All assertions are implementation as::
+All assertions are implementation as:
 
     FRICTIONQPOTSPRINGBLOCK_ASSERT(...)
 
-They can be enabled by::
+They can be enabled by:
 
     #define FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
 
@@ -51,6 +55,26 @@ The advantage is that:
 #define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr) FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
 #else
 #define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr)
+#endif
+
+/**
+Some costly assertions, that are there mostly for debugging, are implemented as:
+
+    FRICTIONQPOTSPRINGBLOCK_DEBUG(...)
+
+They can be enabled by:
+
+    #define FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
+
+(before including FrictionQPotSpringBlock).
+See also #FRICTIONQPOTSPRINGBLOCK_ASSERT.
+
+\throw std::runtime_error
+*/
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
+#define FRICTIONQPOTSPRINGBLOCK_DEBUG(expr) FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
+#else
+#define FRICTIONQPOTSPRINGBLOCK_DEBUG(expr)
 #endif
 
 /**
@@ -76,11 +100,11 @@ They can be disabled by::
 #endif
 
 /**
-All warnings specific to the Python API are implemented as::
+All warnings specific to the Python API are implemented as:
 
     FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(...)
 
-They can be enabled by::
+They can be enabled by:
 
     #define FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
 */
