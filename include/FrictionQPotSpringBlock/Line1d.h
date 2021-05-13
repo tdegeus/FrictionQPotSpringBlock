@@ -406,14 +406,26 @@ public:
 
     \param delta_x Margin.
     */
-    void advanceRightElastic(double delta_x);
+    void advanceEventRightElastic(double delta_x);
 
     /**
     Event driven: advance right by ``delta_x``.
 
     \param delta_x Step size.
     */
+    void advanceEventRightKick(double delta_x);
+
+    /**
+    \cond
+    */
+    [[ deprecated ]]
+    void advanceRightElastic(double delta_x);
+
+    [[ deprecated ]]
     void advanceRightKick(double delta_x);
+    /**
+    \endcond
+    */
 
     /**
     Trigger the closest point to yielding right: advance to the yield positions right

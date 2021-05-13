@@ -495,6 +495,18 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
 
 inline void System::advanceRightElastic(double eps)
 {
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("rename 'advanceRightElastic' -> 'advanceEventRightElastic'");
+    this->advanceEventRightElastic(eps);
+}
+
+inline void System::advanceRightKick(double eps)
+{
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("rename 'advanceRightKick' -> 'advanceEventRightKick'");
+    this->advanceEventRightKick(eps);
+}
+
+inline void System::advanceEventRightElastic(double eps)
+{
     double dx = xt::amin(this->yieldDistanceRight())();
     if (dx < eps / 2.0) {
         return;
@@ -508,7 +520,7 @@ inline void System::advanceRightElastic(double eps)
     this->computeForce();
 }
 
-inline void System::advanceRightKick(double eps)
+inline void System::advanceEventRightKick(double eps)
 {
     double deltax = eps;
     m_x += deltax;
