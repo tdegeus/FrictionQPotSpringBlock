@@ -7,20 +7,54 @@
 TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
 {
 
+SECTION("System::advanceElastic")
+{
+    size_t N = 3;
+    xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
+    y = xt::cumsum(y, 1);
+    y -= 48.5;
+
+    FrictionQPotSpringBlock::Line1d::System sys(N, y);
+    sys.set_mu(1.0);
+    sys.set_k_frame(0.1);
+    REQUIRE(sys.residual() < 1e-5);
+
+    sys.advanceElastic(0.1, false);
+    REQUIRE(sys.residual() < 1e-5);
+    REQUIRE(xt::allclose(sys.x(), 0.1 * xt::ones<double>({N})));
+    REQUIRE(sys.x_frame() == Approx(1.1));
+
+    sys.advanceElastic(-0.1, false);
+    REQUIRE(sys.residual() < 1e-5);
+    REQUIRE(xt::allclose(sys.x(), 0.0 * xt::ones<double>({N})));
+    REQUIRE(sys.x_frame() == Approx(0.0));
+
+    sys.advanceElastic(1.1, true);
+    REQUIRE(sys.residual() < 1e-5);
+    REQUIRE(xt::allclose(sys.x(), 0.1 * xt::ones<double>({N})));
+    REQUIRE(sys.x_frame() == Approx(1.1));
+
+    sys.advanceElastic(-1.1, true);
+    REQUIRE(sys.residual() < 1e-5);
+    REQUIRE(xt::allclose(sys.x(), 0.0 * xt::ones<double>({N})));
+    REQUIRE(sys.x_frame() == Approx(0.0));
+}
+
 SECTION("System::advanceRightElastic")
 {
     size_t N = 3;
     xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
     y = xt::cumsum(y, 1);
-    y -= 49.5;
+    y -= 48.5;
 
     FrictionQPotSpringBlock::Line1d::System sys(N, y);
+    sys.set_mu(1.0);
+    sys.set_k_frame(0.1);
+    // REQUIRE(sys.residual() < 1e-5);
 
     sys.advanceRightElastic(0.2);
-
-    xt::xtensor<double, 1> x = (0.5 - 0.1) * xt::ones<double>({N});
-
-    REQUIRE(xt::allclose(x, sys.x()));
+    // REQUIRE(sys.residual() < 1e-5);
+    REQUIRE(xt::allclose(sys.x(), (0.5 - 0.1) * xt::ones<double>({N})));
 }
 
 SECTION("Chunked sequence, only move chunk right, only do so when needed")

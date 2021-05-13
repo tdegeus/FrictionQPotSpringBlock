@@ -519,16 +519,48 @@ inline void System::advanceRightKick(double eps)
     this->computeForce();
 }
 
-inline void System::triggerWeakestRight(double eps)
+inline void System::advanceElastic(double dx, bool dx_of_frame)
 {
-    double dx = xt::amin(this->yieldDistanceRight())();
-    double deltax = dx + eps / 2.0;
-    m_x += deltax;
-    m_x_frame += (deltax * m_mu / m_k_frame);
+    double dx_particles;
+    double dx_frame;
+
+    if (dx_of_frame) {
+        dx_frame = dx;
+        dx_particles = dx * m_k_frame / (m_k_frame + m_mu);
+    }
+    else {
+        dx_particles = dx;
+        dx_frame = dx * (m_k_frame + m_mu) / m_k_frame;
+    }
+
+    #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
+        if (dx_particles > 0.0) {
+            FRICTIONQPOTSPRINGBLOCK_DEBUG(dx_particles < xt::amin(this->yieldDistanceRight())());
+        }
+        else {
+            FRICTIONQPOTSPRINGBLOCK_DEBUG(std::abs(dx_particles) < xt::amin(this->yieldDistanceLeft())());
+        }
+    #endif
+
+    m_x += dx_particles;
+    m_x_frame += dx_frame;
     this->computeForcePotential();
     this->computeForceNeighbours();
     this->computeForceFrame();
     this->computeForce();
+}
+
+inline void System::triggerRight(size_t p, double eps)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    double dx = m_y[p].yright() - m_x(p);
+    this->advanceElastic(dx + eps / 2.0, false);
+}
+
+inline void System::triggerWeakestRight(double eps)
+{
+    double dx = xt::amin(this->yieldDistanceRight())();
+    this->advanceElastic(dx + eps / 2.0, false);
 }
 
 inline double System::x_frame() const
