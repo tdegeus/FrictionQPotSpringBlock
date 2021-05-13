@@ -493,6 +493,10 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
     throw std::runtime_error("No convergence found");
 }
 
+/**
+\cond
+*/
+
 inline void System::advanceRightElastic(double eps)
 {
     FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("rename 'advanceRightElastic' -> 'advanceEventRightElastic'");
@@ -504,6 +508,10 @@ inline void System::advanceRightKick(double eps)
     FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("rename 'advanceRightKick' -> 'advanceEventRightKick'");
     this->advanceEventRightKick(eps);
 }
+
+/**
+\endcond
+*/
 
 inline void System::advanceEventRightElastic(double eps)
 {
