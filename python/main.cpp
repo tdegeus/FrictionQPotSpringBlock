@@ -150,11 +150,15 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("niter_tol") = 20,
              py::arg("max_iter") = 1000000)
 
+        .def("advanceElastic", &SM::System::advanceElastic, "advanceElastic", py::arg("dx"), py::arg("dx_of_frame") = true)
+        .def("advanceEventRightElastic", &SM::System::advanceEventRightElastic, "advanceEventRightElastic", py::arg("eps"))
+        .def("advanceEventRightKick", &SM::System::advanceEventRightKick, "advanceEventRightKick", py::arg("eps"))
+        .def("triggerRight", &SM::System::triggerRight, "triggerRight", py::arg("p"), py::arg("eps"))
+        .def("triggerWeakestRight", &SM::System::triggerWeakestRight, "triggerWeakestRight", py::arg("eps"))
+
+        // deprecated
         .def("advanceRightElastic", &SM::System::advanceRightElastic, "advanceRightElastic", py::arg("arg"))
         .def("advanceRightKick", &SM::System::advanceRightKick, "advanceRightKick", py::arg("arg"))
-        .def("advanceEventRightElastic", &SM::System::advanceEventRightElastic, "advanceEventRightElastic", py::arg("arg"))
-        .def("advanceEventRightKick", &SM::System::advanceEventRightKick, "advanceEventRightKick", py::arg("arg"))
-        .def("triggerWeakestRight", &SM::System::triggerWeakestRight, "triggerWeakestRight", py::arg("arg"))
 
         .def("__repr__", [](const SM::System&) {
             return "<FrictionQPotSpringBlock.Line1d.System>";
