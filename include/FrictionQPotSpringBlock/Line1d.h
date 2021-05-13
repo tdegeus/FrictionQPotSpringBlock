@@ -428,47 +428,47 @@ public:
     void advanceElastic(double dx, bool dx_of_frame = true);
 
     /**
-    Event driven advance right to closest yielding point, leaving ``delta_x / 2`` as margin.
+    Event driven advance right to closest yielding point, leaving ``eps / 2`` as margin.
 
-    \param delta_x Margin.
+    \param eps Margin.
     */
-    void advanceEventRightElastic(double delta_x);
+    void advanceEventRightElastic(double eps);
 
     /**
-    Event driven: advance right by ``delta_x``.
+    Event driven: advance right by ``eps``.
 
-    \param delta_x Step size.
+    \param eps Step size.
     */
-    void advanceEventRightKick(double delta_x);
+    void advanceEventRightKick(double eps);
 
     /**
     \cond
     */
     [[ deprecated ]]
-    void advanceRightElastic(double delta_x);
+    void advanceRightElastic(double eps);
 
     [[ deprecated ]]
-    void advanceRightKick(double delta_x);
+    void advanceRightKick(double eps);
     /**
     \endcond
     */
 
     /**
     Trigger a specific particle:
-    advance to the yield positions right plus a margin of `delta_x / 2`.
+    advance to the yield positions right plus a margin of `eps / 2`.
 
     \param p Particle index.
-    \param delta_x Margin.
+    \param eps Margin.
     */
-    void triggerRight(size_t p, double delta_x);
+    void triggerRight(size_t p, double eps);
 
     /**
     Trigger the closest point to yielding right:
-    advance to the yield positions right plus a margin of `delta_x / 2`.
+    advance to the yield positions right plus a margin of `eps / 2`.
 
-    \param delta_x Margin.
+    \param eps Margin.
     */
-    void triggerWeakestRight(double delta_x);
+    void triggerWeakestRight(double eps);
 
 protected:
 
