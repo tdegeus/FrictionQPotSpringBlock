@@ -152,6 +152,8 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
 
         .def("advanceRightElastic", &SM::System::advanceRightElastic, "advanceRightElastic", py::arg("arg"))
         .def("advanceRightKick", &SM::System::advanceRightKick, "advanceRightKick", py::arg("arg"))
+        .def("advanceEventRightElastic", &SM::System::advanceEventRightElastic, "advanceEventRightElastic", py::arg("arg"))
+        .def("advanceEventRightKick", &SM::System::advanceEventRightKick, "advanceEventRightKick", py::arg("arg"))
         .def("triggerWeakestRight", &SM::System::triggerWeakestRight, "triggerWeakestRight", py::arg("arg"))
 
         .def("__repr__", [](const SM::System&) {

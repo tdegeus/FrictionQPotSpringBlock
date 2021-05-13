@@ -47,10 +47,10 @@ int main()
             sys.set_x_frame(0.0); // initial quench
         }
         else if (inc % 2 != 0) {
-            sys.advanceRightElastic(xdelta); // elastically advance -> mechanical equilibrium
+            sys.advanceEventRightElastic(xdelta); // elastically advance -> mechanical equilibrium
         }
         else {
-            sys.advanceRightKick(xdelta); // apply kick
+            sys.advanceEventRightKick(xdelta); // apply kick
         }
 
         // Minimise energy.
