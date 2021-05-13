@@ -40,7 +40,7 @@ SECTION("System::advanceElastic")
     REQUIRE(sys.x_frame() == Approx(0.0));
 }
 
-SECTION("System::advanceRightElastic")
+SECTION("System::advanceEventRightElastic")
 {
     size_t N = 3;
     xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
@@ -50,11 +50,26 @@ SECTION("System::advanceRightElastic")
     FrictionQPotSpringBlock::Line1d::System sys(N, y);
     sys.set_mu(1.0);
     sys.set_k_frame(0.1);
-    // REQUIRE(sys.residual() < 1e-5);
+    REQUIRE(sys.residual() < 1e-5);
 
-    sys.advanceRightElastic(0.2);
-    // REQUIRE(sys.residual() < 1e-5);
+    auto i_n = sys.i();
+    sys.advanceEventRightElastic(0.2);
+    REQUIRE(sys.residual() < 1e-5);
     REQUIRE(xt::allclose(sys.x(), (0.5 - 0.1) * xt::ones<double>({N})));
+    REQUIRE(xt::all(xt::equal(sys.i(), i_n)));
+
+    sys.advanceEventRightKick(0.2);
+    REQUIRE(xt::allclose(sys.x(), (0.5 + 0.1) * xt::ones<double>({N})));
+    REQUIRE(!xt::all(xt::equal(sys.i(), i_n)));
+
+    i_n = sys.i();
+    sys.advanceEventRightElastic(0.2);
+    REQUIRE(xt::allclose(sys.x(), (1.5 - 0.1) * xt::ones<double>({N})));
+    REQUIRE(xt::all(xt::equal(sys.i(), i_n)));
+
+    sys.advanceEventRightKick(0.2);
+    REQUIRE(xt::allclose(sys.x(), (1.5 + 0.1) * xt::ones<double>({N})));
+    REQUIRE(!xt::all(xt::equal(sys.i(), i_n)));
 }
 
 SECTION("Chunked sequence, only move chunk right, only do so when needed")

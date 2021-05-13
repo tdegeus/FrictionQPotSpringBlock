@@ -519,24 +519,12 @@ inline void System::advanceEventRightElastic(double eps)
     if (dx < eps / 2.0) {
         return;
     }
-    double deltax = dx - eps / 2.0;
-    m_x += deltax;
-    m_x_frame += (deltax * m_mu / m_k_frame);
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForce();
+    this->advanceElastic(dx - eps / 2.0, false);
 }
 
 inline void System::advanceEventRightKick(double eps)
 {
-    double deltax = eps;
-    m_x += deltax;
-    m_x_frame += (deltax * m_mu / m_k_frame);
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForce();
+    this->advanceElastic(eps, false);
 }
 
 inline void System::advanceElastic(double dx, bool dx_of_frame)
