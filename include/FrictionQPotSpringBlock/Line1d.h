@@ -10,6 +10,9 @@ Line in 1d.
 #define FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 
 #ifndef XTENSOR
+/**
+Type define such that all methods can be used with `xt::xtensor<T, N>` or `xt::pytensor<T, N>`.
+*/
 #define XTENSOR xt::xtensor
 #endif
 
