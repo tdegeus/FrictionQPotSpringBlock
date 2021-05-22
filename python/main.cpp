@@ -9,7 +9,11 @@ Python API
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
-#include <pyxtensor/pyxtensor.hpp>
+
+#define FORCE_IMPORT_ARRAY
+#include <xtensor-python/pytensor.hpp>
+
+#define TENSOR xt::pytensor
 
 // #define QPOT_ENABLE_ASSERT
 // #define GOOSEFEM_ENABLE_ASSERT
@@ -23,6 +27,7 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(FrictionQPotSpringBlock, m)
 {
+    xt::import_numpy();
 
     m.doc() = "Spring-block friction model with local disordered potential energy landscape";
 
@@ -48,12 +53,12 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
 
     py::class_<SM::System>(sm, "System")
 
-        .def(py::init<size_t, const xt::xtensor<double, 2>&>(),
+        .def(py::init<size_t, const TENSOR<double, 2>&>(),
              "System",
              py::arg("N"),
              py::arg("y"))
 
-        .def(py::init<size_t, const xt::xtensor<double, 2>&, const xt::xtensor<long, 1>&>(),
+        .def(py::init<size_t, const TENSOR<double, 2>&, const TENSOR<long, 1>&>(),
              "System",
              py::arg("N"),
              py::arg("y"),
@@ -62,8 +67,8 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("N", &SM::System::N, "N")
 
         .def("set_y",
-             py::overload_cast<const xt::xtensor<long, 1>&, const xt::xtensor<double, 2>&>(
-                &SM::System::set_y<xt::xtensor<double, 2>>),
+             py::overload_cast<const TENSOR<long, 1>&, const TENSOR<double, 2>&>(
+                &SM::System::set_y<TENSOR<double, 2>>),
              "Reset the chunk of all particles.",
              py::arg("istart"),
              py::arg("y"))
@@ -104,7 +109,7 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              "any_redraw")
 
         .def("any_redraw",
-             py::overload_cast<const xt::xtensor<double, 1>&>(&SM::System::any_redraw, py::const_),
+             py::overload_cast<const TENSOR<double, 1>&>(&SM::System::any_redraw, py::const_),
              "any_redraw",
              py::arg("x"))
 

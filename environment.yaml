@@ -13,12 +13,13 @@ dependencies:
 
   # Python API
   - python
-  - pyxtensor
+  - numpy
+  - pybind11
+  - xtensor-python
 
   # run tests
   - catch2
   - prrng
-  - numpy
   - python-qpot
 
   # run examples

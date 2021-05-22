@@ -9,6 +9,13 @@ Line in 1d.
 #ifndef FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 #define FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 
+#ifndef TENSOR
+/**
+Type define such that all methods can be used with `xt::xtensor<T, N>` or `xt::pytensor<T, N>`.
+*/
+#define TENSOR xt::xtensor
+#endif
+
 #include "config.h"
 #include "version.h"
 
@@ -59,7 +66,7 @@ public:
     \param N Number of particles.
     \param y Initial yield positions.
     */
-    System(size_t N, const xt::xtensor<double, 2>& y);
+    System(size_t N, const TENSOR<double, 2>& y);
 
     /**
     Constructor.
@@ -68,7 +75,7 @@ public:
     \param y Initial yield positions.
     \param istart Starting index corresponding to y[:, 0]
     */
-    System(size_t N, const xt::xtensor<double, 2>& y, const xt::xtensor<long, 1>& istart);
+    System(size_t N, const TENSOR<double, 2>& y, const TENSOR<long, 1>& istart);
 
     /**
     Number of particles.
@@ -89,7 +96,7 @@ public:
     \copydoc QPot::Chunked::set_y(long, const T&)
     */
     template <class T>
-    void set_y(const xt::xtensor<long, 1>& istart, const T& y);
+    void set_y(const TENSOR<long, 1>& istart, const T& y);
 
     /**
     \copydoc QPot::Chunked::set_y(long, const T&)
@@ -115,47 +122,47 @@ public:
     /**
     \copydoc QPot::Chunked::ymin()
     */
-    xt::xtensor<double, 1> ymin() const;
+    TENSOR<double, 1> ymin() const;
 
     /**
     \copydoc QPot::Chunked::ymin_chunk()
     */
-    xt::xtensor<double, 1> ymin_chunk() const;
+    TENSOR<double, 1> ymin_chunk() const;
 
     /**
     \copydoc QPot::Chunked::yleft()
     */
-    xt::xtensor<double, 1> yleft() const;
+    TENSOR<double, 1> yleft() const;
 
     /**
     \copydoc QPot::Chunked::yright()
     */
-    xt::xtensor<double, 1> yright() const;
+    TENSOR<double, 1> yright() const;
 
     /**
     \copydoc QPot::Chunked::i_chunk()
     */
-    xt::xtensor<size_t, 1> i_chunk() const;
+    TENSOR<size_t, 1> i_chunk() const;
 
     /**
     \copydoc QPot::Chunked::istart()
     */
-    xt::xtensor<long, 1> istart() const;
+    TENSOR<long, 1> istart() const;
 
     /**
     \copydoc QPot::Chunked::istop()
     */
-    xt::xtensor<long, 1> istop() const;
+    TENSOR<long, 1> istop() const;
 
     /**
     \copydoc QPot::Chunked::boundcheck_left()
     */
-    xt::xtensor<bool, 1> boundcheck_left(size_t n = 0) const;
+    TENSOR<bool, 1> boundcheck_left(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::boundcheck_right()
     */
-    xt::xtensor<bool, 1> boundcheck_right(size_t n = 0) const;
+    TENSOR<bool, 1> boundcheck_right(size_t n = 0) const;
 
     /**
     Check if any yield position chunk needs to be updated based on the current x().
@@ -171,7 +178,7 @@ public:
     \param x Trial particle positions (internally the position is not updated).
     \return true if redraw is needed for one of more particle.
     */
-    bool any_redraw(const xt::xtensor<double, 1>& x) const;
+    bool any_redraw(const TENSOR<double, 1>& x) const;
 
     /**
     Check if any particle if within `n` potentials for the left- or the right-most yield
@@ -187,21 +194,21 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<long, 1> i() const;
+    TENSOR<long, 1> i() const;
 
     /**
     Distance to yield to the right (for each particle).
 
     \return [#N].
     */
-    xt::xtensor<double, 1> yieldDistanceRight() const;
+    TENSOR<double, 1> yieldDistanceRight() const;
 
     /**
     Distance to yield to the left (for each particle).
 
     \return [#N].
     */
-    xt::xtensor<double, 1> yieldDistanceLeft() const;
+    TENSOR<double, 1> yieldDistanceLeft() const;
 
     /**
     Set time step.
@@ -268,7 +275,7 @@ public:
 
     \param arg The particles' positions [#N].
     */
-    void set_x(const xt::xtensor<double, 1>& arg);
+    void set_x(const TENSOR<double, 1>& arg);
 
     /**
     Set the velocity of each particle.
@@ -277,70 +284,70 @@ public:
 
     \param arg The particles' velocities [#N].
     */
-    void set_v(const xt::xtensor<double, 1>& arg);
+    void set_v(const TENSOR<double, 1>& arg);
 
     /**
     Set the acceleration of each particle.
 
     \param arg The particles' accelerations [#N].
     */
-    void set_a(const xt::xtensor<double, 1>& arg);
+    void set_a(const TENSOR<double, 1>& arg);
 
     /**
     Position of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> x() const;
+    TENSOR<double, 1> x() const;
 
     /**
     Velocity of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> v() const;
+    TENSOR<double, 1> v() const;
 
     /**
     Acceleration of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> a() const;
+    TENSOR<double, 1> a() const;
 
     /**
     Resultant force acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f() const;
+    TENSOR<double, 1> f() const;
 
     /**
     Force associated to potentials acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_potential() const;
+    TENSOR<double, 1> f_potential() const;
 
     /**
     Force associated to the load frame acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_frame() const;
+    TENSOR<double, 1> f_frame() const;
 
     /**
     Force associated to neighbours acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_neighbours() const;
+    TENSOR<double, 1> f_neighbours() const;
 
     /**
     Force associated to damping on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_damping() const;
+    TENSOR<double, 1> f_damping() const;
 
     /**
     The time step, see set_dt().
@@ -479,7 +486,7 @@ protected:
     \param y Initial yield positions.
     \param istart Starting index corresponding to y[:, 0]
     */
-    void init(size_t N, const xt::xtensor<double, 2>& y, const xt::xtensor<long, 1>& istart);
+    void init(size_t N, const TENSOR<double, 2>& y, const TENSOR<long, 1>& istart);
 
     /**
     Compute #f based on the current #x and #v.
@@ -508,16 +515,16 @@ protected:
 
 protected:
 
-    xt::xtensor<double, 1> m_f; ///< See #f.
-    xt::xtensor<double, 1> m_f_potential; ///< See #f_potential.
-    xt::xtensor<double, 1> m_f_neighbours; ///< See #f_neighbours.
-    xt::xtensor<double, 1> m_f_frame; ///< See #f_frame.
-    xt::xtensor<double, 1> m_f_damping; ///< See #f_damping.
-    xt::xtensor<double, 1> m_x; ///< See #x.
-    xt::xtensor<double, 1> m_v; ///< See #v.
-    xt::xtensor<double, 1> m_a; ///< See #a.
-    xt::xtensor<double, 1> m_v_n; ///< #v at last time-step.
-    xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
+    TENSOR<double, 1> m_f; ///< See #f.
+    TENSOR<double, 1> m_f_potential; ///< See #f_potential.
+    TENSOR<double, 1> m_f_neighbours; ///< See #f_neighbours.
+    TENSOR<double, 1> m_f_frame; ///< See #f_frame.
+    TENSOR<double, 1> m_f_damping; ///< See #f_damping.
+    TENSOR<double, 1> m_x; ///< See #x.
+    TENSOR<double, 1> m_v; ///< See #v.
+    TENSOR<double, 1> m_a; ///< See #a.
+    TENSOR<double, 1> m_v_n; ///< #v at last time-step.
+    TENSOR<double, 1> m_a_n; ///< #a at last time-step.
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     double m_dt = 0.1; ///< See #set_dt.
