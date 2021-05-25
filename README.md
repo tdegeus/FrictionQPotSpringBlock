@@ -9,6 +9,14 @@ Spring-block friction model with local disordered potential energy landscape.
 
 # Change-log
 
+## v0.6.2
+
+*   Switching to xtensor-python (no API change).
+
+## v0.6.1
+
+*   Fixing bug in triggering.
+
 ## v0.6.0
 
 *   Updating Python API. Minor style updates. (#26)
