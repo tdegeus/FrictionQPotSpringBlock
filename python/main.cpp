@@ -13,8 +13,6 @@ Python API
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
 
-#define TENSOR xt::pytensor
-
 // #define QPOT_ENABLE_ASSERT
 // #define GOOSEFEM_ENABLE_ASSERT
 // #define FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
@@ -53,12 +51,12 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
 
     py::class_<SM::System>(sm, "System")
 
-        .def(py::init<size_t, const TENSOR<double, 2>&>(),
+        .def(py::init<size_t, const xt::pytensor<double, 2>&>(),
              "System",
              py::arg("N"),
              py::arg("y"))
 
-        .def(py::init<size_t, const TENSOR<double, 2>&, const TENSOR<long, 1>&>(),
+        .def(py::init<size_t, const xt::pytensor<double, 2>&, const xt::pytensor<long, 1>&>(),
              "System",
              py::arg("N"),
              py::arg("y"),
@@ -67,8 +65,8 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("N", &SM::System::N, "N")
 
         .def("set_y",
-             py::overload_cast<const TENSOR<long, 1>&, const TENSOR<double, 2>&>(
-                &SM::System::set_y<TENSOR<double, 2>>),
+             py::overload_cast<const xt::pytensor<long, 1>&, const xt::pytensor<double, 2>&>(
+                &SM::System::set_y<xt::pytensor<long, 1>, xt::pytensor<double, 2>>),
              "Reset the chunk of all particles.",
              py::arg("istart"),
              py::arg("y"))
@@ -105,13 +103,13 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("boundcheck_right", &SM::System::boundcheck_right, "boundcheck_right", py::arg("n") = 0)
 
         .def("any_redraw",
-             py::overload_cast<>(&SM::System::any_redraw, py::const_),
-             "any_redraw")
-
-        .def("any_redraw",
-             py::overload_cast<const TENSOR<double, 1>&>(&SM::System::any_redraw, py::const_),
+             static_cast<bool (SM::System::*)(const xt::pytensor<double, 1>&) const>(&SM::System::any_redraw),
              "any_redraw",
              py::arg("x"))
+
+        .def("any_redraw",
+             static_cast<bool (SM::System::*)() const>(&SM::System::any_redraw),
+             "any_redraw")
 
         .def("any_shift", &SM::System::any_shift, "any_shift", py::arg("n"))
         .def("i", &SM::System::i, "i")
@@ -125,9 +123,9 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("set_k_frame", &SM::System::set_k_frame, "set_k_frame", py::arg("arg"))
         .def("set_x_frame", &SM::System::set_x_frame, "set_x_frame", py::arg("arg"))
         .def("x_frame", &SM::System::x_frame, "x_frame")
-        .def("set_x", &SM::System::set_x, "x")
-        .def("set_v", &SM::System::set_v, "v")
-        .def("set_a", &SM::System::set_a, "a")
+        .def("set_x", &SM::System::set_x<xt::pytensor<double, 1>>, "x")
+        .def("set_v", &SM::System::set_v<xt::pytensor<double, 1>>, "v")
+        .def("set_a", &SM::System::set_a<xt::pytensor<double, 1>>, "a")
         .def("x", &SM::System::x, "x")
         .def("v", &SM::System::v, "v")
         .def("a", &SM::System::a, "a")

@@ -30,26 +30,25 @@ inline std::vector<std::string> version_dependencies()
     return ret;
 }
 
-inline System::System(size_t N, const TENSOR<double, 2>& x_y)
+template <class T>
+inline System::System(size_t N, const T& x_y)
 {
-    TENSOR<long, 1> istart = xt::zeros<long>({N});
+    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
     this->init(N, x_y, istart);
 }
 
-inline System::System(
-    size_t N,
-    const TENSOR<double, 2>& x_y,
-    const TENSOR<long, 1>& istart)
+template <class T, class I>
+inline System::System(size_t N, const T& x_y, const I& istart)
 {
     this->init(N, x_y, istart);
 }
 
-inline void System::init(
-    size_t N,
-    const TENSOR<double, 2>& x_y,
-    const TENSOR<long, 1>& istart)
+template <class T, class I>
+inline void System::init(size_t N, const T& x_y, const I& istart)
 {
     #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(istart.dimension() == 1);
     auto y0 = xt::view(x_y, xt::all(), 0);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(y0 < 0.0));
     #endif
@@ -84,10 +83,10 @@ inline QPot::Chunked& System::y(size_t p)
     return m_y[p];
 }
 
-template <class T>
-inline void System::set_y(const TENSOR<long, 1>& istart, const T& x_y)
+template <class I, class T>
+inline void System::set_y(const I& istart, const T& x_y)
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(istart.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(istart, {m_N}));
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.shape(0) == m_N);
 
@@ -120,9 +119,9 @@ inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffe
     m_y[p].shift_dy(istart, dx_y, nbuffer);
 }
 
-inline TENSOR<double, 1> System::ymin() const
+inline xt::xtensor<double, 1> System::ymin() const
 {
-    TENSOR<double, 1> ret = xt::empty<double>({m_N});
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymin();
@@ -131,9 +130,9 @@ inline TENSOR<double, 1> System::ymin() const
     return ret;
 }
 
-inline TENSOR<double, 1> System::ymin_chunk() const
+inline xt::xtensor<double, 1> System::ymin_chunk() const
 {
-    TENSOR<double, 1> ret = xt::empty<double>({m_N});
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymin_chunk();
@@ -142,9 +141,9 @@ inline TENSOR<double, 1> System::ymin_chunk() const
     return ret;
 }
 
-inline TENSOR<double, 1> System::yleft() const
+inline xt::xtensor<double, 1> System::yleft() const
 {
-    TENSOR<double, 1> ret = xt::empty<double>({m_N});
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yleft();
@@ -153,9 +152,9 @@ inline TENSOR<double, 1> System::yleft() const
     return ret;
 }
 
-inline TENSOR<double, 1> System::yright() const
+inline xt::xtensor<double, 1> System::yright() const
 {
-    TENSOR<double, 1> ret = xt::empty<double>({m_N});
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yright();
@@ -164,9 +163,9 @@ inline TENSOR<double, 1> System::yright() const
     return ret;
 }
 
-inline TENSOR<size_t, 1> System::i_chunk() const
+inline xt::xtensor<size_t, 1> System::i_chunk() const
 {
-    TENSOR<size_t, 1> ret = xt::empty<size_t>({m_N});
+    xt::xtensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].i_chunk();
@@ -175,9 +174,9 @@ inline TENSOR<size_t, 1> System::i_chunk() const
     return ret;
 }
 
-inline TENSOR<long, 1> System::istart() const
+inline xt::xtensor<long, 1> System::istart() const
 {
-    TENSOR<long, 1> ret = xt::empty<long>({m_N});
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].istart();
@@ -186,9 +185,9 @@ inline TENSOR<long, 1> System::istart() const
     return ret;
 }
 
-inline TENSOR<long, 1> System::istop() const
+inline xt::xtensor<long, 1> System::istop() const
 {
-    TENSOR<long, 1> ret = xt::empty<long>({m_N});
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].istop();
@@ -197,9 +196,9 @@ inline TENSOR<long, 1> System::istop() const
     return ret;
 }
 
-inline TENSOR<bool, 1> System::boundcheck_left(size_t n) const
+inline xt::xtensor<bool, 1> System::boundcheck_left(size_t n) const
 {
-    TENSOR<bool, 1> ret = xt::empty<bool>({m_N});
+    xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].boundcheck_left(n);
@@ -208,9 +207,9 @@ inline TENSOR<bool, 1> System::boundcheck_left(size_t n) const
     return ret;
 }
 
-inline TENSOR<bool, 1> System::boundcheck_right(size_t n) const
+inline xt::xtensor<bool, 1> System::boundcheck_right(size_t n) const
 {
-    TENSOR<bool, 1> ret = xt::empty<bool>({m_N});
+    xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].boundcheck_right(n);
@@ -231,9 +230,10 @@ inline bool System::any_redraw() const
     return false;
 }
 
-inline bool System::any_redraw(const TENSOR<double, 1>& xtrial) const
+template <class T>
+inline bool System::any_redraw(const T& xtrial) const
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xtrial.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(xtrial, {m_N}));
 
     for (size_t p = 0; p < m_N; ++p) {
         auto r = m_y[p].redraw(xtrial(p));
@@ -256,19 +256,19 @@ inline bool System::any_shift(size_t n) const
     return false;
 }
 
-inline TENSOR<double, 1> System::yieldDistanceRight() const
+inline xt::xtensor<double, 1> System::yieldDistanceRight() const
 {
     return this->yright() - m_x;
 }
 
-inline TENSOR<double, 1> System::yieldDistanceLeft() const
+inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
 {
     return m_x - this->yleft();
 }
 
-inline TENSOR<long, 1> System::i() const
+inline xt::xtensor<long, 1> System::i() const
 {
-    TENSOR<long, 1> ret = xt::empty<long>({m_N});
+    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].i();
@@ -319,9 +319,10 @@ inline void System::set_x_frame(double arg)
     this->computeForce();
 }
 
-inline void System::set_x(const TENSOR<double, 1>& arg)
+template <class T>
+inline void System::set_x(const T& arg)
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
     xt::noalias(m_x) = arg;
     this->computeForcePotential();
     this->computeForceNeighbours();
@@ -329,17 +330,19 @@ inline void System::set_x(const TENSOR<double, 1>& arg)
     this->computeForce();
 }
 
-inline void System::set_v(const TENSOR<double, 1>& arg)
+template <class T>
+inline void System::set_v(const T& arg)
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
     xt::noalias(m_v) = arg;
     this->computeForceDamping();
     this->computeForce();
 }
 
-inline void System::set_a(const TENSOR<double, 1>& arg)
+template <class T>
+inline void System::set_a(const T& arg)
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.size() == m_N);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
     xt::noalias(m_a) = arg;
 }
 
@@ -578,42 +581,42 @@ inline double System::x_frame() const
     return m_x_frame;
 }
 
-inline TENSOR<double, 1> System::x() const
+inline xt::xtensor<double, 1> System::x() const
 {
     return m_x;
 }
 
-inline TENSOR<double, 1> System::v() const
+inline xt::xtensor<double, 1> System::v() const
 {
     return m_v;
 }
 
-inline TENSOR<double, 1> System::a() const
+inline xt::xtensor<double, 1> System::a() const
 {
     return m_a;
 }
 
-inline TENSOR<double, 1> System::f() const
+inline xt::xtensor<double, 1> System::f() const
 {
     return m_f;
 }
 
-inline TENSOR<double, 1> System::f_potential() const
+inline xt::xtensor<double, 1> System::f_potential() const
 {
     return m_f_potential;
 }
 
-inline TENSOR<double, 1> System::f_frame() const
+inline xt::xtensor<double, 1> System::f_frame() const
 {
     return m_f_frame;
 }
 
-inline TENSOR<double, 1> System::f_neighbours() const
+inline xt::xtensor<double, 1> System::f_neighbours() const
 {
     return m_f_neighbours;
 }
 
-inline TENSOR<double, 1> System::f_damping() const
+inline xt::xtensor<double, 1> System::f_damping() const
 {
     return m_f_damping;
 }
