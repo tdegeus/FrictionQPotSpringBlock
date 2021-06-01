@@ -439,6 +439,31 @@ inline void System::quench()
     this->computeForce();
 }
 
+inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t max_iter)
+{
+    GooseFEM::Iterate::StopList stop(niter_tol);
+
+    auto i_n = this->i();
+
+    for (size_t iiter = 1; iiter < max_iter; ++iiter) {
+
+        this->timeStep();
+
+        for (size_t p = 0; p < m_N; ++p) {
+            if (m_y[p].i() != i_n(p)) {
+                return iiter;
+            }
+        }
+
+        if (stop.stop(this->residual(), tol)) {
+            this->quench();
+            return 0;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
 inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
 {
     GooseFEM::Iterate::StopList stop(niter_tol);

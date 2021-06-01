@@ -139,6 +139,13 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
         .def("quench", &SM::System::quench, "quench")
         .def("timeStep", &SM::System::timeStep, "timeStep")
 
+        .def("timeStepsUntilEvent",
+             &SM::System::timeStepsUntilEvent,
+             "timeStepsUntilEvent",
+             py::arg("tol") = 1e-5,
+             py::arg("niter_tol") = 20,
+             py::arg("max_iter") = 1000000)
+
         .def("minimise",
              &SM::System::minimise,
              "minimise",
