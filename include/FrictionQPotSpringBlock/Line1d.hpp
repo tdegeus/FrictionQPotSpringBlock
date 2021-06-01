@@ -455,7 +455,7 @@ inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t m
             }
         }
 
-        if (stop.stop(this->residual(), tol)) {
+        if (stop.stop_simple(this->residual(), tol)) {
             this->quench();
             return 0;
         }
