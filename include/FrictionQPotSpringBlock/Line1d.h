@@ -386,7 +386,9 @@ public:
     \param max_iter
         Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
 
-    \return The number of iterations.
+    \return
+        The number of iterations.
+        `0` is returned if there was no plastic activity and the residual was reached.
     */
     size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
 
