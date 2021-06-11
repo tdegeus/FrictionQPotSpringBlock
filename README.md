@@ -9,6 +9,19 @@ Spring-block friction model with local disordered potential energy landscape.
 
 # Change-log
 
+## v0.6.5
+
+*   Adding time (#33)
+*   Allowing for extra iterations
+
+## v0.6.4
+
+*   Using simple stop criterion in event driven read (#32)
+
+## v0.6.3
+
+*   Run a series of time-steps until the next plastic event (#31)
+
 ## v0.6.2
 
 *   Switching to xtensor-python (no API change).
