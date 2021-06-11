@@ -282,6 +282,11 @@ inline size_t System::N() const
     return m_N;
 }
 
+inline void System::set_t(double arg)
+{
+    m_t = arg;
+}
+
 inline void System::set_dt(double arg)
 {
     m_dt = arg;
@@ -381,6 +386,7 @@ inline void System::computeForce()
 
 inline void System::timeStep()
 {
+    m_t += m_dt;
     xt::noalias(m_v_n) = m_v;
     xt::noalias(m_a_n) = m_a;
 
@@ -417,6 +423,11 @@ inline void System::timeStep()
     if (xt::any(xt::isnan(m_x))) {
         throw std::runtime_error("NaN entries found");
     }
+}
+
+inline double System::t() const
+{
+    return m_t;
 }
 
 inline double System::dt() const

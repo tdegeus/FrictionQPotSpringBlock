@@ -207,6 +207,12 @@ public:
     xt::xtensor<double, 1> yieldDistanceLeft() const;
 
     /**
+     * Set time.
+     * \param arg double.
+     */
+    void set_t(double arg);
+
+    /**
     Set time step.
 
     \param arg double.
@@ -347,6 +353,12 @@ public:
     \return [#N].
     */
     xt::xtensor<double, 1> f_damping() const;
+
+    /**
+     * The time, see set_t().
+     * \return double.
+     */
+    double t() const;
 
     /**
     The time step, see set_dt().
@@ -545,6 +557,7 @@ protected:
     xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
+    double m_t = 0.0; ///< See #set_t.
     double m_dt = 0.1; ///< See #set_dt.
     double m_eta = 2.0 * std::sqrt(3.0) / 10.0; ///< See #set_eta.
     double m_m = 1.0; ///< See #set_m.
