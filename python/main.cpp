@@ -144,21 +144,21 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              "timeStepsUntilEvent",
              py::arg("tol") = 1e-5,
              py::arg("niter_tol") = 20,
-             py::arg("max_iter") = 1000000)
+             py::arg("max_iter") = 10000000)
 
         .def("minimise",
              &SM::System::minimise,
              "minimise",
              py::arg("tol") = 1e-5,
              py::arg("niter_tol") = 20,
-             py::arg("max_iter") = 1000000)
+             py::arg("max_iter") = 10000000)
 
         .def("minimise_timeactivity",
              &SM::System::minimise_timeactivity,
              "minimise_timeactivity",
              py::arg("tol") = 1e-5,
              py::arg("niter_tol") = 20,
-             py::arg("max_iter") = 1000000)
+             py::arg("max_iter") = 10000000)
 
         .def("advanceElastic", &SM::System::advanceElastic, "advanceElastic", py::arg("dx"), py::arg("dx_of_frame") = true)
         .def("advanceEventRightElastic", &SM::System::advanceEventRightElastic, "advanceEventRightElastic", py::arg("eps"))

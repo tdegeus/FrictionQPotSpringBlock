@@ -390,7 +390,7 @@ public:
         The number of iterations.
         `0` is returned if there was no plastic activity and the residual was reached.
     */
-    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
+    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -406,7 +406,7 @@ public:
 
     \return The number of iterations.
     */
-    size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
+    size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -423,7 +423,7 @@ public:
 
     \return The number of iterations elapsed during an avalanche (in units of dt()).
     */
-    size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1000000);
+    size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
     Advance the system elastically: the particles and the frame are moved proportionally,
