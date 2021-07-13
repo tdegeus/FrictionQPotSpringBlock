@@ -249,6 +249,13 @@ public:
     void set_k_neighbours(double arg);
 
     /**
+     *  Set the unloaded spring-length (controls the pretension in the springs).
+     *  \param arg Spring length of each spring [#N + 1]
+    */
+    template <class T>
+    void set_x0_neighbours(const T& arg);
+
+    /**
     Set stiffness of the springs connecting a particle to the load frame (same for all particles).
     To be set ~1 / N.
 
