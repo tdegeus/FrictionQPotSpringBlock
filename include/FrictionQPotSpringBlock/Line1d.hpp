@@ -362,11 +362,22 @@ inline void System::computeForcePotential()
 
 inline void System::computeForceNeighbours()
 {
-    for (size_t p = 1; p < m_N - 1; ++p) {
-        m_f_neighbours(p) = m_k_neighbours * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1));
+    double dx; 
+    double f;
+
+    m_f_neighbours.fill(0.0);
+
+    dx = m_x.front() - m_x.back();
+    f = m_k_neighbours * (1.0 - 1.0 / std::sqrt(1.0 + dx * dx)) * dx;
+    m_f_neighbours.front() += f;
+    m_f_neighbours.back() -= f;     
+
+    for (size_t p = 1; p < m_N; ++p) {
+        dx = m_x(p) - m_x(p - 1)
+        f = m_k_neighbours * (1.0 - 1.0 / std::sqrt(1.0 + dx * dx)) * dx;
+        m_f_neighbours(p) += f;
+        m_f_neighbours(p - 1) -= f;
     }
-    m_f_neighbours.front() = m_k_neighbours * (m_x.back() - 2 * m_x.front() + m_x(1));
-    m_f_neighbours.back() = m_k_neighbours * (m_x(m_N - 2) - 2 * m_x.back() + m_x.front());
 }
 
 inline void System::computeForceFrame()
