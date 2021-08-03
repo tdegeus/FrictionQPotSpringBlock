@@ -7,6 +7,46 @@
 
 Spring-block friction model with local disordered potential energy landscape.
 
+# Python module
+
+## Using conda
+
+```bash
+conda install -c conda-forge python-frictionpotfem
+```
+
+Note that *xsimd* and hardware optimisations are **not enabled**.
+To enable them you have to compile on your system, as is discussed next.
+
+## From source
+
+>   You need *xtensor*, *xtensor-python* and optionally *xsimd* as prerequisites.
+>   Additionally, Python needs to know how to find them.
+>   The easiest is to use *conda* to get the prerequisites:
+>
+>   ```bash
+>   conda install -c conda-forge xtensor-python
+>   conda install -c conda-forge xsimd
+>   ```
+>
+>   If you then compile and install with the same environment
+>   you should be good to go.
+>   Otherwise, a bit of manual labour might be needed to
+>   treat the dependencies.
+
+```bash
+# Download FrictionQPotFEM
+git checkout https://github.com/tdegeus/FrictionPotFEM.git
+cd FrictionQPotFEM
+
+# Only if you want to use hardware optization:
+export CMAKE_ARGS="-DUSE_SIMD=1"
+
+# Compile and install the Python module
+# (-vv can be omitted as is controls just the verbosity)
+python -m pip install . -vv
+```
+
 # Change-log
 
 ## v0.6.5
