@@ -49,6 +49,10 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.6.6
+
+*   Python: passing `CMAKE_ARGS` environment variable.
+
 ## v0.6.5
 
 *   Adding time (#33)
