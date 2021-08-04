@@ -49,6 +49,10 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.6.7
+
+*   Avoiding setuptools_scm dependency if SETUPTOOLS_SCM_PRETEND_VERSION is defined
+
 ## v0.6.6
 
 *   Python: passing `CMAKE_ARGS` environment variable.
