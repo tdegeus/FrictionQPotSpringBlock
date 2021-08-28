@@ -13,17 +13,12 @@ Python API
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
 
-// #define QPOT_ENABLE_ASSERT
-// #define GOOSEFEM_ENABLE_ASSERT
-// #define FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
-#define FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
-
 #include <FrictionQPotSpringBlock/version.h>
 #include <FrictionQPotSpringBlock/Line1d.h>
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(FrictionQPotSpringBlock, m)
+PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 {
     xt::import_numpy();
 
@@ -72,15 +67,15 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("y"))
 
         .def("set_y",
-             py::overload_cast<size_t, long, const std::vector<double>&>(
-                &SM::System::set_y<std::vector<double>>),
+             py::overload_cast<size_t, long, const xt::pytensor<double, 1>&>(
+                &SM::System::set_y<xt::pytensor<double, 1>>),
              "Reset the chunk of a particles.",
              py::arg("p"),
              py::arg("istart"),
              py::arg("y"))
 
         .def("shift_y",
-             &SM::System::shift_y<std::vector<double>>,
+             &SM::System::shift_y<xt::pytensor<double, 1>>,
              "shift_y",
              py::arg("p"),
              py::arg("istart"),
@@ -88,7 +83,7 @@ PYBIND11_MODULE(FrictionQPotSpringBlock, m)
              py::arg("nbuffer") = 0)
 
         .def("shift_dy",
-             &SM::System::shift_dy<std::vector<double>>,
+             &SM::System::shift_dy<xt::pytensor<double, 1>>,
              "shift_dy",
              py::arg("p"),
              py::arg("istart"),
