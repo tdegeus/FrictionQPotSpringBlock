@@ -34,8 +34,8 @@ get_target_property(
 # Find dependencies
 
 find_dependency(xtensor)
-find_dependency(QPot)
 find_dependency(GooseFEM)
+find_dependency(QPot)
 
 # Define support target "FrictionQPotSpringBlock::compiler_warnings"
 
@@ -54,6 +54,16 @@ if(NOT TARGET FrictionQPotSpringBlock::compiler_warnings)
     endif()
 endif()
 
+# Define support target "FrictionQPotSpringBlock::warnings"
+
+if(NOT TARGET FrictionQPotSpringBlock::warnings)
+    add_library(FrictionQPotSpringBlock::warnings INTERFACE IMPORTED)
+    set_property(
+        TARGET FrictionQPotSpringBlock::warnings
+        PROPERTY INTERFACE_COMPILE_DEFINITIONS
+        FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON)
+endif()
+
 # Define support target "FrictionQPotSpringBlock::assert"
 
 if(NOT TARGET FrictionQPotSpringBlock::assert)
@@ -61,7 +71,7 @@ if(NOT TARGET FrictionQPotSpringBlock::assert)
     set_property(
         TARGET FrictionQPotSpringBlock::assert
         PROPERTY INTERFACE_COMPILE_DEFINITIONS
-        FRICTIONQPOTFEM_ENABLE_ASSERT)
+        FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT)
 endif()
 
 # Define support target "FrictionQPotSpringBlock::debug"
@@ -73,5 +83,5 @@ if(NOT TARGET FrictionQPotSpringBlock::debug)
         PROPERTY INTERFACE_COMPILE_DEFINITIONS
         XTENSOR_ENABLE_ASSERT
         QPOT_ENABLE_ASSERT
-        FRICTIONQPOTFEM_ENABLE_DEBUG)
+        FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG)
 endif()

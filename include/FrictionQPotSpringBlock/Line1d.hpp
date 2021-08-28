@@ -115,7 +115,7 @@ template <class T>
 inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffer)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.dimension() == 1);
     m_y[p].shift_dy(istart, dx_y, nbuffer);
 }
 
@@ -452,7 +452,8 @@ inline void System::quench()
 
 inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t max_iter)
 {
-    GooseFEM::Iterate::StopList stop(niter_tol);
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+    double tol2 = tol * tol;
 
     auto i_n = this->i();
 
@@ -466,7 +467,9 @@ inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t m
             }
         }
 
-        if (stop.stop_simple(this->residual(), tol)) {
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
             this->quench();
             return 0;
         }
@@ -477,13 +480,16 @@ inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t m
 
 inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
 {
-    GooseFEM::Iterate::StopList stop(niter_tol);
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+    double tol2 = tol * tol;
 
     for (size_t iiter = 0; iiter < max_iter; ++iiter) {
 
         this->timeStep();
 
-        if (stop.stop(this->residual(), tol)) {
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
             this->quench();
             return iiter;
         }
@@ -494,7 +500,8 @@ inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
 
 inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t max_iter)
 {
-    GooseFEM::Iterate::StopList stop(niter_tol);
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+    double tol2 = tol * tol;
 
     auto i_n = this->i();
     long s = 0;
@@ -523,7 +530,9 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
 
         s_n = s;
 
-        if (stop.stop(this->residual(), tol)) {
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
             this->quench();
             return last_iter - first_iter;
         }

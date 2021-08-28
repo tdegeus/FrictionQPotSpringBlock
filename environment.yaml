@@ -1,31 +1,21 @@
 channels:
   - conda-forge
 dependencies:
-  # dependencies
-  - xtensor
-  - goosefem
-  - qpot
-
-  # build tools
-  - cmake
-  - ninja
-  - setuptools_scm
-
-  # Python API
-  - python
-  - numpy
-  - pybind11
-  - xtensor-python
-
-  # run tests
   - catch2
-  - prrng
-  - python-qpot
-
-  # run examples
-  - fmt
-  - highfive
-
-  # build docs
+  - cmake
   - doxygen
+  - fmt
+  - goosefem
+  - highfive
   - mathjax
+  - ninja
+  - numpy
+  - prrng
+  - pybind11
+  - python
+  - python-qpot
+  - qpot
+  - scikit-build
+  - setuptools_scm
+  - xtensor
+  - xtensor-python
