@@ -49,6 +49,10 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.6.8
+
+*   [Python] Using scikit-build.
+
 ## v0.6.7
 
 *   Avoiding setuptools_scm dependency if SETUPTOOLS_SCM_PRETEND_VERSION is defined
@@ -118,6 +122,6 @@ python -m pip install . -vv
 *   Recover configuration to make random simulations deterministic: C++ and Python example
 *   Updating appropriate forces at the appropriate instances
 *   Added output "Load" example for future checking
-*   Adding Python API 
+*   Adding Python API
 *   Using setuptools_scm for versioning
 *   Improving CI
