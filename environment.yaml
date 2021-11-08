@@ -1,21 +1,21 @@
 channels:
-  - conda-forge
+- conda-forge
 dependencies:
-  - catch2
-  - cmake
-  - doxygen
-  - fmt
-  - goosefem
-  - highfive
-  - mathjax
-  - ninja
-  - numpy
-  - prrng
-  - pybind11
-  - python
-  - python-qpot
-  - qpot
-  - scikit-build
-  - setuptools_scm
-  - xtensor
-  - xtensor-python
+- catch2
+- cmake
+- doxygen
+- fmt
+- goosefem
+- highfive
+- mathjax
+- ninja
+- numpy
+- prrng
+- pybind11
+- python
+- python-qpot
+- qpot
+- scikit-build
+- setuptools_scm
+- xtensor
+- xtensor-python

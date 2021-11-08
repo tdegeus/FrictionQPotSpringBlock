@@ -12,13 +12,13 @@ Line in 1d.
 #include "config.h"
 #include "version.h"
 
-#include <QPot/Chunked.hpp>
-#include <GooseFEM/version.h>
 #include <GooseFEM/Iterate.h>
-#include <xtensor/xtensor.hpp>
+#include <GooseFEM/version.h>
+#include <QPot/Chunked.hpp>
+#include <string>
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
-#include <string>
+#include <xtensor/xtensor.hpp>
 
 namespace FrictionQPotSpringBlock {
 
@@ -50,7 +50,6 @@ by drawing yield distances from a distribution (specified as function in the con
 class System {
 
 public:
-
     System() = default;
 
     /**
@@ -402,7 +401,8 @@ public:
         The number of iterations.
         `0` is returned if there was no plastic activity and the residual was reached.
     */
-    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+    size_t
+    timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -435,7 +435,8 @@ public:
 
     \return The number of iterations elapsed during an avalanche (in units of dt()).
     */
-    size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+    size_t
+    minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
     Advance the system elastically: the particles and the frame are moved proportionally,
@@ -480,11 +481,9 @@ public:
     /**
     \cond
     */
-    [[ deprecated ]]
-    void advanceRightElastic(double eps);
+    [[deprecated]] void advanceRightElastic(double eps);
 
-    [[ deprecated ]]
-    void advanceRightKick(double eps);
+    [[deprecated]] void advanceRightKick(double eps);
     /**
     \endcond
     */
@@ -507,7 +506,6 @@ public:
     void triggerWeakestRight(double eps);
 
 protected:
-
     /**
     Initialise the system.
 
@@ -544,7 +542,6 @@ protected:
     void computeForceDamping();
 
 protected:
-
     xt::xtensor<double, 1> m_f; ///< See #f.
     xt::xtensor<double, 1> m_f_potential; ///< See #f_potential.
     xt::xtensor<double, 1> m_f_neighbours; ///< See #f_neighbours.

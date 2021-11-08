@@ -16,9 +16,7 @@ Defines used in the library.
 #define QUOTE(x) Q(x)
 
 #define FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, file, line) \
-    std::cout << \
-        std::string(file) + ':' + std::to_string(line) + \
-        ": " message ") \n\t"; \
+    std::cout << std::string(file) + ':' + std::to_string(line) + ": " message ") \n\t";
 
 #define FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, file, line) \
     if (!(expr)) { \
@@ -47,12 +45,14 @@ They can be enabled by:
 The advantage is that:
 
 -   File and line-number are displayed if the assertion fails.
--   FrictionQPotSpringBlock's assertions can be enabled/disabled independently from those of other libraries.
+-   FrictionQPotSpringBlock's assertions can be enabled/disabled independently from those of other
+libraries.
 
 \throw std::runtime_error
 */
 #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
-#define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr) FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
+#define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr) \
+    FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
 #else
 #define FRICTIONQPOTSPRINGBLOCK_ASSERT(expr)
 #endif
@@ -72,7 +72,8 @@ See also #FRICTIONQPOTSPRINGBLOCK_ASSERT.
 \throw std::runtime_error
 */
 #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
-#define FRICTIONQPOTSPRINGBLOCK_DEBUG(expr) FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
+#define FRICTIONQPOTSPRINGBLOCK_DEBUG(expr) \
+    FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
 #else
 #define FRICTIONQPOTSPRINGBLOCK_DEBUG(expr)
 #endif
@@ -82,7 +83,8 @@ Assertions that cannot be disable.
 
 \throw std::runtime_error
 */
-#define FRICTIONQPOTSPRINGBLOCK_REQUIRE(expr) FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, __FILE__, __LINE__)
+#define FRICTIONQPOTSPRINGBLOCK_REQUIRE(expr) \
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, __FILE__, __LINE__)
 
 /**
 All warnings are implemented as::
@@ -96,7 +98,8 @@ They can be disabled by::
 #ifdef FRICTIONQPOTSPRINGBLOCK_DISABLE_WARNING
 #define FRICTIONQPOTSPRINGBLOCK_WARNING(message)
 #else
-#define FRICTIONQPOTSPRINGBLOCK_WARNING(message) FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, __FILE__, __LINE__)
+#define FRICTIONQPOTSPRINGBLOCK_WARNING(message) \
+    FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, __FILE__, __LINE__)
 #endif
 
 /**
@@ -109,7 +112,8 @@ They can be enabled by:
     #define FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
 */
 #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_WARNING_PYTHON
-#define FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(message) FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, __FILE__, __LINE__)
+#define FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(message) \
+    FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, __FILE__, __LINE__)
 #else
 #define FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(message)
 #endif

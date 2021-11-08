@@ -1,9 +1,9 @@
+import os
+
 import FrictionQPotSpringBlock.Line1d as model
 import matplotlib.pyplot as plt
 import numpy as np
 import prrng
-import sys
-import os
 import tqdm
 
 N = 1000
@@ -36,15 +36,15 @@ pbar = tqdm.tqdm(total=ninc)
 for inc in range(ninc):
 
     # Apply event-driven protocol.
-    if (inc == 0):
-        system.set_x_frame(0.0) # initial quench
-    elif (inc % 2 != 0):
-        system.advanceEventRightElastic(xdelta) # elastically advance -> mechanical equilibrium
+    if inc == 0:
+        system.set_x_frame(0.0)  # initial quench
+    elif inc % 2 != 0:
+        system.advanceEventRightElastic(xdelta)  # elastically advance -> mechanical equilibrium
     else:
-        system.advanceEventRightKick(xdelta) # apply kick
+        system.advanceEventRightKick(xdelta)  # apply kick
 
     # Minimise energy.
-    if (inc % 2 == 0):
+    if inc % 2 == 0:
         niter = system.minimise()
         pbar.n = inc
         pbar.set_description(f"inc = {inc:4d}, niter = {niter:8d}")
@@ -55,8 +55,8 @@ for inc in range(ninc):
     ret[1, inc] = np.mean(system.f_frame())
 
 
-if os.path.isfile('SimpleQuastiStatic_historic.txt'):
-    test = np.genfromtxt('SimpleQuastiStatic_historic.txt', delimiter=",")
+if os.path.isfile("SimpleQuastiStatic_historic.txt"):
+    test = np.genfromtxt("SimpleQuastiStatic_historic.txt", delimiter=",")
     assert np.allclose(ret, test)
 
 fig, ax = plt.subplots()

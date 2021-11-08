@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+    - main
 
 jobs:
 
@@ -16,15 +16,15 @@ jobs:
       matrix:
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
         include:
-          - runs-on: ubuntu-latest
-            config: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=1 -DBUILD_EXAMPLES=1 -DBUILD_DOCS=1
-            prop: tests, examples & docs
-          - runs-on: macos-latest
-            config: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=1
-            prop: tests
-          - runs-on: windows-latest
-            config: -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_TESTS=1
-            prop: tests
+        - runs-on: ubuntu-latest
+          config: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=1 -DBUILD_EXAMPLES=1 -DBUILD_DOCS=1
+          prop: tests, examples & docs
+        - runs-on: macos-latest
+          config: -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=1
+          prop: tests
+        - runs-on: windows-latest
+          config: -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_TESTS=1
+          prop: tests
 
     defaults:
       run:
