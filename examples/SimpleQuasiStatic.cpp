@@ -1,4 +1,3 @@
-
 #include <FrictionQPotSpringBlock/Line1d.h>
 #include <prrng.h>
 #include <fmt/core.h>
