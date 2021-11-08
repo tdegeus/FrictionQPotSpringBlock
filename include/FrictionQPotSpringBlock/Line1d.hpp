@@ -17,15 +17,29 @@ inline std::vector<std::string> version_dependencies()
     std::vector<std::string> ret;
 
     ret.push_back("frictionqpotspringblock=" + version());
-
+    ret.push_back("goosefem=" + GooseFEM::version());
     ret.push_back("qpot=" + QPot::version());
 
-    ret.push_back("goosefem=" + GooseFEM::version());
-
-    ret.push_back("xtensor=" +
-        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MAJOR))) + "." +
+    ret.push_back(
+        "xtensor=" + detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MAJOR))) + "." +
         detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MINOR))) + "." +
         detail::unquote(std::string(QUOTE(XTENSOR_VERSION_PATCH))));
+
+#ifdef XSIMD_VERSION_MAJOR
+    ret.push_back(
+        "xsimd=" + detail::unquote(std::string(QUOTE(XSIMD_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(XSIMD_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XSIMD_VERSION_PATCH))));
+#endif
+
+#ifdef XTL_VERSION_MAJOR
+    ret.push_back(
+        "xtl=" + detail::unquote(std::string(QUOTE(XTL_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTL_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTL_VERSION_PATCH))));
+#endif
+
+    std::sort(ret.begin(), ret.end(), std::greater<std::string>());
 
     return ret;
 }
@@ -46,12 +60,12 @@ inline System::System(size_t N, const T& x_y, const I& istart)
 template <class T, class I>
 inline void System::init(size_t N, const T& x_y, const I& istart)
 {
-    #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(istart.dimension() == 1);
     auto y0 = xt::view(x_y, xt::all(), 0);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(y0 < 0.0));
-    #endif
+#endif
 
     m_N = N;
     m_f = xt::zeros<double>({m_N});
@@ -376,7 +390,7 @@ inline void System::computeForceFrame()
 
 inline void System::computeForceDamping()
 {
-    xt::noalias(m_f_damping) = - m_eta * m_v;
+    xt::noalias(m_f_damping) = -m_eta * m_v;
 }
 
 inline void System::computeForce()
@@ -547,7 +561,8 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
 
 inline void System::advanceRightElastic(double eps)
 {
-    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("rename 'advanceRightElastic' -> 'advanceEventRightElastic'");
+    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(
+        "rename 'advanceRightElastic' -> 'advanceEventRightElastic'");
     this->advanceEventRightElastic(eps);
 }
 
@@ -589,14 +604,15 @@ inline void System::advanceElastic(double dx, bool dx_of_frame)
         dx_frame = dx * (m_k_frame + m_mu) / m_k_frame;
     }
 
-    #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
-        if (dx_particles > 0.0) {
-            FRICTIONQPOTSPRINGBLOCK_DEBUG(dx_particles < xt::amin(this->yieldDistanceRight())());
-        }
-        else {
-            FRICTIONQPOTSPRINGBLOCK_DEBUG(std::abs(dx_particles) < xt::amin(this->yieldDistanceLeft())());
-        }
-    #endif
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
+    if (dx_particles > 0.0) {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(dx_particles < xt::amin(this->yieldDistanceRight())());
+    }
+    else {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(
+            std::abs(dx_particles) < xt::amin(this->yieldDistanceLeft())());
+    }
+#endif
 
     m_x += dx_particles;
     m_x_frame += dx_frame;

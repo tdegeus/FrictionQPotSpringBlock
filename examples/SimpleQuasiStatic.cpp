@@ -1,8 +1,8 @@
 #include <FrictionQPotSpringBlock/Line1d.h>
-#include <prrng.h>
 #include <fmt/core.h>
-#include <xtensor/xcsv.hpp>
 #include <fstream>
+#include <prrng.h>
+#include <xtensor/xcsv.hpp>
 
 int main()
 {

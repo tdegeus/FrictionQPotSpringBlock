@@ -1,15 +1,16 @@
 import sys
+
+import FrictionQPotSpringBlock
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import prrng
-import FrictionQPotSpringBlock
-import matplotlib.pyplot as plt
 
 assert len(sys.argv) == 2
 
-ret = np.genfromtxt('Load.txt', delimiter=",")
+ret = np.genfromtxt("Load.txt", delimiter=",")
 
-with h5py.File(sys.argv[1], 'r') as data:
+with h5py.File(sys.argv[1], "r") as data:
 
     N = data["/meta/N"][...]
     initstate = data["/meta/initstate"][...]
@@ -18,9 +19,9 @@ with h5py.File(sys.argv[1], 'r') as data:
 
     nchunk = 2000
 
-    ymin = data["/ymin/{0:d}".format(0)][...]
-    istart = data["/istart/{0:d}".format(0)][...]
-    state = data["/state/{0:d}".format(0)][...]
+    ymin = data[f"/ymin/{0:d}"][...]
+    istart = data[f"/istart/{0:d}"][...]
+    state = data[f"/state/{0:d}"][...]
 
     generators.restore(state)
     y = 2.0 * generators.random([nchunk])
@@ -42,13 +43,13 @@ with h5py.File(sys.argv[1], 'r') as data:
 
     for inc in data["/stored"][...]:
 
-        x = data["/x/{0:d}".format(inc)][...]
+        x = data[f"/x/{inc:d}"][...]
 
         if system.any_redraw(x):
 
-            ymin = data["/ymin/{0:d}".format(inc)][...]
-            istart = data["/istart/{0:d}".format(inc)][...]
-            state = data["/state/{0:d}".format(inc)][...]
+            ymin = data[f"/ymin/{inc:d}"][...]
+            istart = data[f"/istart/{inc:d}"][...]
+            state = data[f"/state/{inc:d}"][...]
 
             generators.restore(state)
             y = 2.0 * generators.random([nchunk])
@@ -64,7 +65,7 @@ with h5py.File(sys.argv[1], 'r') as data:
         test[1, inc] = np.mean(system.f_frame())
 
 assert np.allclose(ret, test)
-print('Check successful')
+print("Check successful")
 
 fig, ax = plt.subplots()
 ax.plot(ret[0, :], ret[1, :])

@@ -9,8 +9,8 @@ Version information.
 #ifndef FRICTIONQPOTSPRINGBLOCK_VERSION_H
 #define FRICTIONQPOTSPRINGBLOCK_VERSION_H
 
-#include <string>
 #include <algorithm>
+#include <string>
 
 #include "config.h"
 
@@ -25,13 +25,14 @@ Either:
 
 -   Define externally using::
 
-        -DFRICTIONQPOTSPRINGBLOCK_VERSION="`python -c "from setuptools_scm import get_version; print(get_version())"`"
+        -DFRICTIONQPOTSPRINGBLOCK_VERSION="`python -c "from setuptools_scm import get_version;
+print(get_version())"`"
 
     From the root of this project. This is what ``setup.py`` does.
 
-Note that both ``CMakeLists.txt`` and ``setup.py`` will construct the version using ``setuptools_scm``.
-Tip: use the environment variable ``SETUPTOOLS_SCM_PRETEND_VERSION``
-to overwrite the automatic version.
+Note that both ``CMakeLists.txt`` and ``setup.py`` will construct the version using
+``setuptools_scm``. Tip: use the environment variable ``SETUPTOOLS_SCM_PRETEND_VERSION`` to
+overwrite the automatic version.
 */
 #ifndef FRICTIONQPOTSPRINGBLOCK_VERSION
 #define FRICTIONQPOTSPRINGBLOCK_VERSION "@PROJECT_VERSION@"

@@ -1,10 +1,10 @@
 import unittest
-import numpy as np
-import time
+
 import FrictionQPotSpringBlock
+import numpy as np
+
 
 class Test_main(unittest.TestCase):
-
     def test_basic(self):
 
         self.assertTrue(True)
@@ -24,6 +24,6 @@ class Test_main(unittest.TestCase):
         self.assertTrue(np.allclose(x, system.x()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     unittest.main()

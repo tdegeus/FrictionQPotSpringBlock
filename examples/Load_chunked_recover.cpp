@@ -1,7 +1,7 @@
 #include <FrictionQPotSpringBlock/Line1d.h>
-#include <prrng.h>
 #include <fmt/core.h>
 #include <highfive/H5Easy.hpp>
+#include <prrng.h>
 
 int main()
 {

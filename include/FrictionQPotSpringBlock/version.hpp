@@ -13,14 +13,14 @@ namespace FrictionQPotSpringBlock {
 
 namespace detail {
 
-    inline std::string unquote(const std::string& arg)
-    {
-        std::string ret = arg;
-        ret.erase(std::remove(ret.begin(), ret.end(), '\"'), ret.end());
-        return ret;
-    }
-
+inline std::string unquote(const std::string& arg)
+{
+    std::string ret = arg;
+    ret.erase(std::remove(ret.begin(), ret.end(), '\"'), ret.end());
+    return ret;
 }
+
+} // namespace detail
 
 inline std::string version()
 {
