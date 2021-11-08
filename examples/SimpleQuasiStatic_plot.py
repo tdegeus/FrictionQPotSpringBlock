@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-ret = np.genfromtxt('Load.txt', delimiter=",")
+ret = np.genfromtxt('SimpleQuastiStatic_historic.txt', delimiter=",")
 
 if len(sys.argv) == 2:
     test = np.genfromtxt(sys.argv[1], delimiter=",")
