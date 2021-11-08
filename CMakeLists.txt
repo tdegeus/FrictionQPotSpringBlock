@@ -221,7 +221,7 @@ if(BUILD_DOCS OR BUILD_ALL)
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${QPot_INCLUDE}")
 
-    doxygen_add_docs(docs
+    doxygen_add_docs(html
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${QPot_INCLUDE}/QPot")
 
