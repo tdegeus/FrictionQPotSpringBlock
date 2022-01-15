@@ -20,6 +20,10 @@ Line in 1d.
 #include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
 
+#include <stdio.h>
+#include <stdlib.h>
+
+
 namespace FrictionQPotSpringBlock {
 
 /**
@@ -98,6 +102,11 @@ public:
     */
     template <class T>
     void set_y(size_t p, long istart, const T& y);
+
+    /**
+    set Boltzmann constant to make Q value more pretty.
+    */
+    void set_kBoltzmann(double arg);
 
     /**
     \copydoc QPot::Chunked::shift_y(long, const T&, size_t)
@@ -263,6 +272,13 @@ public:
     void set_x_frame(double arg);
 
     /**
+    Set NH parameter Q.
+
+    \param arg double.
+    */
+    void set_Q(double arg);
+
+    /**
     Position of the load frame.
 
     \return double
@@ -296,6 +312,11 @@ public:
     */
     template <class T>
     void set_a(const T& arg);
+
+    /**
+    Set temperature.
+    */
+    void set_temperature(double arg);
 
     /**
     Position of each particle.
@@ -384,6 +405,13 @@ public:
     Updates #x, #v, #a, and #f.
     */
     void timeStep();
+
+    /**
+    Effectuates time step, under Nose-Hoover thermostatic algorithm,
+    using the velocity Verlet algorithm.
+    Updates #x, #v, #a, and #f.
+    */
+    void NHtimestep(double m_frame_speed = 0, size_t m_nchunk = 20000);
 
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
@@ -505,6 +533,46 @@ public:
     */
     void triggerWeakestRight(double eps);
 
+    /**
+    print results in each step.
+    */
+    void printStep(size_t runstep);
+
+    /**
+    Initialize Nose-Hoover parameter gamma.
+    */
+    void initiate_gamma(double arg);
+
+    /**
+    Initialize Nose-Hoover time rescaling s.
+    */
+    void initiate_lns(double arg);
+
+    /**
+    Set and initialize Nose-Hoover temperature.
+    */
+    void initiate_temperature();
+
+    /**
+    To output temperature in each step.
+    */
+    double output_temperature();
+
+    /**
+    To output average frame force for each step.
+    */
+    double output_force_frame();
+
+    /**
+    To output average potential force for each step.
+    */
+    double output_force_potential();
+
+    /**
+    To output average particle position.
+    */
+    double output_position();
+
 protected:
     /**
     Initialise the system.
@@ -541,6 +609,27 @@ protected:
     */
     void computeForceDamping();
 
+    /**
+    Compute temperature.
+    */
+    void computeTemperature(xt::xtensor<double, 1> velocities);
+
+
+    /**
+    Compute Nose-Hoover energy, to evaluate conservation of NH system.
+    return value of NH energy.
+    */
+    double compute_NHenergy();
+
+    double compute_kinetic_energy();
+
+    double compute_potential_energy();
+    
+    /**
+    To calculate average potential force for each step.
+    */
+    double step_force_frame();
+
 protected:
     xt::xtensor<double, 1> m_f; ///< See #f.
     xt::xtensor<double, 1> m_f_potential; ///< See #f_potential.
@@ -562,6 +651,18 @@ protected:
     double m_k_neighbours = 1.0; ///< See #set_k_neighbours.
     double m_k_frame = 1.0; ///< See #set_k_frame.
     double m_x_frame; ///< See #set_x_frame.
+    double m_Q; ///< #Nose-Hoover virtual mass parameter Q.
+    double m_gamma; ///< #Nose-Hoover virtual mass parameter gamma.
+    double m_lns; ///< #Nose-Hoover virtual time rescaling.
+    double m_temperature_set; ///< #set temperature. 
+    double m_temperature_inst; ///< #instantaneous temperature.
+    double m_kBoltzmann = 0.001; ///< #Boltzmann constant
+    double m_en_nh = 0.0; ///< #instantaneous Nose-Hoover energy.
+    double m_en_kinetic = 0.0;///< #total kinetic energy of system.
+    double m_en_potential = 0.0;///< #total potential energy of system.
+    double m_ave_force_frame = 0.0;///< #average frame force.
+    double m_ave_position = 0.0;///< #average frame force.
+    double m_ave_force_potential = 0.0;///< #average frame force.
 };
 
 } // namespace Line1d

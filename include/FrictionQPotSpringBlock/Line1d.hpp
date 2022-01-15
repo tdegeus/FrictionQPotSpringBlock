@@ -91,6 +91,21 @@ inline void System::init(size_t N, const T& x_y, const I& istart)
     this->computeForce();
 }
 
+inline void System::initiate_gamma(double arg)
+{
+    m_gamma = arg;
+}
+
+inline void System::initiate_lns(double arg)
+{
+    m_lns = arg;
+}
+
+inline void System::initiate_temperature()
+{
+    computeTemperature(m_v);
+}
+
 inline QPot::Chunked& System::y(size_t p)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
@@ -115,6 +130,11 @@ inline void System::set_y(size_t p, long istart, const T& x_y)
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
     m_y[p].set_y(istart, x_y);
+}
+
+inline void System::set_kBoltzmann(double arg)
+{
+    m_kBoltzmann = arg;
 }
 
 template <class T>
@@ -338,6 +358,16 @@ inline void System::set_x_frame(double arg)
     this->computeForce();
 }
 
+inline void System::set_Q(double arg)
+{
+    m_Q = arg;
+}
+
+inline void System::set_temperature(double arg)
+{
+    m_temperature_set = arg;
+}
+
 template <class T>
 inline void System::set_x(const T& arg)
 {
@@ -398,6 +428,39 @@ inline void System::computeForce()
     xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame;
 }
 
+void System::computeTemperature(xt::xtensor<double, 1> velocities)
+{
+    m_temperature_inst = xt::norm_sq(velocities)();
+    m_temperature_inst = m_temperature_inst * m_m / ( m_kBoltzmann * m_N );
+}
+
+inline double System::compute_NHenergy()
+{
+    double inst_nh_energy = 0.0;
+    inst_nh_energy = m_en_kinetic + m_en_potential //
+        + 0.5 * std::pow(m_gamma,2) * m_Q //
+        + m_N * m_kBoltzmann * m_temperature_set * m_lns;
+    return inst_nh_energy;
+}
+
+inline double System::compute_kinetic_energy()
+{
+    double te_Ek;
+    te_Ek = xt::norm_sq(m_v)() * m_m * 0.5;
+    return te_Ek;
+}
+
+inline double System::compute_potential_energy()
+{
+    double te_Ep = 0.0;
+    for (size_t p = 0; p < m_N; ++p) {
+        double x = m_x(p);
+        m_y[p].set_x(x);
+        te_Ep += 0.5 * m_mu * std::pow(x - 0.5 * (m_y[p].yright() + m_y[p].yleft()),2);
+    }
+    return te_Ep;
+}
+
 inline void System::timeStep()
 {
     m_t += m_dt;
@@ -434,10 +497,117 @@ inline void System::timeStep()
     this->computeForce();
     xt::noalias(m_a) = m_f / m_m;
 
+    m_ave_force_frame = step_force_frame();
+    //m_x_frame += m_frame_speed;
+
     if (xt::any(xt::isnan(m_x))) {
         throw std::runtime_error("NaN entries found");
     }
 }
+
+inline void System::NHtimestep(double m_frame_speed, size_t m_nchunk)
+{
+    
+    if (m_temperature_set > 0)
+    { 
+        m_t += m_dt;
+        xt::noalias(m_v_n) = m_v;
+
+        //positions
+        xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * (m_a - m_gamma * m_v);
+        //velocities
+        xt::noalias(m_v) = m_v + m_dt * 0.5 * (m_a - m_gamma * m_v);
+    
+        //compute gamma and lnS
+        this->computeTemperature(m_v_n);
+        m_gamma += m_dt * 0.5 * m_kBoltzmann * (m_N * m_temperature_inst - (m_N + 1) * m_temperature_set) / m_Q;
+        //m_lns += m_gamma * m_dt * 0.5 //
+        //    + 0.125 * std::pow(m_dt,2) * m_kBoltzmann * (m_N * m_temperature_inst - (m_N + 1) * m_temperature_set) / m_Q;
+        this->computeTemperature(m_v);
+        m_gamma += m_dt * 0.5 * m_kBoltzmann * (m_N * m_temperature_inst - (m_N + 1) * m_temperature_set) / m_Q;
+        //m_lns += m_gamma * m_dt * 0.5 //
+        //    + 0.125 * std::pow(m_dt,2) * m_kBoltzmann * (m_N * m_temperature_inst - (m_N + 1) * m_temperature_set) / m_Q;
+
+        //compute force and accelerations
+        this->computeForcePotential();
+        this->computeForceNeighbours();
+        this->computeForceFrame();
+        this->computeForceDamping();
+        this->computeForce();
+        xt::noalias(m_a) = m_f / m_m;
+
+        //velocities
+        xt::noalias(m_v_n) = m_v;
+        xt::noalias(m_v) = (m_v_n + m_dt * 0.5 * m_a) / (1 + m_dt * 0.5 * m_gamma);
+
+        // accelerations      
+        m_ave_force_frame = step_force_frame();
+        m_x_frame += m_frame_speed;
+        this->computeForceDamping();
+        this->computeForceFrame();
+        this->computeForce();
+        xt::noalias(m_a) = m_f / m_m;
+
+        if (xt::any(xt::isnan(m_x))) {
+            throw std::runtime_error("NaN entries found");
+        }
+
+        if (xt::any(this->i() > m_nchunk - 10)) {
+            throw std::runtime_error("explode!");
+        }
+    }
+
+    if (m_temperature_set == 0)
+    {
+        m_t += m_dt;
+        xt::noalias(m_v_n) = m_v;
+        xt::noalias(m_a_n) = m_a;
+
+        // positions
+        xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
+        this->computeForcePotential();
+        this->computeForceNeighbours();
+        this->computeForceFrame();
+
+        // velocities
+        xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
+        this->computeForceDamping();
+
+        // accelerations
+        this->computeForce();
+        xt::noalias(m_a) = m_f / m_m;
+
+        // velocities
+        xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+        this->computeForceDamping();
+
+        // accelerations
+        this->computeForce();
+        xt::noalias(m_a) = m_f / m_m;
+
+        // velocities
+        xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+        this->computeForceDamping();
+        this->computeTemperature(m_v);
+
+        // accelerations
+        this->computeForce();
+        xt::noalias(m_a) = m_f / m_m;
+
+        m_ave_force_frame = step_force_frame();
+        m_x_frame += m_frame_speed;
+
+        if (xt::any(xt::isnan(m_x))) {
+            throw std::runtime_error("NaN entries found");
+        }
+
+        if (xt::any(this->i() > m_nchunk - 10)) {
+            throw std::runtime_error("explode!");
+        }
+    }
+}
+
+
 
 inline double System::t() const
 {
@@ -511,6 +681,7 @@ inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
 
     throw std::runtime_error("No convergence found");
 }
+
 
 inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t max_iter)
 {
@@ -680,6 +851,47 @@ inline xt::xtensor<double, 1> System::f_neighbours() const
 inline xt::xtensor<double, 1> System::f_damping() const
 {
     return m_f_damping;
+}
+
+inline void System::printStep(size_t runstep)
+{
+    printf("step:%u\ttemperature:%3f\tframe force:%3f\n",runstep,m_temperature_inst,m_ave_force_frame);
+}
+
+inline double System::output_temperature()
+{
+    return m_temperature_inst;
+}
+
+inline double System::output_force_frame()
+{
+    return m_ave_force_frame;
+}
+
+inline double System::output_force_potential()
+{
+    double temp_force = 0.0;
+    for (size_t p = 0; p < m_N; ++p) {
+        temp_force += m_f_potential(p);
+    }
+    m_ave_force_potential = temp_force;
+    return temp_force;
+}
+
+inline double System::output_position()
+{
+    m_ave_position = xt::mean(this->i())();
+    return m_ave_position;
+}
+
+inline double System::step_force_frame()
+{
+    double temp_force = 0.0;
+    for (size_t p = 0; p < m_N; ++p) {
+        temp_force += m_f_frame(p);
+    }
+    m_ave_force_frame = temp_force;
+    return temp_force;
 }
 
 } // namespace Line1d
