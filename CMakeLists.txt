@@ -118,6 +118,7 @@ endif()
 
 if(BUILD_EXAMPLES OR BUILD_ALL)
 
+    enable_testing()
     add_subdirectory(examples)
 
 endif()
