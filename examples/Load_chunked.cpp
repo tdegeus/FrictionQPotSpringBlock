@@ -22,14 +22,8 @@ int main()
 
     double xdelta = 1e-3;
 
-    FrictionQPotSpringBlock::Line1d::System sys(N, y);
-
-    sys.set_dt(0.1);
-    sys.set_eta(2.0 * std::sqrt(3.0) / 10.0);
-    sys.set_m(1.0);
-    sys.set_mu(1.0);
-    sys.set_k_neighbours(1.0);
-    sys.set_k_frame(1.0 / double(N));
+    FrictionQPotSpringBlock::Line1d::System sys(
+        1.0, 2.0 * std::sqrt(3.0) / 10.0, 1.0, 1.0, 1.0 / double(N), 0.1, y);
 
     size_t ninc = 1000;
     xt::xtensor<double, 2> ret = xt::empty<double>({size_t(2), ninc});
@@ -41,10 +35,10 @@ int main()
             sys.set_x_frame(0.0); // initial quench
         }
         else if (inc % 2 != 0) {
-            sys.advanceEventRightElastic(xdelta); // elastically advance -> mechanical equilibrium
+            sys.eventDrivenStep(xdelta, false); // elastically advance -> mechanical equilibrium
         }
         else {
-            sys.advanceEventRightKick(xdelta); // apply kick
+            sys.eventDrivenStep(xdelta, true); // apply kick
         }
 
         // Minimise energy.

@@ -43,9 +43,23 @@ inline std::vector<std::string> version_dependencies();
 The system in which particles experience a piece-wise quadratic local potential energy,
 elastic interactions with neighbours, and a drive though a spring attached to a load frame.
 The local landscape is characterised by yield positions.
-This class stores a sequence of yield positions around the current position.
-When the particle is close to running out-of-bounds the system redraws a sequence of yield positions
-by drawing yield distances from a distribution (specified as function in the constructor).
+This class stores a chunk of the sequence of yield positions around the current position.
+When the particle is close to running out-of-bounds,
+you have the option to change the chunk of yield positions.
+
+The physics are as follows:
+*   A particle has a mass \f$ m \f$.
+*   Each particle \f$ i \f$ experiences damping equal to
+    \f$ f_\text{damping}^{(i)} = - \eta v_i \f$.
+*   Each particle \f$ i \f$ has a potential energy such that
+    \f$ f_\text{potential}^{(i)} =  \mu (x_{\min}^{(i)} - x_i) \f$.
+    where \f$ \mu \f$ is the radius of curvature of the quadratic potentials, and
+    \f$ x_{\min}^{(i)} \f$ the positions of the current local minimum.
+*   Each particle \f$ i \f$ has interactions with its neighbours equal to
+    \f$ f_\text{neighbours}^{(i)} =  k_\text{neighbours} (x_{i - 1} - 2 x_i + x_{i + 1}) \f$.
+*   Each particle \f$ i \f$ is connected to the load frame given a force equal to
+    \f$ f_\text{frame}^{(i)} =  k_\text{frame} (x_\text{frame} - x_i \f$.
+    Typically \f$ k_\text{frame} = \mathcal{O}(1 / N) \f$ with \f$ N \f$ the number of particles.
 */
 class System {
 
@@ -55,21 +69,37 @@ public:
     /**
     Constructor.
 
-    \param N Number of particles.
-    \param y Initial yield positions [#N, n_yield].
+    \param m Particle mass (same for all particles).
+    \param eta Damping coefficient (same for all particles).
+    \param mu Elastic stiffness, i.e. the curvature of the potential (same for all particles).
+    \param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all particles).
+    \param k_frame Stiffness of springs between particles and load frame (same for all particles).
+    \param x_yield Initial yield positions [#N, n_yield].
     */
     template <class T>
-    System(size_t N, const T& y);
+    System(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield);
 
     /**
-    Constructor.
-
-    \param N Number of particles.
-    \param y Initial yield positions [#N, n_yield].
-    \param istart Starting index corresponding to y[:, 0], [#N].
+    \copydoc System(double, double, double, double, double, double, const T&)
+    \param istart Starting index corresponding to x_yield[:, 0], [#N].
     */
     template <class T, class I>
-    System(size_t N, const T& y, const I& istart);
+    System(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield,
+        const I& istart);
 
     /**
     Number of particles.
@@ -149,14 +179,29 @@ public:
     xt::xtensor<long, 1> istop() const;
 
     /**
-    \copydoc QPot::Chunked::boundcheck_left()
+    \copydoc QPot::Chunked::inbounds_left()
     */
-    xt::xtensor<bool, 1> boundcheck_left(size_t n = 0) const;
+    xt::xtensor<bool, 1> inbounds_left(size_t nmargin = 0) const;
 
     /**
-    \copydoc QPot::Chunked::boundcheck_right()
+    \copydoc QPot::Chunked::inbounds_right()
     */
-    xt::xtensor<bool, 1> boundcheck_right(size_t n = 0) const;
+    xt::xtensor<bool, 1> inbounds_right(size_t nmargin = 0) const;
+
+    /**
+    \copydoc QPot::Chunked::inbounds_left()
+    */
+    bool all_inbounds_left(size_t nmargin = 0) const;
+
+    /**
+    \copydoc QPot::Chunked::inbounds_right()
+    */
+    bool all_inbounds_right(size_t nmargin = 0) const;
+
+    /**
+    \copydoc QPot::Chunked::inbounds()
+    */
+    bool all_inbounds(size_t nmargin = 0) const;
 
     /**
     Check if any yield position chunk needs to be updated based on the current x().
@@ -166,23 +211,14 @@ public:
     bool any_redraw() const;
 
     /**
-    Check if any yield position chunk needs to be updated if the position would be updated to
-    a given value.
+    Check if any yield position chunk needs to be updated if the position would be updated
+    to a given value.
 
     \param x Trial particle positions (internally the position is not updated).
     \return true if redraw is needed for one of more particle.
     */
     template <class T>
     bool any_redraw(const T& x) const;
-
-    /**
-    Check if any particle if within `n` potentials for the left- or the right-most yield
-    positions of the current chunk.
-
-    \param n Size of boundary region.
-    \return true if one of more particle is in the left or right boundary region.
-    */
-    bool any_shift(size_t n) const;
 
     /**
     Current index in the global potential energy landscape (for each particle).
@@ -210,50 +246,6 @@ public:
      * \param arg double.
      */
     void set_t(double arg);
-
-    /**
-    Set time step.
-
-    \param arg double.
-    */
-    void set_dt(double arg);
-
-    /**
-    Set damping coefficient (same for all particles).
-    The damping force is ``- eta * v``.
-
-    \param arg double.
-    */
-    void set_eta(double arg);
-
-    /**
-    Set particle mass (same for all particles).
-
-    \param arg double.
-    */
-    void set_m(double arg);
-
-    /**
-    Set elastic stiffness (same for all particles).
-
-    \param arg double.
-    */
-    void set_mu(double arg);
-
-    /**
-    Set stiffness of the springs connecting neighbours (same for all particles).
-
-    \param arg double.
-    */
-    void set_k_neighbours(double arg);
-
-    /**
-    Set stiffness of the springs connecting a particle to the load frame (same for all particles).
-    To be set ~1 / N.
-
-    \param arg double.
-    */
-    void set_k_frame(double arg);
 
     /**
     Set position of the load frame.
@@ -360,13 +352,6 @@ public:
     double t() const;
 
     /**
-    The time step, see set_dt().
-
-    \return double.
-    */
-    double dt() const;
-
-    /**
     Residual: the ratio between the norm of #f and #f_frame.
 
     \return double.
@@ -384,6 +369,12 @@ public:
     Updates #x, #v, #a, and #f.
     */
     void timeStep();
+
+    /**
+    Make a number of time steps, see timeStep().
+    \param n Number of steps to make.
+    */
+    void timeSteps(size_t n);
 
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
@@ -405,6 +396,27 @@ public:
     timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
+    Make a number of steps with the following protocol.
+    (1) Add a step \f$ v_\text{frame} \Delta t \f$ to the frame.
+    (2) Make a timeStep().
+
+    \param n Number of steps to make.
+    \param v_frame Velocity of the frame.
+    */
+    void flowSteps(size_t n, double v_frame);
+
+    /**
+    \copydoc flowSteps(size_t, double)
+
+    This function stops if the yield-index of any particle is close the end.
+    In that case the function returns zero (in all other cases it returns a positive number).
+
+    \param nmargin
+        Number of potentials to leave as margin.
+    */
+    size_t flowSteps_boundcheck(size_t n, double v_frame, size_t nmargin = 5);
+
+    /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
 
     \param tol
@@ -419,6 +431,22 @@ public:
     \return The number of iterations.
     */
     size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+
+    /**
+    \copydoc System::minimise(double, size_t, size_t)
+
+    This function stops if the yield-index of any particle is close the end.
+    In that case the function returns zero (in all other cases it returns a positive number),
+    and reverts the state of the system to that before calling this function.
+
+    \param nmargin
+        Number of potentials to leave as margin.
+    */
+    size_t minimise_boundcheck(
+        size_t nmargin = 5,
+        double tol = 1e-5,
+        size_t niter_tol = 20,
+        size_t max_iter = 10000000);
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -437,6 +465,22 @@ public:
     */
     size_t
     minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+
+    /**
+    \copydoc System::minimise_timeactivity(double, size_t, size_t)
+
+    This function stops if the yield-index of any particle is close the end.
+    In that case the function returns zero (in all other cases it returns a positive number),
+    and reverts the state of the system to that before calling this function.
+
+    \param nmargin
+        Number of potentials to leave as margin.
+    */
+    size_t minimise_timeactivity_boundcheck(
+        size_t nmargin = 5,
+        double tol = 1e-5,
+        size_t niter_tol = 10,
+        size_t max_iter = 10000000);
 
     /**
     Advance the system elastically: the particles and the frame are moved proportionally,
@@ -458,63 +502,63 @@ public:
 
     \param dx Displacement.
 
-    \param dx_of_frame
+    \param input_is_frame
         If `true`: `dx` \f$ = \Delta x^\mathrm{frame} \f$,
         if `false`: `dx` \f$ = \Delta x_i \f$,
+
+    \return `dx` for the particles in `input_is_frame == true`, otherwise `dx` of the frame.
     */
-    void advanceElastic(double dx, bool dx_of_frame = true);
+    double advanceElastic(double dx, bool input_is_frame = true);
 
     /**
-    Event driven advance right to closest yielding point, leaving ``eps / 2`` as margin.
+    Make event driving step.
 
-    \param eps Margin.
+    \param eps
+        Margin in position to the closest yield position.
+
+    \param kick
+        If ``false``, increment positions to ``eps / 2`` of yielding again.
+        If ``true``, increment positions by ``eps``.
+
+    \param direction If ``+1``: move right. If ``-1`` move left.
+    \return Position increment of the frame.
     */
-    void advanceEventRightElastic(double eps);
-
-    /**
-    Event driven: advance right by ``eps``.
-
-    \param eps Step size.
-    */
-    void advanceEventRightKick(double eps);
-
-    /**
-    \cond
-    */
-    [[deprecated]] void advanceRightElastic(double eps);
-
-    [[deprecated]] void advanceRightKick(double eps);
-    /**
-    \endcond
-    */
+    double eventDrivenStep(double eps, bool kick, int direction = 1);
 
     /**
     Trigger a specific particle:
-    advance to the yield positions right plus a margin of `eps / 2`.
+    advance to the yield position right plus a margin of `eps / 2`,
+    or to the left minus a margin `eps / 2`.
 
     \param p Particle index.
     \param eps Margin.
+    \param direction If ``+1``: move right. If ``-1`` move left.
     */
-    void triggerRight(size_t p, double eps);
+    void trigger(size_t p, double eps, int direction = 1);
 
     /**
-    Trigger the closest point to yielding right:
-    advance to the yield positions right plus a margin of `eps / 2`.
+    Trigger the closest point to yielding right or left, see trigger().
 
     \param eps Margin.
+    \param direction If ``+1``: move right. If ``-1`` move left.
+    \param The index of the triggered particle.
     */
-    void triggerWeakestRight(double eps);
+    size_t triggerWeakest(double eps, int direction = 1);
 
 protected:
     /**
-    Initialise the system.
-
-    \param N Number of particles.
-    \param y Initial yield positions.
-    \param istart Starting index corresponding to y[:, 0]
+    \copydoc System(double, double, double, double, double, double, const T&, const I&)
     */
     template <class T, class I>
-    void init(size_t N, const T& y, const I& istart);
+    void init(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& y,
+        const I& istart);
 
     /**
     Compute #f based on the current #x and #v.
@@ -541,6 +585,16 @@ protected:
     */
     void computeForceDamping();
 
+    /**
+    Update forces that depend on #m_x.
+    */
+    void updated_x();
+
+    /**
+    Update forces that depend on #m_v.
+    */
+    void updated_v();
+
 protected:
     xt::xtensor<double, 1> m_f; ///< See #f.
     xt::xtensor<double, 1> m_f_potential; ///< See #f_potential.
@@ -552,16 +606,20 @@ protected:
     xt::xtensor<double, 1> m_a; ///< See #a.
     xt::xtensor<double, 1> m_v_n; ///< #v at last time-step.
     xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
+    xt::xtensor<double, 1> m_x_t; ///< #v at some point in history (used in #minimise_boundcheck).
+    xt::xtensor<double, 1> m_v_t; ///< #v at some point in history (used in #minimise_boundcheck).
+    xt::xtensor<double, 1> m_a_t; ///< #a at some point in history (used in #minimise_boundcheck).
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     double m_t = 0.0; ///< See #set_t.
-    double m_dt = 0.1; ///< See #set_dt.
-    double m_eta = 2.0 * std::sqrt(3.0) / 10.0; ///< See #set_eta.
-    double m_m = 1.0; ///< See #set_m.
-    double m_mu = 1.0; ///< See #set_mu.
-    double m_k_neighbours = 1.0; ///< See #set_k_neighbours.
-    double m_k_frame = 1.0; ///< See #set_k_frame.
-    double m_x_frame; ///< See #set_x_frame.
+    double m_t_t; ///< #t at some point in history (used in #minimise_boundcheck)
+    double m_dt; ///< See #set_dt.
+    double m_eta; ///< See #set_eta.
+    double m_m; ///< See #set_m.
+    double m_mu; ///< See #set_mu.
+    double m_k_neighbours; ///< See #set_k_neighbours.
+    double m_k_frame; ///< See #set_k_frame.
+    double m_x_frame = 0.0; ///< See #set_x_frame.
 };
 
 } // namespace Line1d

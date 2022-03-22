@@ -18,8 +18,34 @@ Python API
 
 namespace py = pybind11;
 
+/**
+Overrides the `__name__` of a module.
+Classes defined by pybind11 use the `__name__` of the module as of the time they are defined,
+which affects the `__repr__` of the class type objects.
+*/
+class ScopedModuleNameOverride {
+public:
+    explicit ScopedModuleNameOverride(py::module m, std::string name) : module_(std::move(m))
+    {
+        original_name_ = module_.attr("__name__");
+        module_.attr("__name__") = name;
+    }
+    ~ScopedModuleNameOverride()
+    {
+        module_.attr("__name__") = original_name_;
+    }
+
+private:
+    py::module module_;
+    py::object original_name_;
+};
+
 PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 {
+    // Ensure members to display as `FrictionQPotSpringBlock.X`
+    // (not `FrictionQPotSpringBlock._FrictionQPotSpringBlock.X`)
+    ScopedModuleNameOverride name_override(m, "FrictionQPotSpringBlock");
+
     xt::import_numpy();
 
     m.doc() = "Spring-block friction model with local disordered potential energy landscape";
@@ -46,25 +72,51 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         py::class_<SM::System>(sm, "System")
 
             .def(
-                py::init<size_t, const xt::pytensor<double, 2>&>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const xt::pytensor<double, 2>&>(),
                 "System",
-                py::arg("N"),
-                py::arg("y"))
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_neighbours"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("x_yield"))
 
             .def(
-                py::init<size_t, const xt::pytensor<double, 2>&, const xt::pytensor<long, 1>&>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const xt::pytensor<double, 2>&,
+                    const xt::pytensor<long, 1>&>(),
                 "System",
-                py::arg("N"),
-                py::arg("y"),
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_neighbours"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("x_yield"),
                 py::arg("istart"))
 
             .def("N", &SM::System::N, "N")
+            .def("y", &SM::System::y, "y", py::return_value_policy::reference_internal)
 
             .def(
                 "set_y",
                 py::overload_cast<const xt::pytensor<long, 1>&, const xt::pytensor<double, 2>&>(
                     &SM::System::set_y<xt::pytensor<long, 1>, xt::pytensor<double, 2>>),
-                "Reset the chunk of all particles.",
+                "set_y",
                 py::arg("istart"),
                 py::arg("y"))
 
@@ -72,7 +124,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "set_y",
                 py::overload_cast<size_t, long, const xt::pytensor<double, 1>&>(
                     &SM::System::set_y<xt::pytensor<double, 1>>),
-                "Reset the chunk of a particles.",
+                "set_y",
                 py::arg("p"),
                 py::arg("istart"),
                 py::arg("y"))
@@ -95,20 +147,39 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dy"),
                 py::arg("nbuffer") = 0)
 
+            .def("ymin", &SM::System::ymin, "ymin")
             .def("ymin_chunk", &SM::System::ymin_chunk, "ymin_chunk")
             .def("yleft", &SM::System::yleft, "yleft")
             .def("yright", &SM::System::yright, "yright")
+            .def("i_chunk", &SM::System::i_chunk, "i_chunk")
             .def("istart", &SM::System::istart, "istart")
+            .def("istop", &SM::System::istop, "istop")
+
             .def(
-                "boundcheck_left",
-                &SM::System::boundcheck_left,
-                "boundcheck_left",
-                py::arg("n") = 0)
+                "inbounds_left",
+                &SM::System::inbounds_left,
+                "inbounds_left",
+                py::arg("nmargin") = 0)
+
             .def(
-                "boundcheck_right",
-                &SM::System::boundcheck_right,
-                "boundcheck_right",
-                py::arg("n") = 0)
+                "inbounds_right",
+                &SM::System::inbounds_right,
+                "inbounds_right",
+                py::arg("nmargin") = 0)
+
+            .def(
+                "all_inbounds_left",
+                &SM::System::all_inbounds_left,
+                "all_inbounds_left",
+                py::arg("nmargin") = 0)
+
+            .def(
+                "all_inbounds_right",
+                &SM::System::all_inbounds_right,
+                "all_inbounds_right",
+                py::arg("nmargin") = 0)
+
+            .def("all_inbounds", &SM::System::all_inbounds, "all_inbounds", py::arg("nmargin") = 0)
 
             .def(
                 "any_redraw",
@@ -122,21 +193,10 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 static_cast<bool (SM::System::*)() const>(&SM::System::any_redraw),
                 "any_redraw")
 
-            .def("any_shift", &SM::System::any_shift, "any_shift", py::arg("n"))
             .def("i", &SM::System::i, "i")
             .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
             .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
             .def("set_t", &SM::System::set_t, "set_t", py::arg("arg"))
-            .def("set_dt", &SM::System::set_dt, "set_dt", py::arg("arg"))
-            .def("set_eta", &SM::System::set_eta, "set_eta", py::arg("arg"))
-            .def("set_m", &SM::System::set_m, "set_m", py::arg("arg"))
-            .def("set_mu", &SM::System::set_mu, "set_mu", py::arg("arg"))
-            .def(
-                "set_k_neighbours",
-                &SM::System::set_k_neighbours,
-                "set_k_neighbours",
-                py::arg("arg"))
-            .def("set_k_frame", &SM::System::set_k_frame, "set_k_frame", py::arg("arg"))
             .def("set_x_frame", &SM::System::set_x_frame, "set_x_frame", py::arg("arg"))
             .def("x_frame", &SM::System::x_frame, "x_frame")
             .def("set_x", &SM::System::set_x<xt::pytensor<double, 1>>, "x")
@@ -151,25 +211,45 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def("f_neighbours", &SM::System::f_neighbours, "f_neighbours")
             .def("f_damping", &SM::System::f_damping, "f_damping")
             .def("t", &SM::System::t, "t")
-            .def("dt", &SM::System::dt, "dt")
             .def("residual", &SM::System::residual, "residual")
             .def("quench", &SM::System::quench, "quench")
+
             .def("timeStep", &SM::System::timeStep, "timeStep")
+            .def("timeSteps", &SM::System::timeSteps, "timeSteps", py::arg("n"))
 
             .def(
                 "timeStepsUntilEvent",
                 &SM::System::timeStepsUntilEvent,
                 "timeStepsUntilEvent",
                 py::arg("tol") = 1e-5,
-                py::arg("niter_tol") = 20,
+                py::arg("niter_tol") = 10,
                 py::arg("max_iter") = 10000000)
+
+            .def("flowSteps", &SM::System::flowSteps, "flowSteps", py::arg("n"), py::arg("v_frame"))
+
+            .def(
+                "flowSteps_boundcheck",
+                &SM::System::flowSteps_boundcheck,
+                "flowSteps_boundcheck",
+                py::arg("n"),
+                py::arg("v_frame"),
+                py::arg("nmargin") = 5)
 
             .def(
                 "minimise",
                 &SM::System::minimise,
                 "minimise",
                 py::arg("tol") = 1e-5,
-                py::arg("niter_tol") = 20,
+                py::arg("niter_tol") = 10,
+                py::arg("max_iter") = 10000000)
+
+            .def(
+                "minimise_boundcheck",
+                &SM::System::minimise_boundcheck,
+                "minimise_boundcheck",
+                py::arg("nmargin") = 5,
+                py::arg("tol") = 1e-5,
+                py::arg("niter_tol") = 10,
                 py::arg("max_iter") = 10000000)
 
             .def(
@@ -177,7 +257,16 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 &SM::System::minimise_timeactivity,
                 "minimise_timeactivity",
                 py::arg("tol") = 1e-5,
-                py::arg("niter_tol") = 20,
+                py::arg("niter_tol") = 10,
+                py::arg("max_iter") = 10000000)
+
+            .def(
+                "minimise_timeactivity_boundcheck",
+                &SM::System::minimise_timeactivity_boundcheck,
+                "minimise_timeactivity_boundcheck",
+                py::arg("nmargin") = 5,
+                py::arg("tol") = 1e-5,
+                py::arg("niter_tol") = 10,
                 py::arg("max_iter") = 10000000)
 
             .def(
@@ -185,40 +274,30 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 &SM::System::advanceElastic,
                 "advanceElastic",
                 py::arg("dx"),
-                py::arg("dx_of_frame") = true)
-            .def(
-                "advanceEventRightElastic",
-                &SM::System::advanceEventRightElastic,
-                "advanceEventRightElastic",
-                py::arg("eps"))
-            .def(
-                "advanceEventRightKick",
-                &SM::System::advanceEventRightKick,
-                "advanceEventRightKick",
-                py::arg("eps"))
-            .def(
-                "triggerRight",
-                &SM::System::triggerRight,
-                "triggerRight",
-                py::arg("p"),
-                py::arg("eps"))
-            .def(
-                "triggerWeakestRight",
-                &SM::System::triggerWeakestRight,
-                "triggerWeakestRight",
-                py::arg("eps"))
+                py::arg("input_is_frame") = true)
 
-            // deprecated
             .def(
-                "advanceRightElastic",
-                &SM::System::advanceRightElastic,
-                "advanceRightElastic",
-                py::arg("arg"))
+                "eventDrivenStep",
+                &SM::System::eventDrivenStep,
+                "eventDrivenStep",
+                py::arg("eps"),
+                py::arg("kick"),
+                py::arg("direction") = 1)
+
             .def(
-                "advanceRightKick",
-                &SM::System::advanceRightKick,
-                "advanceRightKick",
-                py::arg("arg"))
+                "trigger",
+                &SM::System::trigger,
+                "trigger",
+                py::arg("p"),
+                py::arg("eps"),
+                py::arg("direction") = 1)
+
+            .def(
+                "triggerWeakest",
+                &SM::System::triggerWeakest,
+                "triggerWeakest",
+                py::arg("eps"),
+                py::arg("direction") = 1)
 
             .def("__repr__", [](const SM::System&) {
                 return "<FrictionQPotSpringBlock.Line1d.System>";

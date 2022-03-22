@@ -1,7 +1,7 @@
-/*
-
-(c - MIT) T.W.J. de Geus (Tom) | www.geus.me | github.com/tdegeus/FrictionQPotSpringBlock
-
+/**
+\file
+\copyright Copyright 2020. Tom de Geus. All rights reserved.
+\license This project is released under the GNU Public License (MIT).
 */
 
 #ifndef FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_HPP
@@ -52,20 +52,43 @@ inline std::vector<std::string> version_dependencies()
 }
 
 template <class T>
-inline System::System(size_t N, const T& x_y)
+inline System::System(
+    double m,
+    double eta,
+    double mu,
+    double k_neighbours,
+    double k_frame,
+    double dt,
+    const T& x_y)
 {
-    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
-    this->init(N, x_y, istart);
+    xt::xtensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
+    this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
 template <class T, class I>
-inline System::System(size_t N, const T& x_y, const I& istart)
+inline System::System(
+    double m,
+    double eta,
+    double mu,
+    double k_neighbours,
+    double k_frame,
+    double dt,
+    const T& x_y,
+    const I& istart)
 {
-    this->init(N, x_y, istart);
+    this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
 template <class T, class I>
-inline void System::init(size_t N, const T& x_y, const I& istart)
+inline void System::init(
+    double m,
+    double eta,
+    double mu,
+    double k_neighbours,
+    double k_frame,
+    double dt,
+    const T& x_y,
+    const I& istart)
 {
 #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
@@ -74,7 +97,13 @@ inline void System::init(size_t N, const T& x_y, const I& istart)
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(y0 < 0.0));
 #endif
 
-    m_N = N;
+    m_N = x_y.shape(0);
+    m_m = m;
+    m_eta = eta;
+    m_mu = mu;
+    m_k_neighbours = k_neighbours;
+    m_k_frame = k_frame;
+    m_dt = dt;
     m_f = xt::zeros<double>({m_N});
     m_f_potential = xt::zeros<double>({m_N});
     m_f_neighbours = xt::zeros<double>({m_N});
@@ -85,17 +114,22 @@ inline void System::init(size_t N, const T& x_y, const I& istart)
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
+    m_x_t = xt::zeros<double>({m_N});
+    m_v_t = xt::zeros<double>({m_N});
+    m_a_t = xt::zeros<double>({m_N});
     m_y.resize(m_N);
 
     for (size_t p = 0; p < m_N; ++p) {
         m_y[p] = QPot::Chunked(m_x(p), xt::eval(xt::view(x_y, p, xt::all())), istart(p));
     }
 
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForceDamping();
-    this->computeForce();
+    this->updated_x();
+    this->updated_v();
+}
+
+inline size_t System::N() const
+{
+    return m_N;
 }
 
 inline QPot::Chunked& System::y(size_t p)
@@ -217,26 +251,59 @@ inline xt::xtensor<long, 1> System::istop() const
     return ret;
 }
 
-inline xt::xtensor<bool, 1> System::boundcheck_left(size_t n) const
+inline xt::xtensor<bool, 1> System::inbounds_left(size_t n) const
 {
     xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].boundcheck_left(n);
+        ret(p) = m_y[p].inbounds_left(n);
     }
 
     return ret;
 }
 
-inline xt::xtensor<bool, 1> System::boundcheck_right(size_t n) const
+inline xt::xtensor<bool, 1> System::inbounds_right(size_t n) const
 {
     xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].boundcheck_right(n);
+        ret(p) = m_y[p].inbounds_right(n);
     }
 
     return ret;
+}
+
+inline bool System::all_inbounds_left(size_t n) const
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        if (!m_y[p].inbounds_left(n)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+inline bool System::all_inbounds_right(size_t n) const
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        if (!m_y[p].inbounds_right(n)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+inline bool System::all_inbounds(size_t n) const
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        if (!m_y[p].inbounds(n)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 inline bool System::any_redraw() const
@@ -266,17 +333,6 @@ inline bool System::any_redraw(const T& xtrial) const
     return false;
 }
 
-inline bool System::any_shift(size_t n) const
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        if (!m_y[p].boundcheck_left(n) || !m_y[p].boundcheck_right(n)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 inline xt::xtensor<double, 1> System::yieldDistanceRight() const
 {
     return this->yright() - m_x;
@@ -298,44 +354,9 @@ inline xt::xtensor<long, 1> System::i() const
     return ret;
 }
 
-inline size_t System::N() const
-{
-    return m_N;
-}
-
 inline void System::set_t(double arg)
 {
     m_t = arg;
-}
-
-inline void System::set_dt(double arg)
-{
-    m_dt = arg;
-}
-
-inline void System::set_eta(double arg)
-{
-    m_eta = arg;
-}
-
-inline void System::set_m(double arg)
-{
-    m_m = arg;
-}
-
-inline void System::set_mu(double arg)
-{
-    m_mu = arg;
-}
-
-inline void System::set_k_neighbours(double arg)
-{
-    m_k_neighbours = arg;
-}
-
-inline void System::set_k_frame(double arg)
-{
-    m_k_frame = arg;
 }
 
 inline void System::set_x_frame(double arg)
@@ -350,10 +371,7 @@ inline void System::set_x(const T& arg)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
     xt::noalias(m_x) = arg;
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForce();
+    this->updated_x();
 }
 
 template <class T>
@@ -361,8 +379,7 @@ inline void System::set_v(const T& arg)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
     xt::noalias(m_v) = arg;
-    this->computeForceDamping();
-    this->computeForce();
+    this->updated_v();
 }
 
 template <class T>
@@ -372,276 +389,9 @@ inline void System::set_a(const T& arg)
     xt::noalias(m_a) = arg;
 }
 
-inline void System::computeForcePotential()
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        double x = m_x(p);
-        m_y[p].set_x(x);
-        m_f_potential(p) = m_mu * (0.5 * (m_y[p].yright() + m_y[p].yleft()) - x);
-    }
-}
-
-inline void System::computeForceNeighbours()
-{
-    for (size_t p = 1; p < m_N - 1; ++p) {
-        m_f_neighbours(p) = m_k_neighbours * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1));
-    }
-    m_f_neighbours.front() = m_k_neighbours * (m_x.back() - 2 * m_x.front() + m_x(1));
-    m_f_neighbours.back() = m_k_neighbours * (m_x(m_N - 2) - 2 * m_x.back() + m_x.front());
-}
-
-inline void System::computeForceFrame()
-{
-    xt::noalias(m_f_frame) = m_k_frame * (m_x_frame - m_x);
-}
-
-inline void System::computeForceDamping()
-{
-    xt::noalias(m_f_damping) = -m_eta * m_v;
-}
-
-inline void System::computeForce()
-{
-    xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame;
-}
-
-inline void System::timeStep()
-{
-    m_t += m_dt;
-    xt::noalias(m_v_n) = m_v;
-    xt::noalias(m_a_n) = m_a;
-
-    // positions
-    xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-
-    // velocities
-    xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
-    this->computeForceDamping();
-
-    // accelerations
-    this->computeForce();
-    xt::noalias(m_a) = m_f / m_m;
-
-    // velocities
-    xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
-    this->computeForceDamping();
-
-    // accelerations
-    this->computeForce();
-    xt::noalias(m_a) = m_f / m_m;
-
-    // velocities
-    xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
-    this->computeForceDamping();
-
-    // accelerations
-    this->computeForce();
-    xt::noalias(m_a) = m_f / m_m;
-
-    if (xt::any(xt::isnan(m_x))) {
-        throw std::runtime_error("NaN entries found");
-    }
-}
-
 inline double System::t() const
 {
     return m_t;
-}
-
-inline double System::dt() const
-{
-    return m_dt;
-}
-
-inline double System::residual() const
-{
-    double Fext = xt::norm_l2(m_f_frame)();
-    double Fnorm = (Fext < std::numeric_limits<double>::epsilon()) ? 1 : Fext;
-    return xt::norm_l2(m_f)() / Fnorm;
-}
-
-inline void System::quench()
-{
-    m_v.fill(0.0);
-    m_a.fill(0.0);
-    this->computeForceDamping();
-    this->computeForce();
-}
-
-inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t max_iter)
-{
-    GooseFEM::Iterate::StopList residuals(niter_tol);
-    double tol2 = tol * tol;
-
-    auto i_n = this->i();
-
-    for (size_t iiter = 1; iiter < max_iter; ++iiter) {
-
-        this->timeStep();
-
-        for (size_t p = 0; p < m_N; ++p) {
-            if (m_y[p].i() != i_n(p)) {
-                return iiter;
-            }
-        }
-
-        residuals.roll_insert(this->residual());
-
-        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            this->quench();
-            return 0;
-        }
-    }
-
-    throw std::runtime_error("No convergence found");
-}
-
-inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
-{
-    GooseFEM::Iterate::StopList residuals(niter_tol);
-    double tol2 = tol * tol;
-
-    for (size_t iiter = 0; iiter < max_iter; ++iiter) {
-
-        this->timeStep();
-
-        residuals.roll_insert(this->residual());
-
-        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            this->quench();
-            return iiter;
-        }
-    }
-
-    throw std::runtime_error("No convergence found");
-}
-
-inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t max_iter)
-{
-    GooseFEM::Iterate::StopList residuals(niter_tol);
-    double tol2 = tol * tol;
-
-    auto i_n = this->i();
-    long s = 0;
-    long s_n = 0;
-    size_t first_iter = 0;
-    size_t last_iter = 0;
-    bool init = true;
-
-    for (size_t iiter = 0; iiter < max_iter; ++iiter) {
-
-        this->timeStep();
-
-        s = 0;
-
-        for (size_t p = 0; p < m_N; ++p) {
-            s += std::abs(m_y[p].i() - i_n(p));
-        }
-
-        if (s != s_n) {
-            if (init) {
-                init = false;
-                first_iter = iiter;
-            }
-            last_iter = iiter;
-        }
-
-        s_n = s;
-
-        residuals.roll_insert(this->residual());
-
-        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            this->quench();
-            return last_iter - first_iter;
-        }
-    }
-
-    throw std::runtime_error("No convergence found");
-}
-
-/**
-\cond
-*/
-
-inline void System::advanceRightElastic(double eps)
-{
-    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(
-        "rename 'advanceRightElastic' -> 'advanceEventRightElastic'");
-    this->advanceEventRightElastic(eps);
-}
-
-inline void System::advanceRightKick(double eps)
-{
-    FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON("rename 'advanceRightKick' -> 'advanceEventRightKick'");
-    this->advanceEventRightKick(eps);
-}
-
-/**
-\endcond
-*/
-
-inline void System::advanceEventRightElastic(double eps)
-{
-    double dx = xt::amin(this->yieldDistanceRight())();
-    if (dx < eps / 2.0) {
-        return;
-    }
-    this->advanceElastic(dx - eps / 2.0, false);
-}
-
-inline void System::advanceEventRightKick(double eps)
-{
-    this->advanceElastic(eps, false);
-}
-
-inline void System::advanceElastic(double dx, bool dx_of_frame)
-{
-    double dx_particles;
-    double dx_frame;
-
-    if (dx_of_frame) {
-        dx_frame = dx;
-        dx_particles = dx * m_k_frame / (m_k_frame + m_mu);
-    }
-    else {
-        dx_particles = dx;
-        dx_frame = dx * (m_k_frame + m_mu) / m_k_frame;
-    }
-
-#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
-    if (dx_particles > 0.0) {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(dx_particles < xt::amin(this->yieldDistanceRight())());
-    }
-    else {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(
-            std::abs(dx_particles) < xt::amin(this->yieldDistanceLeft())());
-    }
-#endif
-
-    m_x += dx_particles;
-    m_x_frame += dx_frame;
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForce();
-}
-
-inline void System::triggerRight(size_t p, double eps)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    m_x(p) = m_y[p].yright() + eps / 2.0;
-    this->computeForcePotential();
-    this->computeForceNeighbours();
-    this->computeForceFrame();
-    this->computeForce();
-}
-
-inline void System::triggerWeakestRight(double eps)
-{
-    this->triggerRight(xt::argmin(this->yieldDistanceRight())(), eps);
 }
 
 inline double System::x_frame() const
@@ -687,6 +437,406 @@ inline xt::xtensor<double, 1> System::f_neighbours() const
 inline xt::xtensor<double, 1> System::f_damping() const
 {
     return m_f_damping;
+}
+
+inline void System::updated_x()
+{
+    this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+    this->computeForce();
+}
+
+inline void System::updated_v()
+{
+    this->computeForceDamping();
+    this->computeForce();
+}
+
+inline void System::computeForcePotential()
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        double x = m_x(p);
+        m_y[p].set_x(x);
+        m_f_potential(p) = m_mu * (0.5 * (m_y[p].yright() + m_y[p].yleft()) - x);
+    }
+}
+
+inline void System::computeForceNeighbours()
+{
+    for (size_t p = 1; p < m_N - 1; ++p) {
+        m_f_neighbours(p) = m_k_neighbours * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1));
+    }
+    m_f_neighbours.front() = m_k_neighbours * (m_x.back() - 2 * m_x.front() + m_x(1));
+    m_f_neighbours.back() = m_k_neighbours * (m_x(m_N - 2) - 2 * m_x.back() + m_x.front());
+}
+
+inline void System::computeForceFrame()
+{
+    xt::noalias(m_f_frame) = m_k_frame * (m_x_frame - m_x);
+}
+
+inline void System::computeForceDamping()
+{
+    xt::noalias(m_f_damping) = -m_eta * m_v;
+}
+
+inline void System::computeForce()
+{
+    xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame;
+}
+
+inline double System::residual() const
+{
+    double r_fres = xt::norm_l2(m_f)();
+    double r_fext = xt::norm_l2(m_f_frame)();
+    if (r_fext != 0.0) {
+        return r_fres / r_fext;
+    }
+    return r_fres;
+}
+
+inline void System::quench()
+{
+    m_v.fill(0.0);
+    m_a.fill(0.0);
+    this->updated_v();
+}
+
+inline void System::timeStep()
+{
+    m_t += m_dt;
+    xt::noalias(m_v_n) = m_v;
+    xt::noalias(m_a_n) = m_a;
+
+    xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
+    this->updated_x();
+
+    xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
+    this->updated_v();
+
+    xt::noalias(m_a) = m_f / m_m;
+
+    xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+    this->updated_v();
+
+    xt::noalias(m_a) = m_f / m_m;
+
+    xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+    this->updated_v();
+
+    xt::noalias(m_a) = m_f / m_m;
+
+    if (xt::any(xt::isnan(m_x))) {
+        throw std::runtime_error("NaN entries found");
+    }
+}
+
+inline void System::timeSteps(size_t n)
+{
+    for (size_t i = 0; i < n; ++i) {
+        this->timeStep();
+    }
+}
+
+inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t max_iter)
+{
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+    double tol2 = tol * tol;
+
+    auto i_n = this->i();
+
+    for (size_t iiter = 1; iiter < max_iter; ++iiter) {
+
+        this->timeStep();
+
+        for (size_t p = 0; p < m_N; ++p) {
+            if (m_y[p].i() != i_n(p)) {
+                return iiter;
+            }
+        }
+
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return 0;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline void System::flowSteps(size_t n, double v_frame)
+{
+    for (size_t i = 0; i < n; ++i) {
+        m_x_frame += v_frame * m_dt;
+        this->timeStep();
+    }
+}
+
+inline size_t System::flowSteps_boundcheck(size_t n, double v_frame, size_t nmargin)
+{
+    if (!this->all_inbounds_right(nmargin)) {
+        return 0;
+    }
+
+    for (size_t i = 0; i < n; ++i) {
+        m_x_frame += v_frame * m_dt;
+        this->timeStep();
+
+        if (!this->all_inbounds_right(nmargin)) {
+            return 0;
+        }
+    }
+
+    return n;
+}
+
+inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    double tol2 = tol * tol;
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+
+    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        this->timeStep();
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return iiter;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline size_t
+System::minimise_boundcheck(size_t nmargin, double tol, size_t niter_tol, size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    double tol2 = tol * tol;
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+    xt::noalias(m_x_t) = m_x;
+    xt::noalias(m_v_t) = m_v;
+    xt::noalias(m_a_t) = m_a;
+    m_t_t = m_t;
+
+    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        this->timeStep();
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return iiter;
+        }
+
+        if (!this->all_inbounds_right(nmargin)) {
+            xt::noalias(m_x) = m_x_t;
+            xt::noalias(m_v) = m_v_t;
+            xt::noalias(m_a) = m_a_t;
+            m_t = m_t_t;
+            return 0;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    double tol2 = tol * tol;
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+
+    auto i_n = this->i();
+    long s = 0;
+    long s_n = 0;
+    size_t first_iter = 0;
+    size_t last_iter = 0;
+    bool init = true;
+
+    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        this->timeStep();
+
+        s = 0;
+
+        for (size_t p = 0; p < m_N; ++p) {
+            s += std::abs(m_y[p].i() - i_n(p));
+        }
+
+        if (s != s_n) {
+            if (init) {
+                init = false;
+                first_iter = iiter;
+            }
+            last_iter = iiter;
+        }
+
+        s_n = s;
+
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return last_iter - first_iter;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline size_t System::minimise_timeactivity_boundcheck(
+    size_t nmargin,
+    double tol,
+    size_t niter_tol,
+    size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    double tol2 = tol * tol;
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+    xt::noalias(m_x_t) = m_x;
+    xt::noalias(m_v_t) = m_v;
+    xt::noalias(m_a_t) = m_a;
+    m_t_t = m_t;
+
+    auto i_n = this->i();
+    long s = 0;
+    long s_n = 0;
+    size_t first_iter = 0;
+    size_t last_iter = 0;
+    bool init = true;
+
+    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        this->timeStep();
+
+        s = 0;
+
+        for (size_t p = 0; p < m_N; ++p) {
+            s += std::abs(m_y[p].i() - i_n(p));
+        }
+
+        if (s != s_n) {
+            if (init) {
+                init = false;
+                first_iter = iiter;
+            }
+            last_iter = iiter;
+        }
+
+        s_n = s;
+
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return last_iter - first_iter;
+        }
+
+        if (!this->all_inbounds_right(nmargin)) {
+            xt::noalias(m_x) = m_x_t;
+            xt::noalias(m_v) = m_v_t;
+            xt::noalias(m_a) = m_a_t;
+            m_t = m_t_t;
+            return 0;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline double System::advanceElastic(double dx, bool input_is_frame)
+{
+    double dx_particles;
+    double dx_frame;
+
+    if (input_is_frame) {
+        dx_frame = dx;
+        dx_particles = dx * m_k_frame / (m_k_frame + m_mu);
+    }
+    else {
+        dx_particles = dx;
+        dx_frame = dx * (m_k_frame + m_mu) / m_k_frame;
+    }
+
+#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
+    if (dx_particles > 0.0) {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(dx_particles < xt::amin(this->yieldDistanceRight())());
+    }
+    else {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(
+            std::abs(dx_particles) < xt::amin(this->yieldDistanceLeft())());
+    }
+#endif
+
+    m_x += dx_particles;
+    m_x_frame += dx_frame;
+    this->updated_x();
+
+    if (input_is_frame) {
+        return dx_particles;
+    }
+
+    return dx_frame;
+}
+
+inline double System::eventDrivenStep(double eps, bool kick, int direction)
+{
+    if (direction > 0 && !kick) {
+        double dx = xt::amin(this->yieldDistanceRight())();
+        if (dx < 0.5 * eps) {
+            return 0.0;
+        }
+        return this->advanceElastic(dx - 0.5 * eps, false);
+    }
+
+    if (direction > 0 && kick) {
+        return this->advanceElastic(eps, false);
+    }
+
+    // direction < 0
+
+    if (!kick) {
+        double dx = xt::amin(this->yieldDistanceLeft())();
+        if (dx < 0.5 * eps) {
+            return 0.0;
+        }
+        return this->advanceElastic(0.5 * eps - dx, false);
+    }
+
+    return this->advanceElastic(-eps, false);
+}
+
+inline void System::trigger(size_t p, double eps, int direction)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+    if (direction > 0) {
+        m_x(p) = m_y[p].yright() + 0.5 * eps;
+    }
+    else {
+        m_x(p) = m_y[p].yleft() - 0.5 * eps;
+    }
+    this->updated_x();
+}
+
+inline size_t System::triggerWeakest(double eps, int direction)
+{
+    size_t p;
+
+    if (direction > 0) {
+        p = xt::argmin(this->yieldDistanceRight())();
+    }
+    else {
+        p = xt::argmin(this->yieldDistanceLeft())();
+    }
+
+    this->trigger(p, eps, direction);
+    return p;
 }
 
 } // namespace Line1d

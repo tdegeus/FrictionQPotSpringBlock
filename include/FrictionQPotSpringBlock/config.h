@@ -84,7 +84,7 @@ Assertions that cannot be disable.
 \throw std::runtime_error
 */
 #define FRICTIONQPOTSPRINGBLOCK_REQUIRE(expr) \
-    FRICTIONQPOTSPRINGBLOCK_REQUIRE_IMPL(expr, __FILE__, __LINE__)
+    FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, __FILE__, __LINE__)
 
 /**
 All warnings are implemented as::
