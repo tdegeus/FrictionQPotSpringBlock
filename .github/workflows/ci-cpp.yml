@@ -39,7 +39,7 @@ jobs:
 
     - name: Configure using CMake
       run: cmake -Bbuild -DBUILD_ALL=1
-      
+
     - name: Build doxygen-docs (error on warning)
       working-directory: build
       run: make html
