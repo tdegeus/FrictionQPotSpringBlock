@@ -12,7 +12,7 @@ Spring-block friction model with local disordered potential energy landscape.
 ## Using conda
 
 ```bash
-conda install -c conda-forge python-frictionpotfem
+conda install -c conda-forge python-frictionpotspringblock
 ```
 
 Note that *xsimd* and hardware optimisations are **not enabled**.
@@ -35,9 +35,9 @@ To enable them you have to compile on your system, as is discussed next.
 >   treat the dependencies.
 
 ```bash
-# Download FrictionQPotFEM
-git checkout https://github.com/tdegeus/FrictionPotFEM.git
-cd FrictionQPotFEM
+# Download FrictionQPotSpringBlock
+git checkout https://github.com/tdegeus/FrictionQPotSpringBlock.git
+cd FrictionQPotSpringBlock
 
 # Only if you want to use hardware optization:
 export CMAKE_ARGS="-DUSE_SIMD=1"
