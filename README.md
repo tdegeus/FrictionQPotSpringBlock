@@ -1,9 +1,9 @@
 # FrictionQPotSpringBlock
 
-[![CI](https://github.com/tdegeus/FrictionQPotSpringBlock/workflows/CI/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions)
+[![CI • Python](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-python.yml/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-python.yml)
+[![CI • C++](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-cpp.yml/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-cpp.yml)
 [![Doxygen -> gh-pages](https://github.com/tdegeus/FrictionQPotSpringBlock/workflows/gh-pages/badge.svg)](https://tdegeus.github.io/FrictionQPotSpringBlock)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/frictionqpotspringblock.svg)](https://anaconda.org/conda-forge/frictionqpotspringblock)
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/python-frictionqpotspringblock.svg)](https://anaconda.org/conda-forge/python-frictionqpotspringblock)
 
 Spring-block friction model with local disordered potential energy landscape.
 
