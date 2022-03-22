@@ -17,7 +17,7 @@ class Test_main(unittest.TestCase):
 
         system = FrictionQPotSpringBlock.Line1d.System(N, y)
 
-        system.advanceRightElastic(0.2)
+        system.advanceEventRightElastic(0.2)
 
         x = (0.5 - 0.1) * np.ones([N])
 
