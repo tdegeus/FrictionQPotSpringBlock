@@ -14,9 +14,7 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
         y = xt::cumsum(y, 1);
         y -= 48.5;
 
-        FrictionQPotSpringBlock::Line1d::System sys(N, y);
-        sys.set_mu(1.0);
-        sys.set_k_frame(0.1);
+        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
         REQUIRE(sys.residual() < 1e-5);
 
         sys.advanceElastic(0.1, false);
@@ -40,78 +38,72 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
         REQUIRE(sys.x_frame() == Approx(0.0));
     }
 
-    SECTION("System::advanceEventRightElastic")
+    SECTION("System::eventDrivenStep")
     {
         size_t N = 3;
         xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
         y = xt::cumsum(y, 1);
         y -= 48.5;
 
-        FrictionQPotSpringBlock::Line1d::System sys(N, y);
-        sys.set_mu(1.0);
-        sys.set_k_frame(0.1);
+        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
         REQUIRE(sys.residual() < 1e-5);
 
         auto i_n = sys.i();
-        sys.advanceEventRightElastic(0.2);
+        sys.eventDrivenStep(0.2, false);
         REQUIRE(sys.residual() < 1e-5);
         REQUIRE(xt::allclose(sys.x(), (0.5 - 0.1) * xt::ones<double>({N})));
         REQUIRE(xt::all(xt::equal(sys.i(), i_n)));
         REQUIRE(sys.x_frame() == Approx((0.5 - 0.1) * (1.0 + 0.1) / 0.1));
 
         i_n = sys.i();
-        sys.advanceEventRightKick(0.2);
+        sys.eventDrivenStep(0.2, true);
         REQUIRE(xt::allclose(sys.x(), (0.5 + 0.1) * xt::ones<double>({N})));
         REQUIRE(!xt::all(xt::equal(sys.i(), i_n)));
         REQUIRE(sys.x_frame() == Approx((0.5 + 0.1) * (1.0 + 0.1) / 0.1));
 
         i_n = sys.i();
-        sys.advanceEventRightElastic(0.2);
+        sys.eventDrivenStep(0.2, false);
         REQUIRE(xt::allclose(sys.x(), (1.5 - 0.1) * xt::ones<double>({N})));
         REQUIRE(xt::all(xt::equal(sys.i(), i_n)));
         REQUIRE(sys.x_frame() == Approx((1.5 - 0.1) * (1.0 + 0.1) / 0.1));
 
         i_n = sys.i();
-        sys.advanceEventRightKick(0.2);
+        sys.eventDrivenStep(0.2, true);
         REQUIRE(xt::allclose(sys.x(), (1.5 + 0.1) * xt::ones<double>({N})));
         REQUIRE(!xt::all(xt::equal(sys.i(), i_n)));
         REQUIRE(sys.x_frame() == Approx((1.5 + 0.1) * (1.0 + 0.1) / 0.1));
     }
 
-    SECTION("System::triggerRight")
+    SECTION("System::trigger")
     {
         size_t N = 3;
         xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
         y = xt::cumsum(y, 1);
         y -= 48.5;
 
-        FrictionQPotSpringBlock::Line1d::System sys(N, y);
-        sys.set_mu(1.0);
-        sys.set_k_frame(0.1);
+        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
 
-        sys.triggerRight(0, 0.2);
+        sys.trigger(0, 0.2);
 
         xt::xtensor<double, 1> x = xt::zeros<double>({N});
         x(0) = 0.5 + 0.1;
         REQUIRE(xt::allclose(sys.x(), x));
     }
 
-    SECTION("System::triggerWeakestRight")
+    SECTION("System::triggerWeakest")
     {
         size_t N = 3;
         xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
         y = xt::cumsum(y, 1);
         y -= 48.5;
 
-        FrictionQPotSpringBlock::Line1d::System sys(N, y);
-        sys.set_mu(1.0);
-        sys.set_k_frame(0.1);
+        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
 
         xt::xtensor<double, 1> x = xt::zeros<double>({N});
         x(0) = 0.5 - 0.1;
         sys.set_x(x);
 
-        sys.triggerWeakestRight(0.2);
+        sys.triggerWeakest(0.2);
 
         x(0) = 0.5 + 0.1;
         REQUIRE(xt::allclose(sys.x(), x));
@@ -152,8 +144,8 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
         auto ymin_n = ymin;
 
         // initialise system
-        FrictionQPotSpringBlock::Line1d::System sys(N, y);
-        FrictionQPotSpringBlock::Line1d::System resys(N, y);
+        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
+        FrictionQPotSpringBlock::Line1d::System resys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
 
         size_t n = 50;
         xt::xtensor<double, 1> x = 10.0 * xt::ones<double>({N});
@@ -166,9 +158,9 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
             REQUIRE(!sys.any_redraw(xi));
             sys.set_x(xi);
 
-            if (sys.any_shift(ncheck)) {
-                auto l = sys.boundcheck_left(nmax);
-                auto r = sys.boundcheck_right(nmax);
+            if (!sys.all_inbounds(ncheck)) {
+                auto l = sys.inbounds_left(nmax);
+                auto r = sys.inbounds_right(nmax);
 
                 REQUIRE(xt::all(l));
 
@@ -230,8 +222,8 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
         y -= init_offset;
 
         // initialise system
-        FrictionQPotSpringBlock::Line1d::System sys(N, y);
-        FrictionQPotSpringBlock::Line1d::System resys(N, y);
+        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
+        FrictionQPotSpringBlock::Line1d::System resys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
 
         // sequence of particle positions
         size_t n = 50;
