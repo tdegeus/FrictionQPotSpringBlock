@@ -34,13 +34,15 @@ jobs:
         environment-file: environment.yaml
         environment-name: myenv
         cache-env: true
+        extra-specs: |
+          sel(linux): cxx-compiler
 
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
 
     - name: Build and install Python module
       run: |
-        SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -vv
+        SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
 
     - name: Run Python tests
       run: python -m unittest discover tests

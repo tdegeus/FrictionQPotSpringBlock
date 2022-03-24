@@ -313,8 +313,8 @@ class Test_main(unittest.TestCase):
         initstate = seed + np.arange(N)
 
         nchunk = 100  # size of chunk of yield positions kept in memory
-        nbuffer = 40  # buffer when shifting chunks of yield positions
-        nmargin = 15  # boundary region to check of chunk-shifting is needed
+        nbuffer = 50  # buffer when shifting chunks of yield positions
+        nmargin = 30  # boundary region to check of chunk-shifting is needed
         nmax = 20  # maximal boundary region for which chunk-shifting is applied
         init_offset = 50.0  # initial negative position shift
 

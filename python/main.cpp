@@ -300,6 +300,14 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("max_iter") = 10000000)
 
             .def(
+                "minimise_nopassing",
+                &SM::System::minimise_nopassing,
+                "minimise_nopassing",
+                py::arg("tol") = 1e-5,
+                py::arg("niter_tol") = 10,
+                py::arg("max_iter") = 10000000)
+
+            .def(
                 "advanceElastic",
                 &SM::System::advanceElastic,
                 "advanceElastic",
