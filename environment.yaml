@@ -3,9 +3,11 @@ channels:
 dependencies:
 - catch2
 - cmake
+- cpppath
 - doxygen
 - fmt
 - goosefem
+- h5py
 - highfive
 - mathjax
 - ninja
