@@ -227,6 +227,8 @@ class Test_main(unittest.TestCase):
     def test_chunkedSequenceGlobal(self):
         """
         Chunked sequence of random numbers that is used to reset the chunk of yield positions.
+        This is how it is probably done in a simulation for the Python API,
+        with particles moving to the right.
         """
 
         N = 10
