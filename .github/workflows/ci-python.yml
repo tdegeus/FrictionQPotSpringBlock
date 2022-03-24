@@ -33,6 +33,7 @@ jobs:
       with:
         environment-file: environment.yaml
         environment-name: myenv
+        cache-env: true
 
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
@@ -43,3 +44,7 @@ jobs:
 
     - name: Run Python tests
       run: python -m unittest discover tests
+
+    - name: Run one example
+      working-directory: examples
+      run: python QuasiStatic_chucked.py
