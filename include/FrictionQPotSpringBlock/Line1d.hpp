@@ -132,7 +132,21 @@ inline size_t System::N() const
     return m_N;
 }
 
-inline QPot::Chunked& System::y(size_t p)
+inline xt::xtensor<double, 2> System::y()
+{
+    size_t n = static_cast<size_t>(m_y[0].cend() - m_y[0].cbegin());
+    xt::xtensor<double, 2> ret = xt::empty<double>({m_N, n});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        size_t m = static_cast<size_t>(m_y[p].cend() - m_y[p].cbegin());
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m == n);
+        std::copy(m_y[p].cbegin(), m_y[p].cend(), &ret(p, xt::missing));
+    }
+
+    return ret;
+}
+
+inline QPot::Chunked& System::refChunked(size_t p)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
     return m_y[p];
@@ -147,6 +161,31 @@ inline void System::set_y(const I& istart, const T& x_y)
 
     for (size_t p = 0; p < m_N; ++p) {
         m_y[p].set_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())));
+    }
+}
+
+template <class I, class T>
+inline void System::shift_y(const I& istart, const T& x_y, size_t nbuffer)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(istart, {m_N}));
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.shape(0) == m_N);
+
+    for (size_t p = 0; p < m_N; ++p) {
+        m_y[p].shift_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())), nbuffer);
+    }
+}
+
+template <class I, class T>
+inline void System::shift_dy(const I& istart, const T& dx_y, size_t nbuffer)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(istart, {m_N}));
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.dimension() == 2);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.shape(0) == m_N);
+    size_t n = xt::strides(dx_y, 0);
+
+    for (size_t p = 0; p < m_N; ++p) {
+        m_y[p].shift_dy(istart(p), &dx_y(p, xt::missing), &dx_y(p, xt::missing) + n, nbuffer);
     }
 }
 

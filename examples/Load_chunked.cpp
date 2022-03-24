@@ -57,7 +57,7 @@ int main()
         //           - one shift suffices here
         if (xt::any(sys.i_chunk() > nbuffer)) {
             for (size_t p = 0; p < N; ++p) {
-                QPot::Chunked& yp = sys.y(p);
+                QPot::Chunked& yp = sys.refChunked(p);
                 auto nb = yp.size() - yp.i_chunk() + nbuffer;
                 if (nb >= nchunk) {
                     continue;
