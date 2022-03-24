@@ -224,6 +224,83 @@ class Test_main(unittest.TestCase):
         x[0] = 0.5 + 0.1
         self.assertTrue(np.allclose(system.x(), x))
 
+    def test_chunkedSequenceGlobal(self):
+        """
+        Chunked sequence of random numbers that is used to reset the chunk of yield positions.
+        """
+
+        N = 10
+        seed = int(time.time())
+        initstate = seed + np.arange(N)
+
+        nchunk = 100  # size of chunk of yield positions kept in memory
+        nbuffer = 40  # buffer when shifting chunks of yield positions
+        istart = np.zeros([N], dtype=int)
+        ystart = -20.0 * np.ones([N, 1])
+
+        # generate full history of yield positions, for later reference
+        generators = prrng.pcg32_array(initstate)
+        dy = 2.0 * generators.random([nchunk * 100])
+        yref = np.cumsum(dy, 1) + ystart
+
+        # generate chunk of yield positions
+        generators = prrng.pcg32_array(initstate)
+        state = generators.state()
+        dy = 2.0 * generators.random([nchunk])
+        y = np.cumsum(dy, 1) + ystart
+
+        # initialise system
+        system = FrictionQPotSpringBlock.Line1d.System(
+            m=1.0,
+            eta=1.0,
+            mu=1.0,
+            k_neighbours=1.0,
+            k_frame=0.1,
+            dt=1.0,
+            x_yield=y,
+        )
+
+        x = system.x()
+
+        for loop in range(100):
+
+            y = system.y()
+
+            # check: last yield positions in chunk
+            index = np.empty([2, N], dtype=int)
+            index[0, :] = np.arange(N)
+            index[1, :] = istart + y.shape[1] - 1
+            j = np.ravel_multi_index(index, yref.shape)
+            self.assertTrue(np.allclose(yref.flat[j], y[:, -1]))
+
+            # advance position randomly, find which part of the chunk to generate
+            x += 0.7 * nchunk * np.random.random(N)
+            x = np.where(x > y[:, -1], y[:, -2], x)
+            i = np.argmax(y >= x.reshape(-1, 1), axis=1)
+
+            generators.restore(state)
+            generators.advance(i - nbuffer)
+            state = generators.state()
+            istart += i - nbuffer
+            dy = 2.0 * generators.random([nchunk])
+
+            system.shift_dy(istart, dy, 10)
+            system.set_x(x)
+
+            # check: i, yleft, yright must be the same as global search
+            i = np.argmax(yref >= x.reshape(-1, 1), axis=1)
+            index = np.empty([2, N], dtype=int)
+            index[0, :] = np.arange(N)
+            index[1, :] = i
+            yright = yref.flat[np.ravel_multi_index(index, yref.shape)]
+
+            index[1, :] = i - 1
+            yleft = yref.flat[np.ravel_multi_index(index, yref.shape)]
+
+            self.assertTrue(np.allclose(system.i(), i - 1))
+            self.assertTrue(np.allclose(system.yleft(), yleft))
+            self.assertTrue(np.allclose(system.yright(), yright))
+
     def test_chunkedSequence(self):
         """
         Chunked sequence, shift optimally left
@@ -235,7 +312,7 @@ class Test_main(unittest.TestCase):
 
         nchunk = 100  # size of chunk of yield positions kept in memory
         nbuffer = 40  # buffer when shifting chunks of yield positions
-        ncheck = 15  # boundary region to check of chunk-shifting is needed
+        nmargin = 15  # boundary region to check of chunk-shifting is needed
         nmax = 20  # maximal boundary region for which chunk-shifting is applied
         init_offset = 50.0  # initial negative position shift
 
@@ -288,7 +365,7 @@ class Test_main(unittest.TestCase):
             self.assertFalse(system.any_redraw(xi))
             system.set_x(xi)
 
-            if not system.all_inbounds(ncheck):
+            if not system.all_inbounds(nmargin):
 
                 inbounds_left = system.inbounds_left(nmax)
                 inbounds_right = system.inbounds_right(nmax)
@@ -299,7 +376,7 @@ class Test_main(unittest.TestCase):
 
                     if not inbounds_right[p]:
 
-                        yp = system.y(p)
+                        yp = system.refChunked(p)
 
                         state_n[p] = state[p]
                         istart_n[p] = istart[p]
@@ -385,7 +462,7 @@ class Test_main(unittest.TestCase):
 
                 for p in range(N):
 
-                    yp = system.y(p)
+                    yp = system.refChunked(p)
                     nb = yp.size() - yp.i_chunk() + nbuffer
                     if nb >= nchunk:
                         continue

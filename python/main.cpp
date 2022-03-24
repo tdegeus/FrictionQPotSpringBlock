@@ -110,7 +110,13 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("istart"))
 
             .def("N", &SM::System::N, "N")
-            .def("y", &SM::System::y, "y", py::return_value_policy::reference_internal)
+            .def("y", &SM::System::y, "y")
+
+            .def(
+                "refChunked",
+                &SM::System::refChunked,
+                "refChunked",
+                py::return_value_policy::reference_internal)
 
             .def(
                 "set_y",
@@ -119,6 +125,28 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "set_y",
                 py::arg("istart"),
                 py::arg("y"))
+
+            .def(
+                "shift_y",
+                py::overload_cast<
+                    const xt::pytensor<long, 1>&,
+                    const xt::pytensor<double, 2>&,
+                    size_t>(&SM::System::shift_y<xt::pytensor<long, 1>, xt::pytensor<double, 2>>),
+                "shift_y",
+                py::arg("istart"),
+                py::arg("y"),
+                py::arg("nbuffer") = 0)
+
+            .def(
+                "shift_dy",
+                py::overload_cast<
+                    const xt::pytensor<long, 1>&,
+                    const xt::pytensor<double, 2>&,
+                    size_t>(&SM::System::shift_dy<xt::pytensor<long, 1>, xt::pytensor<double, 2>>),
+                "shift_dy",
+                py::arg("istart"),
+                py::arg("dy"),
+                py::arg("nbuffer") = 0)
 
             .def(
                 "set_y",
@@ -131,7 +159,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
             .def(
                 "shift_y",
-                &SM::System::shift_y<xt::pytensor<double, 1>>,
+                py::overload_cast<size_t, long, const xt::pytensor<double, 1>&, size_t>(
+                    &SM::System::shift_y<xt::pytensor<double, 1>>),
                 "shift_y",
                 py::arg("p"),
                 py::arg("istart"),
@@ -140,7 +169,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
             .def(
                 "shift_dy",
-                &SM::System::shift_dy<xt::pytensor<double, 1>>,
+                py::overload_cast<size_t, long, const xt::pytensor<double, 1>&, size_t>(
+                    &SM::System::shift_dy<xt::pytensor<double, 1>>),
                 "shift_dy",
                 py::arg("p"),
                 py::arg("istart"),

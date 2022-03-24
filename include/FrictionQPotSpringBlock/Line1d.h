@@ -74,6 +74,7 @@ public:
     \param mu Elastic stiffness, i.e. the curvature of the potential (same for all particles).
     \param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all particles).
     \param k_frame Stiffness of springs between particles and load frame (same for all particles).
+    \param dt Time step.
     \param x_yield Initial yield positions [#N, n_yield].
     */
     template <class T>
@@ -109,18 +110,36 @@ public:
     size_t N() const;
 
     /**
-    Return reference to the underlying QPot::Chunked storage
+    Return yield positions.
+    \return Array.
+    */
+    xt::xtensor<double, 2> y();
+
+    /**
+    Return reference to the underlying QPot::Chunked storage.
 
     \param p Particle number.
     \return Reference.
     */
-    QPot::Chunked& y(size_t p);
+    QPot::Chunked& refChunked(size_t p);
 
     /**
     \copydoc QPot::Chunked::set_y(long, const T&)
     */
     template <class I, class T>
     void set_y(const I& istart, const T& y);
+
+    /**
+    \copydoc QPot::Chunked::shift_y(long, const T&, size_t)
+    */
+    template <class I, class T>
+    void shift_y(const I& istart, const T& y, size_t nbuffer = 0);
+
+    /**
+    \copydoc QPot::Chunked::shift_dy(long, const T&, size_t)
+    */
+    template <class I, class T>
+    void shift_dy(const I& istart, const T& dy, size_t nbuffer = 0);
 
     /**
     \copydoc QPot::Chunked::set_y(long, const T&)
@@ -181,27 +200,27 @@ public:
     /**
     \copydoc QPot::Chunked::inbounds_left()
     */
-    xt::xtensor<bool, 1> inbounds_left(size_t nmargin = 0) const;
+    xt::xtensor<bool, 1> inbounds_left(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::inbounds_right()
     */
-    xt::xtensor<bool, 1> inbounds_right(size_t nmargin = 0) const;
+    xt::xtensor<bool, 1> inbounds_right(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::inbounds_left()
     */
-    bool all_inbounds_left(size_t nmargin = 0) const;
+    bool all_inbounds_left(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::inbounds_right()
     */
-    bool all_inbounds_right(size_t nmargin = 0) const;
+    bool all_inbounds_right(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::inbounds()
     */
-    bool all_inbounds(size_t nmargin = 0) const;
+    bool all_inbounds(size_t n = 0) const;
 
     /**
     Check if any yield position chunk needs to be updated based on the current x().
@@ -541,7 +560,7 @@ public:
 
     \param eps Margin.
     \param direction If ``+1``: move right. If ``-1`` move left.
-    \param The index of the triggered particle.
+    \return The index of the triggered particle.
     */
     size_t triggerWeakest(double eps, int direction = 1);
 
@@ -557,7 +576,7 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& y,
+        const T& x_yield,
         const I& istart);
 
     /**
@@ -613,12 +632,12 @@ protected:
     size_t m_N; ///< See #N.
     double m_t = 0.0; ///< See #set_t.
     double m_t_t; ///< #t at some point in history (used in #minimise_boundcheck)
-    double m_dt; ///< See #set_dt.
-    double m_eta; ///< See #set_eta.
-    double m_m; ///< See #set_m.
-    double m_mu; ///< See #set_mu.
-    double m_k_neighbours; ///< See #set_k_neighbours.
-    double m_k_frame; ///< See #set_k_frame.
+    double m_dt; ///< Time step.
+    double m_eta; ///< Damping constant (same for all particles).
+    double m_m; ///< Mass (same for all particles).
+    double m_mu; ///< Stiffness: curvature of the potential energy (same for all particles).
+    double m_k_neighbours; ///< Stiffness of interactions (same for all particles).
+    double m_k_frame; ///< Stiffness of the load fame (same for all particles).
     double m_x_frame = 0.0; ///< See #set_x_frame.
 };
 

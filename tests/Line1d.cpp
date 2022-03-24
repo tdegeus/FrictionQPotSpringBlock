@@ -166,7 +166,7 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
 
                 for (size_t p = 0; p < N; ++p) {
                     if (!r(p)) {
-                        QPot::Chunked& yp = sys.y(p);
+                        QPot::Chunked& yp = sys.refChunked(p);
 
                         state_n(p) = state(p);
                         istart_n(p) = istart(p);
@@ -239,7 +239,7 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
 
             if (xt::any(sys.i_chunk() > nbuffer)) {
                 for (size_t p = 0; p < N; ++p) {
-                    QPot::Chunked& yp = sys.y(p);
+                    QPot::Chunked& yp = sys.refChunked(p);
                     auto nb = yp.size() - yp.i_chunk() + nbuffer;
                     if (nb >= nchunk) {
                         continue;
