@@ -16,6 +16,7 @@ dependencies:
 - pybind11
 - python
 - python-qpot >=0.10.1
+- python-prrng
 - qpot >=0.11.0
 - scikit-build
 - setuptools_scm

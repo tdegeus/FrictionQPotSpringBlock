@@ -502,6 +502,23 @@ public:
         size_t max_iter = 10000000);
 
     /**
+    Minimise assuming overdamped dynamics.
+    In this case the no passing rule is be used.
+
+    \warning Time is not updated as it is not physical. The mass and viscosity are ignored.
+
+    \param tol
+        Relative force tolerance for equilibrium. See residual() for definition.
+
+    \param niter_tol
+        Enforce the residual check for ``niter_tol`` consecutive increments.
+
+    \param max_iter
+        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+    */
+    size_t minimise_nopassing(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+
+    /**
     Advance the system elastically: the particles and the frame are moved proportionally,
     such that equilibrium is maintained.
     Note that the displacement is uniform: all particles are moved in the same way.

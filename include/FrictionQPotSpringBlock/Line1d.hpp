@@ -789,6 +789,52 @@ inline size_t System::minimise_timeactivity_boundcheck(
     throw std::runtime_error("No convergence found");
 }
 
+inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    double tol2 = tol * tol;
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+
+    double xneigh;
+    double x;
+    double xmin;
+
+    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        for (size_t p = 0; p < m_N; ++p) {
+            // first assuming the particle is always in its local minimum
+            if (p == 0) {
+                xneigh = m_x.back() + m_x(1);
+            }
+            else if (p == m_N - 1) {
+                xneigh = m_x(m_N - 2) + m_x.front();
+            }
+            else {
+                xneigh = m_x(p - 1) + m_x(p + 1);
+            }
+            x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame) /
+                (2 * m_k_neighbours + m_k_frame);
+            m_y[p].set_x(x);
+            // then fine tuning based on local potential
+            xmin = 0.5 * (m_y[p].yright() + m_y[p].yleft());
+            x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
+                (2 * m_k_neighbours + m_k_frame + m_mu);
+            m_y[p].set_x(x);
+            m_x(p) = x;
+        }
+
+        this->updated_x();
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return iiter;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
 inline double System::advanceElastic(double dx, bool input_is_frame)
 {
     double dx_particles;
