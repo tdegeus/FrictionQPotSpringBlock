@@ -20,6 +20,7 @@ set(HIGHFIVE_USE_XTENSOR 1)
 find_package(xtensor REQUIRED)
 find_package(HighFive REQUIRED)
 find_package(fmt REQUIRED)
+find_package(cpppath REQUIRED)
 
 add_library(mytarget INTERFACE IMPORTED)
 
@@ -27,7 +28,8 @@ target_link_libraries(mytarget INTERFACE
     ${PROJECT_NAME}
     ${PROJECT_NAME}::compiler_warnings
     fmt::fmt
-    HighFive)
+    HighFive
+    cpppath)
 
 if(USE_ASSERT)
     target_link_libraries(mytarget INTERFACE ${PROJECT_NAME}::assert)
