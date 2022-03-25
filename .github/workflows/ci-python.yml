@@ -35,6 +35,9 @@ jobs:
         environment-name: myenv
         cache-env: true
         extra-specs: |
+          h5py
+          matplotlib
+          tqdm
           sel(linux): cxx-compiler
 
     - name: Set dummy version

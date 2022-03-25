@@ -34,6 +34,10 @@ jobs:
         environment-file: environment.yaml
         environment-name: myenv
         cache-env: true
+        extra-specs: |
+          highfive
+          fmt
+          cpppath
 
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
