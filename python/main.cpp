@@ -308,13 +308,6 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("max_iter") = 10000000)
 
             .def(
-                "advanceElastic",
-                &SM::System::advanceElastic,
-                "advanceElastic",
-                py::arg("dx"),
-                py::arg("input_is_frame") = true)
-
-            .def(
                 "eventDrivenStep",
                 &SM::System::eventDrivenStep,
                 "eventDrivenStep",

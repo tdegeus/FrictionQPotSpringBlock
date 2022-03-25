@@ -92,45 +92,6 @@ class Test_main(unittest.TestCase):
         self.assertTrue(np.allclose(system.f_damping(), f_damping))
         self.assertTrue(np.allclose(system.f(), f_potential + f_frame + f_neighbours + f_damping))
 
-    def test_advanceElastic(self):
-
-        N = 3
-        y = np.ones((N, 100))
-        y[:, 0] = -48.5
-        y = np.cumsum(y, axis=1)
-
-        system = FrictionQPotSpringBlock.Line1d.System(
-            m=1.0,
-            eta=1.0,
-            mu=1.0,
-            k_neighbours=1.0,
-            k_frame=0.1,
-            dt=1.0,
-            x_yield=y,
-        )
-
-        self.assertTrue(system.residual() < 1e-5)
-
-        system.advanceElastic(0.1, False)
-        self.assertTrue(system.residual() < 1e-5)
-        self.assertTrue(np.allclose(system.x(), 0.1 * np.ones(N)))
-        self.assertTrue(np.isclose(system.x_frame(), 1.1))
-
-        system.advanceElastic(-0.1, False)
-        self.assertTrue(system.residual() < 1e-5)
-        self.assertTrue(np.allclose(system.x(), 0.0 * np.ones(N)))
-        self.assertTrue(np.isclose(system.x_frame(), 0.0))
-
-        system.advanceElastic(1.1, True)
-        self.assertTrue(system.residual() < 1e-5)
-        self.assertTrue(np.allclose(system.x(), 0.1 * np.ones(N)))
-        self.assertTrue(np.isclose(system.x_frame(), 1.1))
-
-        system.advanceElastic(-1.1, True)
-        self.assertTrue(system.residual() < 1e-5)
-        self.assertTrue(np.allclose(system.x(), 0.0 * np.ones(N)))
-        self.assertTrue(np.isclose(system.x_frame(), 0.0))
-
     def test_eventDrivenStep(self):
 
         N = 3

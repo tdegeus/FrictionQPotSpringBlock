@@ -519,34 +519,6 @@ public:
     size_t minimise_nopassing(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
 
     /**
-    Advance the system elastically: the particles and the frame are moved proportionally,
-    such that equilibrium is maintained.
-    Note that the displacement is uniform: all particles are moved in the same way.
-    In particular:
-
-    \f$ \Delta f^\mathrm{potential}_i = \mu \Delta x_i \f$
-
-    \f$ \Delta f^\mathrm{frame} = k (\Delta x^\mathrm{frame} - \Delta x_i) \f$
-
-    This gives two cases:
-
-    -   Given \f$ \Delta x_i \f$ one finds:
-        \f$ \Delta x^\mathrm{frame} = (k + \mu) / k \Delta x_i \f$.
-
-    -   Given \f$ \Delta x^\mathrm{frame} \f$ one finds:
-        \f$ \Delta x_i = k / (k + \mu) \Delta x^\mathrm{frame} \f$.
-
-    \param dx Displacement.
-
-    \param input_is_frame
-        If `true`: `dx` \f$ = \Delta x^\mathrm{frame} \f$,
-        if `false`: `dx` \f$ = \Delta x_i \f$,
-
-    \return `dx` for the particles in `input_is_frame == true`, otherwise `dx` of the frame.
-    */
-    double advanceElastic(double dx, bool input_is_frame = true);
-
-    /**
     Make event driving step.
 
     \param eps
@@ -630,6 +602,34 @@ protected:
     Update forces that depend on #m_v.
     */
     void updated_v();
+
+    /**
+    Advance the system uniform: the particles and the frame are moved proportionally,
+    while all particles are moved in the same way.
+    This maintains equilibrium as long as no particle yields.
+    In particular:
+
+    \f$ \Delta f^\mathrm{potential}_i = \mu \Delta x_i \f$
+
+    \f$ \Delta f^\mathrm{frame} = k (\Delta x^\mathrm{frame} - \Delta x_i) \f$
+
+    This gives two cases:
+
+    -   Given \f$ \Delta x_i \f$ one finds:
+        \f$ \Delta x^\mathrm{frame} = (k + \mu) / k \Delta x_i \f$.
+
+    -   Given \f$ \Delta x^\mathrm{frame} \f$ one finds:
+        \f$ \Delta x_i = k / (k + \mu) \Delta x^\mathrm{frame} \f$.
+
+    \param dx Displacement.
+
+    \param input_is_frame
+        If `true`: `dx` \f$ = \Delta x^\mathrm{frame} \f$,
+        if `false`: `dx` \f$ = \Delta x_i \f$,
+
+    \return `dx` for the particles in `input_is_frame == true`, otherwise `dx` of the frame.
+    */
+    double advanceUniformly(double dx, bool input_is_frame = true);
 
 protected:
     xt::xtensor<double, 1> m_f; ///< See #f.

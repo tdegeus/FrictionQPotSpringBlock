@@ -835,7 +835,7 @@ inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t ma
     throw std::runtime_error("No convergence found");
 }
 
-inline double System::advanceElastic(double dx, bool input_is_frame)
+inline double System::advanceUniformly(double dx, bool input_is_frame)
 {
     double dx_particles;
     double dx_frame;
@@ -848,16 +848,6 @@ inline double System::advanceElastic(double dx, bool input_is_frame)
         dx_particles = dx;
         dx_frame = dx * (m_k_frame + m_mu) / m_k_frame;
     }
-
-#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_DEBUG
-    if (dx_particles > 0.0) {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(dx_particles < xt::amin(this->yieldDistanceRight())());
-    }
-    else {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(
-            std::abs(dx_particles) < xt::amin(this->yieldDistanceLeft())());
-    }
-#endif
 
     m_x += dx_particles;
     m_x_frame += dx_frame;
@@ -877,11 +867,11 @@ inline double System::eventDrivenStep(double eps, bool kick, int direction)
         if (dx < 0.5 * eps) {
             return 0.0;
         }
-        return this->advanceElastic(dx - 0.5 * eps, false);
+        return this->advanceUniformly(dx - 0.5 * eps, false);
     }
 
     if (direction > 0 && kick) {
-        return this->advanceElastic(eps, false);
+        return this->advanceUniformly(eps, false);
     }
 
     // direction < 0
@@ -891,10 +881,10 @@ inline double System::eventDrivenStep(double eps, bool kick, int direction)
         if (dx < 0.5 * eps) {
             return 0.0;
         }
-        return this->advanceElastic(0.5 * eps - dx, false);
+        return this->advanceUniformly(0.5 * eps - dx, false);
     }
 
-    return this->advanceElastic(-eps, false);
+    return this->advanceUniformly(-eps, false);
 }
 
 inline void System::trigger(size_t p, double eps, int direction)
