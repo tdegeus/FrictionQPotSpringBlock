@@ -2,10 +2,11 @@ import os
 
 import FrictionQPotSpringBlock.Line1d as model
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
 import prrng
 import tqdm
+
+# import matplotlib.pyplot as plt
 
 N = 1000
 
@@ -64,6 +65,6 @@ with h5py.File(os.path.join(os.path.dirname(__file__), "QuasiStatic.h5")) as fil
     assert np.allclose(ret_f_frame, file["f_frame"][...])
     assert np.all(ret_S == file["S"][...])
 
-fig, ax = plt.subplots()
-ax.plot(ret_x_frame, ret_f_frame)
-plt.show()
+# fig, ax = plt.subplots()
+# ax.plot(ret_x_frame, ret_f_frame)
+# plt.show()
