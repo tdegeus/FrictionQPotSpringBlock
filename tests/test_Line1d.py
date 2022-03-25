@@ -1,3 +1,4 @@
+import faulthandler
 import time
 import unittest
 
@@ -5,6 +6,8 @@ import FrictionQPotSpringBlock
 import numpy as np
 import prrng
 import QPot  # noqa:
+
+faulthandler.enable()
 
 
 class Test_main(unittest.TestCase):
@@ -462,4 +465,4 @@ class Test_main(unittest.TestCase):
 
 if __name__ == "__main__":
 
-    unittest.main()
+    unittest.main(verbosity=2)
