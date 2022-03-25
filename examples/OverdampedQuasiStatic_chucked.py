@@ -76,6 +76,7 @@ for inc in range(ninc):
     ret_f_frame[inc] = np.mean(system.f_frame())
     ret_S[inc] = np.sum(system.i() - i_n)
 
+
 with h5py.File(os.path.join(os.path.dirname(__file__), "OverdampedQuasiStatic.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])
     assert np.allclose(ret_f_frame, file["f_frame"][...])

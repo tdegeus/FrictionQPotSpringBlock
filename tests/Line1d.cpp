@@ -7,37 +7,6 @@
 TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
 {
 
-    SECTION("System::advanceElastic")
-    {
-        size_t N = 3;
-        xt::xtensor<double, 2> y = xt::ones<double>({N, size_t(100)});
-        y = xt::cumsum(y, 1);
-        y -= 48.5;
-
-        FrictionQPotSpringBlock::Line1d::System sys(1.0, 1.0, 1.0, 1.0, 0.1, 1.0, y);
-        REQUIRE(sys.residual() < 1e-5);
-
-        sys.advanceElastic(0.1, false);
-        REQUIRE(sys.residual() < 1e-5);
-        REQUIRE(xt::allclose(sys.x(), 0.1 * xt::ones<double>({N})));
-        REQUIRE(sys.x_frame() == Approx(1.1));
-
-        sys.advanceElastic(-0.1, false);
-        REQUIRE(sys.residual() < 1e-5);
-        REQUIRE(xt::allclose(sys.x(), 0.0 * xt::ones<double>({N})));
-        REQUIRE(sys.x_frame() == Approx(0.0));
-
-        sys.advanceElastic(1.1, true);
-        REQUIRE(sys.residual() < 1e-5);
-        REQUIRE(xt::allclose(sys.x(), 0.1 * xt::ones<double>({N})));
-        REQUIRE(sys.x_frame() == Approx(1.1));
-
-        sys.advanceElastic(-1.1, true);
-        REQUIRE(sys.residual() < 1e-5);
-        REQUIRE(xt::allclose(sys.x(), 0.0 * xt::ones<double>({N})));
-        REQUIRE(sys.x_frame() == Approx(0.0));
-    }
-
     SECTION("System::eventDrivenStep")
     {
         size_t N = 3;

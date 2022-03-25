@@ -40,12 +40,16 @@ jobs:
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
 
-    - name: Build and install Python module
+    - name: Build and install Python module (in debug mode)
       run: |
         SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
+        rm -r _skbuild
 
     - name: Run Python tests
       run: python -m unittest discover tests
+
+    - name: Build and install Python module
+      run: python -m pip install . -v
 
     - name: Run one example
       working-directory: examples
