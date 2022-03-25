@@ -904,10 +904,12 @@ inline size_t System::triggerWeakest(double eps, int direction)
     size_t p;
 
     if (direction > 0) {
-        p = xt::argmin(this->yieldDistanceRight())();
+        auto v = this->yieldDistanceRight();
+        p = std::distance(v.begin(), std::min_element(v.begin(), v.end()));
     }
     else {
-        p = xt::argmin(this->yieldDistanceLeft())();
+        auto v = this->yieldDistanceLeft();
+        p = std::distance(v.begin(), std::min_element(v.begin(), v.end()));
     }
 
     this->trigger(p, eps, direction);
