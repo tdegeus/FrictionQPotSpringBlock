@@ -36,7 +36,6 @@ jobs:
         cache-env: true
         extra-specs: |
           h5py
-          matplotlib
           tqdm
           sel(linux): cxx-compiler
 
