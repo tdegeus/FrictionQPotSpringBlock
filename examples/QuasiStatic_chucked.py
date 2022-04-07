@@ -47,13 +47,13 @@ for inc in range(ninc):
     # Update chunk.
     if np.any(system.i() - system.istart() > nchunk - nbuffer):
         y = system.y()
-        i = np.argmax(y >= system.x().reshape(-1, 1), axis=1)
+        shift = np.argmax(y >= system.x().reshape(-1, 1), axis=1) - nbuffer
         generators.restore(state)
-        generators.advance(i - nbuffer)
+        generators.advance(shift)
         state = generators.state()
-        istart += i - nbuffer
+        istart += shift
         dy = 2.0 * generators.random([nchunk])
-        system.shift_dy(istart, dy, 10)
+        system.shift_dy(istart=istart, dy=dy)
 
     # Extract output data.
     i_n = system.i()
