@@ -412,7 +412,9 @@ public:
     size_t inc() const;
 
     /**
-    The instantaneous temperature.
+    The instantaneous temperature, defined as
+    \f$ T \equiv m / N \sum\limits_{i = 1}^N v_i^2 \f$
+    Note that by definition Boltzmann's constant is taken equal to 1.
     \return double.
     */
     double temperature() const;

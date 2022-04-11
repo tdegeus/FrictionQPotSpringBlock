@@ -6,7 +6,11 @@ import numpy as np
 import prrng
 import tqdm
 
-# import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+    plot = True
+except ImportError:
+    plot = False
 
 N = 1000
 
@@ -56,6 +60,7 @@ dinc = 1000
 delta_gamma = 5e-2
 ret_x_frame = np.empty([nout], dtype=float)
 ret_f_frame = np.empty([nout], dtype=float)
+ret_t_insta = np.empty([nout], dtype=float)
 
 for iout in tqdm.tqdm(range(nout)):
 
@@ -63,13 +68,16 @@ for iout in tqdm.tqdm(range(nout)):
 
     ret_x_frame[iout] = system.x_frame()
     ret_f_frame[iout] = np.mean(system.f_frame())
+    ret_t_insta[iout] = system.temperature()
 
 with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])
     assert np.allclose(ret_f_frame, file["f_frame"][...])
+    assert np.allclose(ret_t_insta, file["t_insta"][...])
 
 # plot output
 
-# fig, ax = plt.subplots()
-# ax.plot(ret_x_frame, ret_f_frame)
-# plt.show()
+if plot:
+    fig, ax = plt.subplots()
+    ax.plot(ret_x_frame, ret_f_frame)
+    plt.show()

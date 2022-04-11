@@ -446,8 +446,7 @@ inline size_t System::inc() const
 
 inline double System::temperature() const
 {
-    // TODO !!
-    return 0.0;
+    return xt::norm_sq(m_v)() * m_m / m_N;
 }
 
 inline double System::x_frame() const
