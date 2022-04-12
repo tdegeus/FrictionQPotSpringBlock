@@ -8,20 +8,28 @@ N = 1000
 
 initstate = np.arange(N)
 initseq = np.zeros(N)
+
+# generate yield positions
+
 generators = prrng.pcg32_array(initstate, initseq)
 
 y = 2.0 * generators.random([20000])
 y = np.cumsum(y, 1)
 y -= 50.0
 
-force_generators = prrng.pcg32_array(initstate, initseq)
-f = force_generators.normal([11000], mu=0.0, sigma=0.05)
+# generate sequence of random forces and define start and end increment at which they are applied
+# (fixed internal "dinc" that is randomly shifted per particle by maximum "dinc")
 
-dinc = 100
-inc_generators = prrng.pcg32_array(initstate, initseq)
-start_inc = dinc * np.tile(np.arange(f.shape[1] + 1), (N, 1))
-start_inc += np.floor(dinc * inc_generators.random([1])).astype(start_inc.dtype)
+f = prrng.pcg32_array(initstate, initseq).normal([11000], mu=0.0, sigma=0.05)
+
+delta_inc = 100
+offset = (delta_inc * prrng.pcg32_array(initstate, initseq).random([1])).astype(int)
+start_inc = delta_inc * np.tile(np.arange(f.shape[1] + 1), (N, 1))
+start_inc += offset
 start_inc[:, 0] = 0
+
+# define system
+# initialise by minimising energy athermally
 
 system = model.SystemThermalRandomForcing(
     m=1.0,
@@ -35,19 +43,24 @@ system = model.SystemThermalRandomForcing(
 
 system.minimise()
 system.set_inc(0)
-
 system.setRandomForceSequence(f=f, start_inc=start_inc)
 
-ninc = 1000
-ret_x_frame = np.empty([ninc], dtype=float)
-ret_f_frame = np.empty([ninc], dtype=float)
+# apply load at small finite rate "delta_gamma", write output every "dinc" increments
 
-for inc in tqdm.tqdm(range(ninc)):
+nout = 1000
+dinc = 1000
+delta_gamma = 1e-2
+ret_x_frame = np.empty([nout], dtype=float)
+ret_f_frame = np.empty([nout], dtype=float)
 
-    system.flowSteps(1000, 1e-2)
+for iout in tqdm.tqdm(range(nout)):
 
-    ret_x_frame[inc] = system.x_frame()
-    ret_f_frame[inc] = np.mean(system.f_frame())
+    system.flowSteps(dinc, delta_gamma)
+
+    ret_x_frame[iout] = system.x_frame()
+    ret_f_frame[iout] = np.mean(system.f_frame())
+
+# plot output
 
 fig, ax = plt.subplots()
 ax.plot(ret_x_frame, ret_f_frame)
