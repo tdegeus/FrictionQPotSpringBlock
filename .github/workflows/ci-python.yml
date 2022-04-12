@@ -42,6 +42,20 @@ jobs:
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
 
+     - name: Local copy of xtespr
+      uses: actions/checkout@v2
+      with:
+        repository: tdegeus/xtensor
+        path: xtensor
+        ref: cast
+
+    - name: Install xtensor
+      working-directory: xtensor
+      run: |
+        cmake -GNinja -Bbuild -DCMAKE_INSTALL_PREFIX:PATH="${CONDA_PREFIX}"
+        cd build
+        cmake --install .
+
     - name: Build and install Python module (in debug mode)
       run: |
         SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
