@@ -42,7 +42,7 @@ jobs:
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
 
-     - name: Local copy of xtespr
+    - name: Local copy of xtensor
       uses: actions/checkout@v2
       with:
         repository: tdegeus/xtensor
