@@ -55,4 +55,6 @@ jobs:
 
     - name: Run one example
       working-directory: examples
-      run: python QuasiStatic_chucked.py
+      run: |
+        python QuasiStatic_chucked.py
+        python ThermalRandomForcing.py
