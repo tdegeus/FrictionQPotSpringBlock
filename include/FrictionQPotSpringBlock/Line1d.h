@@ -261,10 +261,16 @@ public:
     xt::xtensor<double, 1> yieldDistanceLeft() const;
 
     /**
-     * Set time.
-     * \param arg double.
-     */
+    Set time.
+    \param arg double.
+    */
     void set_t(double arg);
+
+    /**
+    Set increment.
+    \param arg size_t.
+    */
+    void set_inc(size_t arg);
 
     /**
     Set position of the load frame.
@@ -365,10 +371,22 @@ public:
     xt::xtensor<double, 1> f_damping() const;
 
     /**
-     * The time, see set_t().
-     * \return double.
-     */
+    The time, see set_t().
+    \return double.
+    */
     double t() const;
+
+    /**
+    The increment, see set_inc().
+    \return size_t.
+    */
+    size_t inc() const;
+
+    /**
+    The instantaneous temperature.
+    \return double.
+    */
+    double temperature() const;
 
     /**
     Residual: the ratio between the norm of #f and #f_frame.
@@ -583,7 +601,7 @@ protected:
     /**
     Compute #f based on the current #x and #v.
     */
-    void computeForce();
+    virtual void computeForce();
 
     /**
     Compute #f_potential based on the current #x.
@@ -659,8 +677,7 @@ protected:
     xt::xtensor<double, 1> m_a_t; ///< #a at some point in history (used in #minimise_boundcheck).
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
-    double m_t = 0.0; ///< See #set_t.
-    double m_t_t; ///< #t at some point in history (used in #minimise_boundcheck)
+    size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
     double m_dt; ///< Time step.
     double m_eta; ///< Damping constant (same for all particles).
     double m_m; ///< Mass (same for all particles).
@@ -668,6 +685,79 @@ protected:
     double m_k_neighbours; ///< Stiffness of interactions (same for all particles).
     double m_k_frame; ///< Stiffness of the load fame (same for all particles).
     double m_x_frame = 0.0; ///< See #set_x_frame.
+};
+
+/**
+System in which the effect of temperature in mimicked by random forcing.
+The random forces can be set:
+-   Instantaneously, using setRandomForce().
+-   As a sequence depending on the increment, using setRandomForceSequence().
+*/
+class SystemThermalRandomForcing : public System {
+public:
+    SystemThermalRandomForcing() = default;
+
+    /**
+    \copydoc System(double, double, double, double, double, double, const T&)
+    */
+    template <class T>
+    SystemThermalRandomForcing(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield);
+
+    /**
+    \copydoc System(double, double, double, double, double, double, const T&, const I&)
+    */
+    template <class T, class I>
+    SystemThermalRandomForcing(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield,
+        const I& istart);
+
+    /**
+    Set random force.
+    This force will be applied until it is overwritten, or a random force sequence is set in
+    setRandomForceSequence().
+    If a sequence was set before, it will be discarded and replaced by this force.
+
+    \param f Force per particle.
+    */
+    template <class T>
+    void setRandomForce(const T& f);
+
+    /**
+    Set sequence of random forces.
+    This sequence specifies for each particle which force should be applied at which increment.
+
+    \param f Sequence of forces per particle [#N, `n`].
+
+    \param start_inc
+        Start and end increment of each item [#N, `n + 1`].
+        This implies that on a particle `p`, the force `f(p, i)` will be applied starting from
+        increment `start_inc(p, i)` until (but not including) `start_inc(p, i + 1)`.
+        The sequence is thus bounded and should be updated in time.
+    */
+    template <class T, class U>
+    void setRandomForceSequence(const T& f, const U& start_inc);
+
+protected:
+    void computeForce() override;
+
+    bool m_seq = false; ///< Use sequence to set random forces, set in setRandomForceSequence().
+    xt::xtensor<double, 2> m_seq_f; ///< Sequence of random forces.
+    xt::xtensor<size_t, 2> m_seq_s; ///< Start and end increment of each item in the sequence.
+    xt::xtensor<size_t, 1> m_seq_i; ///< Current column in #m_seq_f for each particle.
+    xt::xtensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
 };
 
 } // namespace Line1d
