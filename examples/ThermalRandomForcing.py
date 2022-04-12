@@ -1,8 +1,12 @@
+import os
+
 import FrictionQPotSpringBlock.Line1d as model
-import matplotlib.pyplot as plt
+import h5py
 import numpy as np
 import prrng
 import tqdm
+
+# import matplotlib.pyplot as plt
 
 N = 1000
 
@@ -47,9 +51,9 @@ system.setRandomForceSequence(f=f, start_inc=start_inc)
 
 # apply load at small finite rate "delta_gamma", write output every "dinc" increments
 
-nout = 1000
+nout = 500
 dinc = 1000
-delta_gamma = 1e-2
+delta_gamma = 5e-2
 ret_x_frame = np.empty([nout], dtype=float)
 ret_f_frame = np.empty([nout], dtype=float)
 
@@ -60,8 +64,12 @@ for iout in tqdm.tqdm(range(nout)):
     ret_x_frame[iout] = system.x_frame()
     ret_f_frame[iout] = np.mean(system.f_frame())
 
+with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5")) as file:
+    assert np.allclose(ret_x_frame, file["x_frame"][...])
+    assert np.allclose(ret_f_frame, file["f_frame"][...])
+
 # plot output
 
-fig, ax = plt.subplots()
-ax.plot(ret_x_frame, ret_f_frame)
-plt.show()
+# fig, ax = plt.subplots()
+# ax.plot(ret_x_frame, ret_f_frame)
+# plt.show()
