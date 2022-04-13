@@ -52,6 +52,7 @@ jobs:
     - name: Install xtensor
       working-directory: xtensor
       run: |
+        cat include/xtensor/xsort.hpp
         cmake -GNinja -Bbuild -DCMAKE_INSTALL_PREFIX:PATH="${CONDA_PREFIX}"
         cd build
         cmake --install .
