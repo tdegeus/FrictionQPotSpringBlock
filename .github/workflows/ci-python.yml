@@ -18,7 +18,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -e -l {0}
 
     name: ${{ matrix.runs-on }} • x64 ${{ matrix.args }}
     runs-on: ${{ matrix.runs-on }}
