@@ -40,26 +40,55 @@ The output is a list of strings, e.g.::
 inline std::vector<std::string> version_dependencies();
 
 /**
+## Introduction
+
 The system in which particles experience a piece-wise quadratic local potential energy,
 elastic interactions with neighbours, and a drive though a spring attached to a load frame.
 The local landscape is characterised by yield positions.
-This class stores a chunk of the sequence of yield positions around the current position.
-When the particle is close to running out-of-bounds,
-you have the option to change the chunk of yield positions.
+
+## Physics & API
 
 The physics are as follows:
-*   A particle has a mass \f$ m \f$.
-*   Each particle \f$ i \f$ experiences damping equal to
-    \f$ f_\text{damping}^{(i)} = - \eta v_i \f$.
-*   Each particle \f$ i \f$ has a potential energy such that
+-   A particle has a mass \f$ m \f$.
+-   Each particle \f$ i \f$ experiences damping equal to
+    \f$ f_\text{damping}^{(i)} = - \eta v_i \f$, with the particle's velocity
+    \f$ v_i \equiv \dot{x}_i \equiv \partial_t x_i \f$.
+-   Each particle \f$ i \f$ has a potential energy such that
     \f$ f_\text{potential}^{(i)} =  \mu (x_{\min}^{(i)} - x_i) \f$.
     where \f$ \mu \f$ is the radius of curvature of the quadratic potentials, and
     \f$ x_{\min}^{(i)} \f$ the positions of the current local minimum.
-*   Each particle \f$ i \f$ has interactions with its neighbours equal to
+-   Each particle \f$ i \f$ has interactions with its neighbours equal to
     \f$ f_\text{neighbours}^{(i)} =  k_\text{neighbours} (x_{i - 1} - 2 x_i + x_{i + 1}) \f$.
-*   Each particle \f$ i \f$ is connected to the load frame given a force equal to
+-   Each particle \f$ i \f$ is connected to the load frame given a force equal to
     \f$ f_\text{frame}^{(i)} =  k_\text{frame} (x_\text{frame} - x_i \f$.
     Typically \f$ k_\text{frame} = \mathcal{O}(1 / N) \f$ with \f$ N \f$ the number of particles.
+
+The dynamics follow
+\f$ m a_i = f_\text{residual}^{(i)} \f$, with the particle's acceleration
+\f$ a_i \equiv \ddot{x}_i \equiv \partial_t^2 x_i \f$, and the residual force
+\f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
+f_\text{neighbours}^{(i)} + f_\text{frame}^{(i)} \f$.
+This differential equation is integrated using Velocity-Verlet in timeStep()
+Note that this function updates the time t() (or increment number inc()),
+and that this is the only function that does so.
+
+The implementation is is such that all forces are updated (if needed) every time the positions
+and velocities are updated, either internally in timeStep(), or externally when calling
+set_x() and set_v().
+
+## Yield positions
+
+For computational efficiency one can choose to store only a chunk of the sequence of yield positions
+around the current position, which is updated when the particle is close to running out-of-bounds,
+see shift_y() and shift_dy(), or set_y().
+
+## Internal strategy
+
+Internally, updated_x() and updated_v() are called every time that the positions #m_x and the
+velocities #m_v are updated.
+Thereby, updated_x() updates position dependent forces,
+and updated_v() updates velocity dependent forces.
+Both finish by updating the residual force in computeForce().
 */
 class System {
 
@@ -403,7 +432,7 @@ public:
 
     /**
     Effectuates time step using the velocity Verlet algorithm.
-    Updates #x, #v, #a, and #f.
+    Updates #x, #v, #a, and #f, and increment #inc.
     */
     void timeStep();
 
@@ -688,10 +717,25 @@ protected:
 };
 
 /**
+## Introduction
+
 System in which the effect of temperature in mimicked by random forcing.
 The random forces can be set:
 -   Instantaneously, using setRandomForce().
--   As a sequence depending on the increment, using setRandomForceSequence().
+-   As a sequence depending on the current increment, using setRandomForceSequence().
+
+## Physics & API
+
+The physics and API are the same as in System(), with the difference that the residual force now
+reads \f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
+f_\text{neighbours}^{(i)} + f_\text{frame}^{(i)} + f_\text{random}^{(i)} \f$.
+Thereby \f$ f_\text{random}^{(i)} \f$ is specified instantaneously setRandomForce() or for a
+time-history in setRandomForceSequence().
+
+## Internal strategy
+
+To avoid code duplication this class derives from System().
+To ensure the correct physics computeForce() is overridden to add \f$ f_\text{random}^{(i)} \f$.
 */
 class SystemThermalRandomForcing : public System {
 public:
