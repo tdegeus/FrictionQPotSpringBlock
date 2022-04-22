@@ -8,6 +8,7 @@ import tqdm
 
 try:
     import matplotlib.pyplot as plt
+
     plot = True
 except ImportError:
     plot = False
