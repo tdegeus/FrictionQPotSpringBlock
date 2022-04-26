@@ -178,6 +178,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("nbuffer") = 0)
 
             .def("ymin", &SM::System::ymin, "ymin")
+            .def("ymax", &SM::System::ymax, "ymax")
             .def("ymin_chunk", &SM::System::ymin_chunk, "ymin_chunk")
             .def("yleft", &SM::System::yleft, "yleft")
             .def("yright", &SM::System::yright, "yright")

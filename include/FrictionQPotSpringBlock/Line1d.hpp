@@ -224,6 +224,17 @@ inline xt::xtensor<double, 1> System::ymin() const
     return ret;
 }
 
+inline xt::xtensor<double, 1> System::ymax() const
+{
+    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y[p].ymax();
+    }
+
+    return ret;
+}
+
 inline xt::xtensor<double, 1> System::ymin_chunk() const
 {
     xt::xtensor<double, 1> ret = xt::empty<double>({m_N});

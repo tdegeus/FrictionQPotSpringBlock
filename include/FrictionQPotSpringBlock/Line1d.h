@@ -197,6 +197,11 @@ public:
     xt::xtensor<double, 1> ymin() const;
 
     /**
+    \copydoc QPot::Chunked::ymax()
+    */
+    xt::xtensor<double, 1> ymax() const;
+
+    /**
     \copydoc QPot::Chunked::ymin_chunk()
     */
     xt::xtensor<double, 1> ymin_chunk() const;
