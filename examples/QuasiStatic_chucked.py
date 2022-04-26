@@ -45,9 +45,10 @@ pbar = tqdm.tqdm(total=ninc)
 for inc in range(ninc):
 
     # Update chunk.
-    if np.any(system.i() - system.istart() > nchunk - nbuffer):
+    local_i = system.i() - system.istart()
+    if np.any(local_i > nchunk - nbuffer):
         y = system.y()
-        shift = np.argmax(y >= system.x().reshape(-1, 1), axis=1) - nbuffer
+        shift = local_i - nbuffer + 1
         generators.restore(state)
         generators.advance(shift)
         state = generators.state()
