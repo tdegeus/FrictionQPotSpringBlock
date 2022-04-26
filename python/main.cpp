@@ -257,7 +257,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "timeStepsUntilEvent",
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
-                py::arg("max_iter") = 10000000)
+                py::arg("max_iter") = 1e9)
 
             .def("flowSteps", &SM::System::flowSteps, "flowSteps", py::arg("n"), py::arg("v_frame"))
 
@@ -275,7 +275,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "minimise",
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
-                py::arg("max_iter") = 10000000)
+                py::arg("max_iter") = 1e9)
 
             .def(
                 "minimise_boundcheck",
@@ -284,7 +284,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("nmargin") = 5,
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
-                py::arg("max_iter") = 10000000)
+                py::arg("max_iter") = 1e9)
 
             .def(
                 "minimise_timeactivity",
@@ -292,7 +292,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "minimise_timeactivity",
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
-                py::arg("max_iter") = 10000000)
+                py::arg("max_iter") = 1e9)
 
             .def(
                 "minimise_timeactivity_boundcheck",
@@ -301,7 +301,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("nmargin") = 5,
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
-                py::arg("max_iter") = 10000000)
+                py::arg("max_iter") = 1e9)
 
             .def(
                 "minimise_nopassing",
@@ -309,7 +309,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "minimise_nopassing",
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
-                py::arg("max_iter") = 10000000)
+                py::arg("max_iter") = 1e9)
 
             .def(
                 "eventDrivenStep",

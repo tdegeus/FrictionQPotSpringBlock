@@ -466,7 +466,7 @@ public:
         `0` is returned if there was no plastic activity and the residual was reached.
     */
     size_t
-    timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+    timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
     Make a number of steps with the following protocol.
@@ -503,7 +503,7 @@ public:
 
     \return The number of iterations.
     */
-    size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+    size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
     \copydoc System::minimise(double, size_t, size_t)
@@ -519,7 +519,7 @@ public:
         size_t nmargin = 5,
         double tol = 1e-5,
         size_t niter_tol = 20,
-        size_t max_iter = 10000000);
+        size_t max_iter = 1e9);
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -537,7 +537,7 @@ public:
     \return The number of iterations elapsed during an avalanche (in units of dt()).
     */
     size_t
-    minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+    minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
     \copydoc System::minimise_timeactivity(double, size_t, size_t)
@@ -553,7 +553,7 @@ public:
         size_t nmargin = 5,
         double tol = 1e-5,
         size_t niter_tol = 10,
-        size_t max_iter = 10000000);
+        size_t max_iter = 1e9);
 
     /**
     Minimise assuming overdamped dynamics.
@@ -570,7 +570,7 @@ public:
     \param max_iter
         Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
     */
-    size_t minimise_nopassing(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 10000000);
+    size_t minimise_nopassing(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
     Make event driven step.
