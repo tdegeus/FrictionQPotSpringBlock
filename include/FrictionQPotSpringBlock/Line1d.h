@@ -465,8 +465,7 @@ public:
         The number of iterations.
         `0` is returned if there was no plastic activity and the residual was reached.
     */
-    size_t
-    timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
+    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
     Make a number of steps with the following protocol.
@@ -536,8 +535,7 @@ public:
 
     \return The number of iterations elapsed during an avalanche (in units of dt()).
     */
-    size_t
-    minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
+    size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
     \copydoc System::minimise_timeactivity(double, size_t, size_t)
