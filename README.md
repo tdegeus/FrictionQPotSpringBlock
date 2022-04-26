@@ -49,6 +49,51 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.9.0
+
+### Bugfixes & extensions
+
+*   Fixing ``nopassing`` algorithm for overdamped dynamics.
+*   Increasing the default maximum number of iterations.
+*   Adding `ymax` overload.
+
+### Internal
+
+*   Optimization: precompute `1 / m`.
+
+### Documentation
+
+*   Chuncked example: avoid costly search.
+
+## v0.8.0
+
+### Bugfixes & extensions
+
+*   Calculating instantaneous temperature.
+*   Temporarily work around xtensor#2510.
+*   Adding SystemThermalRandomForcing.
+
+## v0.7.0
+
+## Bugfixes & extensions
+
+*   Resolving segmentation fault windows.
+*   Updating deps
+*   [BREAKING CHANGE] Making `advanceElastic` private
+*   Adding `minimise_nopassing` with fully overdamped dynamics
+*   [BREAKING CHANGE] Renaming `y` -> `refChunked`. Adding array interfaces
+*   [BREAKING CHANGE] Cleaning API of separate functions to set parameters
+*   Fixing minor typos.
+*   [Python] Adding missing imports
+
+### Documentation
+
+*   Simplifying example.
+*   Removing matplotlib from test runs.
+*   Simplifying example (historic data `txt` -> `h5`, does not lead to change, this was checked).
+*   Updating badges in readme.
+*   Adding full Python example.
+
 ## v0.6.8
 
 *   [Python] Using scikit-build.
