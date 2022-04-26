@@ -717,6 +717,7 @@ protected:
     double m_dt; ///< Time step.
     double m_eta; ///< Damping constant (same for all particles).
     double m_m; ///< Mass (same for all particles).
+    double m_inv_m; ///< 1 / #m_m
     double m_mu; ///< Stiffness: curvature of the potential energy (same for all particles).
     double m_k_neighbours; ///< Stiffness of interactions (same for all particles).
     double m_k_frame; ///< Stiffness of the load fame (same for all particles).

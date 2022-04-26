@@ -99,6 +99,7 @@ inline void System::init(
 
     m_N = x_y.shape(0);
     m_m = m;
+    m_inv_m = 1.0 / m;
     m_eta = eta;
     m_mu = mu;
     m_k_neighbours = k_neighbours;
@@ -581,17 +582,17 @@ inline void System::timeStep()
     xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
     this->updated_v();
 
-    xt::noalias(m_a) = m_f / m_m;
+    xt::noalias(m_a) = m_f * m_inv_m;
 
     xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
     this->updated_v();
 
-    xt::noalias(m_a) = m_f / m_m;
+    xt::noalias(m_a) = m_f * m_inv_m;
 
     xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
     this->updated_v();
 
-    xt::noalias(m_a) = m_f / m_m;
+    xt::noalias(m_a) = m_f * m_inv_m;
 
     if (xt::any(xt::isnan(m_x))) {
         throw std::runtime_error("NaN entries found");
