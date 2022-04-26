@@ -826,28 +826,34 @@ inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t ma
     double xneigh;
     double x;
     double xmin;
+    long i;
 
     for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        xt::noalias(m_x_t) = m_x;
 
         for (size_t p = 0; p < m_N; ++p) {
             // first assuming the particle is always in its local minimum
             if (p == 0) {
-                xneigh = m_x.back() + m_x(1);
+                xneigh = m_x_t.back() + m_x_t(1);
             }
             else if (p == m_N - 1) {
-                xneigh = m_x(m_N - 2) + m_x.front();
+                xneigh = m_x_t(m_N - 2) + m_x_t.front();
             }
             else {
-                xneigh = m_x(p - 1) + m_x(p + 1);
+                xneigh = m_x_t(p - 1) + m_x_t(p + 1);
             }
-            x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame) /
-                (2 * m_k_neighbours + m_k_frame);
-            m_y[p].set_x(x);
-            // then fine tuning based on local potential
-            xmin = 0.5 * (m_y[p].yright() + m_y[p].yleft());
-            x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
-                (2 * m_k_neighbours + m_k_frame + m_mu);
-            m_y[p].set_x(x);
+            i = m_y[p].i();
+            while (true) {
+                xmin = 0.5 * (m_y[p].yright() + m_y[p].yleft());
+                x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
+                    (2 * m_k_neighbours + m_k_frame + m_mu);
+                m_y[p].set_x(x);
+                if (m_y[p].i() == i) {
+                    break;
+                }
+                i = m_y[p].i();
+            }
             m_x(p) = x;
         }
 
@@ -855,7 +861,7 @@ inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t ma
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            this->quench();
+            this->quench(); // no dynamics are run: make sure that the user is not confused
             return iiter;
         }
     }
