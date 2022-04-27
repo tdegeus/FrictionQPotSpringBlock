@@ -49,6 +49,12 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.10.0
+
+### Changes
+
+*   [BREAKING CHANGE] Integrating `boundscheck` in API of `minimise`.
+
 ## v0.9.0
 
 ### Bugfixes & extensions
