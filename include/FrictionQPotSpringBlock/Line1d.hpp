@@ -115,9 +115,6 @@ inline void System::init(
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
-    m_x_t = xt::zeros<double>({m_N});
-    m_v_t = xt::zeros<double>({m_N});
-    m_a_t = xt::zeros<double>({m_N});
     m_y.resize(m_N);
 
     for (size_t p = 0; p < m_N; ++p) {
@@ -660,19 +657,55 @@ inline size_t System::flowSteps_boundcheck(size_t n, double v_frame, size_t nmar
     return n;
 }
 
-inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
+inline long System::minimise(size_t nmargin, double tol, size_t niter_tol, size_t max_iter)
 {
     FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+
+    if (nmargin == 0) {
+        return _minimise_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+    }
+
+    return _minimise_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+}
+
+inline long
+System::minimise_timeactivity(size_t nmargin, double tol, size_t niter_tol, size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+
+    if (nmargin == 0) {
+        return _minimise_timeactivity_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+    }
+
+    return _minimise_timeactivity_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+}
+
+inline long
+System::minimise_nopassing(size_t nmargin, double tol, size_t niter_tol, size_t max_iter)
+{
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+    FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+
+    if (nmargin == 0) {
+        return _minimise_nopassing_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+    }
+
+    return _minimise_nopassing_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+}
+
+inline long System::_minimise_nocheck(double tol, size_t niter_tol, long max_iter)
+{
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
 
-    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+    for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
         this->timeStep();
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
             this->quench();
             return iiter;
         }
@@ -681,28 +714,18 @@ inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
     throw std::runtime_error("No convergence found");
 }
 
-inline size_t
-System::minimise_boundcheck(size_t nmargin, double tol, size_t niter_tol, size_t max_iter)
+inline long System::_minimise_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
 {
-    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
-    xt::noalias(m_x_t) = m_x;
-    xt::noalias(m_v_t) = m_v;
-    xt::noalias(m_a_t) = m_a;
-    size_t inc = m_inc;
 
-    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+    for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
         this->timeStep();
         residuals.roll_insert(this->residual());
 
-        if (!this->all_inbounds_right(nmargin)) {
-            xt::noalias(m_x) = m_x_t;
-            xt::noalias(m_v) = m_v_t;
-            xt::noalias(m_a) = m_a_t;
-            m_inc = inc;
-            return 0;
+        if (!this->all_inbounds(nmargin)) {
+            return -iiter;
         }
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
@@ -714,20 +737,19 @@ System::minimise_boundcheck(size_t nmargin, double tol, size_t niter_tol, size_t
     throw std::runtime_error("No convergence found");
 }
 
-inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t max_iter)
+inline long System::_minimise_timeactivity_nocheck(double tol, size_t niter_tol, long max_iter)
 {
-    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
 
     auto i_n = this->i();
     long s = 0;
     long s_n = 0;
-    size_t first_iter = 0;
-    size_t last_iter = 0;
+    long first_iter = 0;
+    long last_iter = 0;
     bool init = true;
 
-    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+    for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
         this->timeStep();
 
@@ -750,7 +772,6 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
             this->quench();
             return last_iter - first_iter;
         }
@@ -759,28 +780,20 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
     throw std::runtime_error("No convergence found");
 }
 
-inline size_t System::minimise_timeactivity_boundcheck(
-    size_t nmargin,
-    double tol,
-    size_t niter_tol,
-    size_t max_iter)
+inline long
+System::_minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
 {
-    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
-    xt::noalias(m_x_t) = m_x;
-    xt::noalias(m_v_t) = m_v;
-    xt::noalias(m_a_t) = m_a;
-    size_t inc = m_inc;
 
     auto i_n = this->i();
     long s = 0;
     long s_n = 0;
-    size_t first_iter = 0;
-    size_t last_iter = 0;
+    long first_iter = 0;
+    long last_iter = 0;
     bool init = true;
 
-    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+    for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
         this->timeStep();
 
@@ -802,16 +815,11 @@ inline size_t System::minimise_timeactivity_boundcheck(
 
         residuals.roll_insert(this->residual());
 
-        if (!this->all_inbounds_right(nmargin)) {
-            xt::noalias(m_x) = m_x_t;
-            xt::noalias(m_v) = m_v_t;
-            xt::noalias(m_a) = m_a_t;
-            m_inc = inc;
-            return 0;
+        if (!this->all_inbounds(nmargin)) {
+            return -(last_iter - first_iter);
         }
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
             this->quench();
             return last_iter - first_iter;
         }
@@ -820,9 +828,8 @@ inline size_t System::minimise_timeactivity_boundcheck(
     throw std::runtime_error("No convergence found");
 }
 
-inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t max_iter)
+inline long System::_minimise_nopassing_nocheck(double tol, size_t niter_tol, long max_iter)
 {
-    FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
 
@@ -831,20 +838,21 @@ inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t ma
     double xmin;
     long i;
 
-    for (size_t iiter = 1; iiter < max_iter + 1; ++iiter) {
+    for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
-        xt::noalias(m_x_t) = m_x;
+        // "misuse" unused variable
+        xt::noalias(m_v_n) = m_x;
 
         for (size_t p = 0; p < m_N; ++p) {
             // first assuming the particle is always in its local minimum
             if (p == 0) {
-                xneigh = m_x_t.back() + m_x_t(1);
+                xneigh = m_v_n.back() + m_v_n(1);
             }
             else if (p == m_N - 1) {
-                xneigh = m_x_t(m_N - 2) + m_x_t.front();
+                xneigh = m_v_n(m_N - 2) + m_v_n.front();
             }
             else {
-                xneigh = m_x_t(p - 1) + m_x_t(p + 1);
+                xneigh = m_v_n(p - 1) + m_v_n(p + 1);
             }
             i = m_y[p].i();
             while (true) {
@@ -864,7 +872,63 @@ inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t ma
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
+            this->quench(); // no dynamics are run: make sure that the user is not confused
+            return iiter;
+        }
+    }
+
+    throw std::runtime_error("No convergence found");
+}
+
+inline long
+System::_minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
+{
+    double tol2 = tol * tol;
+    GooseFEM::Iterate::StopList residuals(niter_tol);
+
+    double xneigh;
+    double x;
+    double xmin;
+    long i;
+
+    for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+        // "misuse" unused variable
+        xt::noalias(m_v_n) = m_x;
+
+        for (size_t p = 0; p < m_N; ++p) {
+            // first assuming the particle is always in its local minimum
+            if (p == 0) {
+                xneigh = m_v_n.back() + m_v_n(1);
+            }
+            else if (p == m_N - 1) {
+                xneigh = m_v_n(m_N - 2) + m_v_n.front();
+            }
+            else {
+                xneigh = m_v_n(p - 1) + m_v_n(p + 1);
+            }
+            i = m_y[p].i();
+            while (true) {
+                xmin = 0.5 * (m_y[p].yright() + m_y[p].yleft());
+                x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
+                    (2 * m_k_neighbours + m_k_frame + m_mu);
+                m_y[p].set_x(x);
+                if (!m_y[p].inbounds(nmargin)) {
+                    xt::noalias(m_x) = m_v_n;
+                    return -iiter;
+                }
+                if (m_y[p].i() == i) {
+                    break;
+                }
+                i = m_y[p].i();
+            }
+            m_x(p) = x;
+        }
+
+        this->updated_x();
+        residuals.roll_insert(this->residual());
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
             this->quench(); // no dynamics are run: make sure that the user is not confused
             return iiter;
         }
