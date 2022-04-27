@@ -76,8 +76,6 @@ with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5"
     assert np.allclose(ret_f_frame, file["f_frame"][...])
     assert np.allclose(ret_t_insta, file["t_insta"][...])
 
-# plot output
-
 if plot:
     fig, ax = plt.subplots()
     ax.plot(ret_x_frame, ret_f_frame)

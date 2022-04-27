@@ -6,7 +6,12 @@ import numpy as np
 import prrng
 import tqdm
 
-# import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+
+    plot = True
+except ImportError:
+    plot = False
 
 N = 1000
 
@@ -50,7 +55,8 @@ for inc in range(ninc):
 
     # Minimise energy.
     if inc % 2 == 0:
-        niter = system.minimise()
+        niter = system.minimise(nmargin=5)
+        assert niter > 0
         pbar.n = inc
         pbar.set_description(f"inc = {inc:4d}, niter = {niter:8d}")
         pbar.refresh()
@@ -65,6 +71,7 @@ with h5py.File(os.path.join(os.path.dirname(__file__), "QuasiStatic.h5")) as fil
     assert np.allclose(ret_f_frame, file["f_frame"][...])
     assert np.all(ret_S == file["S"][...])
 
-# fig, ax = plt.subplots()
-# ax.plot(ret_x_frame, ret_f_frame)
-# plt.show()
+if plot:
+    fig, ax = plt.subplots()
+    ax.plot(ret_x_frame, ret_f_frame)
+    plt.show()
