@@ -672,6 +672,7 @@ inline size_t System::minimise(double tol, size_t niter_tol, size_t max_iter)
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
             this->quench();
             return iiter;
         }
@@ -696,17 +697,17 @@ System::minimise_boundcheck(size_t nmargin, double tol, size_t niter_tol, size_t
         this->timeStep();
         residuals.roll_insert(this->residual());
 
-        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            this->quench();
-            return iiter;
-        }
-
         if (!this->all_inbounds_right(nmargin)) {
             xt::noalias(m_x) = m_x_t;
             xt::noalias(m_v) = m_v_t;
             xt::noalias(m_a) = m_a_t;
             m_inc = inc;
             return 0;
+        }
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            this->quench();
+            return iiter;
         }
     }
 
@@ -749,6 +750,7 @@ inline size_t System::minimise_timeactivity(double tol, size_t niter_tol, size_t
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
             this->quench();
             return last_iter - first_iter;
         }
@@ -800,17 +802,18 @@ inline size_t System::minimise_timeactivity_boundcheck(
 
         residuals.roll_insert(this->residual());
 
-        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-            this->quench();
-            return last_iter - first_iter;
-        }
-
         if (!this->all_inbounds_right(nmargin)) {
             xt::noalias(m_x) = m_x_t;
             xt::noalias(m_v) = m_v_t;
             xt::noalias(m_a) = m_a_t;
             m_inc = inc;
             return 0;
+        }
+
+        if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
+            this->quench();
+            return last_iter - first_iter;
         }
     }
 
@@ -861,6 +864,7 @@ inline size_t System::minimise_nopassing(double tol, size_t niter_tol, size_t ma
         residuals.roll_insert(this->residual());
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            FRICTIONQPOTSPRINGBLOCK_REQUIRE(this->all_inbounds_right(5));
             this->quench(); // no dynamics are run: make sure that the user is not confused
             return iiter;
         }
