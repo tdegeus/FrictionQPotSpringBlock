@@ -491,38 +491,21 @@ public:
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
 
-    \param tol
-        Relative force tolerance for equilibrium. See residual() for definition.
+    A concern is running out-of-bounds in terms of yield positions.
+    Consider setting `nmargin` to your need:
 
-    \param niter_tol
-        Enforce the residual check for ``niter_tol`` consecutive increments.
+    -   If `nmargin > 0` this function checks, after every time-step, that the yield-positions
+        are not within `nmargin` from running out-of-bounds (for every particle).
+        If that is the case the function stops and
+        returns the number of iterations as a negative number.
+        It is relatively safe to update the chunk of yield-positions and continue the minimisation
+        by recalling this function.
+        If unlucky, this can slightly delay finding equilibrium.
 
-    \param max_iter
-        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
-
-    \return The number of iterations.
-    */
-    size_t minimise(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
-
-    /**
-    \copydoc System::minimise(double, size_t, size_t)
-
-    This function stops if the yield-index of any particle is close the end.
-    In that case the function returns zero (in all other cases it returns a positive number),
-    and reverts the state of the system to that before calling this function.
+    -   If `nmargin == 0` there is no protection from running out-of-bounds.
 
     \param nmargin
-        Number of potentials to leave as margin.
-    */
-    size_t minimise_boundcheck(
-        size_t nmargin = 5,
-        double tol = 1e-5,
-        size_t niter_tol = 20,
-        size_t max_iter = 1e9);
-
-    /**
-    Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
-    Compared to minimise() this function measures the duration of an avalanche.
+        Number of potentials to leave as margin (see above).
 
     \param tol
         Relative force tolerance for equilibrium. See residual() for definition.
@@ -533,42 +516,38 @@ public:
     \param max_iter
         Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
 
-    \return The number of iterations elapsed during an avalanche (in units of dt()).
+    \return
+        The number of iterations.
+        **If a negative number if returned, equilibrium was not reached.**
     */
-    size_t minimise_timeactivity(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
+    long
+    minimise(size_t nmargin = 0, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
-    \copydoc System::minimise_timeactivity(double, size_t, size_t)
+    Same as minimise() but with a slightly different output:
+    the duration of actual plastic activity.
 
-    This function stops if the yield-index of any particle is close the end.
-    In that case the function returns zero (in all other cases it returns a positive number),
-    and reverts the state of the system to that before calling this function.
-
-    \param nmargin
-        Number of potentials to leave as margin.
+    \warning
+        If a negative number is returned it is advised to re-roll the state to that before calling
+        this function, adapt the stored chunk of yield-positions, and restart.
     */
-    size_t minimise_timeactivity_boundcheck(
-        size_t nmargin = 5,
+    long minimise_timeactivity(
+        size_t nmargin = 0,
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9);
 
     /**
-    Minimise assuming overdamped dynamics.
-    In this case the no passing rule is be used.
+    Same as minimise() but assuming  overdamped dynamics and using the no passing rule.
 
-    \warning Time is not updated as it is not physical. The mass and viscosity are ignored.
-
-    \param tol
-        Relative force tolerance for equilibrium. See residual() for definition.
-
-    \param niter_tol
-        Enforce the residual check for ``niter_tol`` consecutive increments.
-
-    \param max_iter
-        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+    \warning
+        The increment is not updated as time is not physical. The mass and viscosity are ignored.
     */
-    size_t minimise_nopassing(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
+    long minimise_nopassing(
+        size_t nmargin = 0,
+        double tol = 1e-5,
+        size_t niter_tol = 10,
+        size_t max_iter = 1e9);
 
     /**
     Make event driven step.
@@ -616,6 +595,14 @@ public:
     \return The index of the triggered particle.
     */
     size_t triggerWeakest(double eps, int direction = 1);
+
+private:
+    long _minimise_nocheck(double tol, size_t niter_tol, long max_iter);
+    long _minimise_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);
+    long _minimise_timeactivity_nocheck(double tol, size_t niter_tol, long max_iter);
+    long _minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);
+    long _minimise_nopassing_nocheck(double tol, size_t niter_tol, long max_iter);
+    long _minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);
 
 protected:
     /**
@@ -706,9 +693,6 @@ protected:
     xt::xtensor<double, 1> m_a; ///< See #a.
     xt::xtensor<double, 1> m_v_n; ///< #v at last time-step.
     xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
-    xt::xtensor<double, 1> m_x_t; ///< #v at some point in history (used in #minimise_boundcheck).
-    xt::xtensor<double, 1> m_v_t; ///< #v at some point in history (used in #minimise_boundcheck).
-    xt::xtensor<double, 1> m_a_t; ///< #a at some point in history (used in #minimise_boundcheck).
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).

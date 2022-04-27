@@ -273,15 +273,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "minimise",
                 &SM::System::minimise,
                 "minimise",
-                py::arg("tol") = 1e-5,
-                py::arg("niter_tol") = 10,
-                py::arg("max_iter") = size_t(1e9))
-
-            .def(
-                "minimise_boundcheck",
-                &SM::System::minimise_boundcheck,
-                "minimise_boundcheck",
-                py::arg("nmargin") = 5,
+                py::arg("nmargin") = 0,
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
                 py::arg("max_iter") = size_t(1e9))
@@ -290,15 +282,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "minimise_timeactivity",
                 &SM::System::minimise_timeactivity,
                 "minimise_timeactivity",
-                py::arg("tol") = 1e-5,
-                py::arg("niter_tol") = 10,
-                py::arg("max_iter") = size_t(1e9))
-
-            .def(
-                "minimise_timeactivity_boundcheck",
-                &SM::System::minimise_timeactivity_boundcheck,
-                "minimise_timeactivity_boundcheck",
-                py::arg("nmargin") = 5,
+                py::arg("nmargin") = 0,
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
                 py::arg("max_iter") = size_t(1e9))
@@ -307,6 +291,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "minimise_nopassing",
                 &SM::System::minimise_nopassing,
                 "minimise_nopassing",
+                py::arg("nmargin") = 0,
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
                 py::arg("max_iter") = size_t(1e9))
