@@ -49,6 +49,13 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.10.1
+
+### Internal changes
+
+*   Changing `xt::xtensor` -> `xt::pytensor`.
+    An alias `xt::pytensor == xt::xtensor` is created for compiling without xtensor-python.
+
 ## v0.10.0
 
 ### Changes
