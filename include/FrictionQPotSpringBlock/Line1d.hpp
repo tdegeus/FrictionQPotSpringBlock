@@ -61,7 +61,7 @@ inline System::System(
     double dt,
     const T& x_y)
 {
-    xt::xtensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
+    xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
     this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
@@ -130,10 +130,10 @@ inline size_t System::N() const
     return m_N;
 }
 
-inline xt::xtensor<double, 2> System::y()
+inline xt::pytensor<double, 2> System::y()
 {
     size_t n = static_cast<size_t>(m_y[0].cend() - m_y[0].cbegin());
-    xt::xtensor<double, 2> ret = xt::empty<double>({m_N, n});
+    xt::pytensor<double, 2> ret = xt::empty<double>({m_N, n});
 
     for (size_t p = 0; p < m_N; ++p) {
         size_t m = static_cast<size_t>(m_y[p].cend() - m_y[p].cbegin());
@@ -211,9 +211,9 @@ inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffe
     m_y[p].shift_dy(istart, dx_y, nbuffer);
 }
 
-inline xt::xtensor<double, 1> System::ymin() const
+inline xt::pytensor<double, 1> System::ymin() const
 {
-    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymin();
@@ -222,9 +222,9 @@ inline xt::xtensor<double, 1> System::ymin() const
     return ret;
 }
 
-inline xt::xtensor<double, 1> System::ymax() const
+inline xt::pytensor<double, 1> System::ymax() const
 {
-    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymax();
@@ -233,9 +233,9 @@ inline xt::xtensor<double, 1> System::ymax() const
     return ret;
 }
 
-inline xt::xtensor<double, 1> System::ymin_chunk() const
+inline xt::pytensor<double, 1> System::ymin_chunk() const
 {
-    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymin_chunk();
@@ -244,9 +244,9 @@ inline xt::xtensor<double, 1> System::ymin_chunk() const
     return ret;
 }
 
-inline xt::xtensor<double, 1> System::yleft() const
+inline xt::pytensor<double, 1> System::yleft() const
 {
-    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yleft();
@@ -255,9 +255,9 @@ inline xt::xtensor<double, 1> System::yleft() const
     return ret;
 }
 
-inline xt::xtensor<double, 1> System::yright() const
+inline xt::pytensor<double, 1> System::yright() const
 {
-    xt::xtensor<double, 1> ret = xt::empty<double>({m_N});
+    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yright();
@@ -266,9 +266,9 @@ inline xt::xtensor<double, 1> System::yright() const
     return ret;
 }
 
-inline xt::xtensor<size_t, 1> System::i_chunk() const
+inline xt::pytensor<size_t, 1> System::i_chunk() const
 {
-    xt::xtensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+    xt::pytensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].i_chunk();
@@ -277,9 +277,9 @@ inline xt::xtensor<size_t, 1> System::i_chunk() const
     return ret;
 }
 
-inline xt::xtensor<long, 1> System::istart() const
+inline xt::pytensor<long, 1> System::istart() const
 {
-    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+    xt::pytensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].istart();
@@ -288,9 +288,9 @@ inline xt::xtensor<long, 1> System::istart() const
     return ret;
 }
 
-inline xt::xtensor<long, 1> System::istop() const
+inline xt::pytensor<long, 1> System::istop() const
 {
-    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+    xt::pytensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].istop();
@@ -299,9 +299,9 @@ inline xt::xtensor<long, 1> System::istop() const
     return ret;
 }
 
-inline xt::xtensor<bool, 1> System::inbounds_left(size_t n) const
+inline xt::pytensor<bool, 1> System::inbounds_left(size_t n) const
 {
-    xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
+    xt::pytensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].inbounds_left(n);
@@ -310,9 +310,9 @@ inline xt::xtensor<bool, 1> System::inbounds_left(size_t n) const
     return ret;
 }
 
-inline xt::xtensor<bool, 1> System::inbounds_right(size_t n) const
+inline xt::pytensor<bool, 1> System::inbounds_right(size_t n) const
 {
-    xt::xtensor<bool, 1> ret = xt::empty<bool>({m_N});
+    xt::pytensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].inbounds_right(n);
@@ -381,19 +381,19 @@ inline bool System::any_redraw(const T& xtrial) const
     return false;
 }
 
-inline xt::xtensor<double, 1> System::yieldDistanceRight() const
+inline xt::pytensor<double, 1> System::yieldDistanceRight() const
 {
     return this->yright() - m_x;
 }
 
-inline xt::xtensor<double, 1> System::yieldDistanceLeft() const
+inline xt::pytensor<double, 1> System::yieldDistanceLeft() const
 {
     return m_x - this->yleft();
 }
 
-inline xt::xtensor<long, 1> System::i() const
+inline xt::pytensor<long, 1> System::i() const
 {
-    xt::xtensor<long, 1> ret = xt::empty<long>({m_N});
+    xt::pytensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].i();
@@ -463,42 +463,42 @@ inline double System::x_frame() const
     return m_x_frame;
 }
 
-inline xt::xtensor<double, 1> System::x() const
+inline xt::pytensor<double, 1> System::x() const
 {
     return m_x;
 }
 
-inline xt::xtensor<double, 1> System::v() const
+inline xt::pytensor<double, 1> System::v() const
 {
     return m_v;
 }
 
-inline xt::xtensor<double, 1> System::a() const
+inline xt::pytensor<double, 1> System::a() const
 {
     return m_a;
 }
 
-inline xt::xtensor<double, 1> System::f() const
+inline xt::pytensor<double, 1> System::f() const
 {
     return m_f;
 }
 
-inline xt::xtensor<double, 1> System::f_potential() const
+inline xt::pytensor<double, 1> System::f_potential() const
 {
     return m_f_potential;
 }
 
-inline xt::xtensor<double, 1> System::f_frame() const
+inline xt::pytensor<double, 1> System::f_frame() const
 {
     return m_f_frame;
 }
 
-inline xt::xtensor<double, 1> System::f_neighbours() const
+inline xt::pytensor<double, 1> System::f_neighbours() const
 {
     return m_f_neighbours;
 }
 
-inline xt::xtensor<double, 1> System::f_damping() const
+inline xt::pytensor<double, 1> System::f_damping() const
 {
     return m_f_damping;
 }
@@ -1030,7 +1030,7 @@ inline SystemThermalRandomForcing::SystemThermalRandomForcing(
 {
     m_seq = false;
     m_f_thermal = xt::zeros<double>({x_y.shape(0)});
-    xt::xtensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
+    xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
     this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 

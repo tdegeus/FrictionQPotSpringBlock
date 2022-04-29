@@ -19,6 +19,7 @@ Line in 1d.
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
+#include <xtensor-python/pytensor.hpp>
 
 namespace FrictionQPotSpringBlock {
 
@@ -142,7 +143,7 @@ public:
     Return yield positions.
     \return Array.
     */
-    xt::xtensor<double, 2> y();
+    xt::pytensor<double, 2> y();
 
     /**
     Return reference to the underlying QPot::Chunked storage.
@@ -194,52 +195,52 @@ public:
     /**
     \copydoc QPot::Chunked::ymin()
     */
-    xt::xtensor<double, 1> ymin() const;
+    xt::pytensor<double, 1> ymin() const;
 
     /**
     \copydoc QPot::Chunked::ymax()
     */
-    xt::xtensor<double, 1> ymax() const;
+    xt::pytensor<double, 1> ymax() const;
 
     /**
     \copydoc QPot::Chunked::ymin_chunk()
     */
-    xt::xtensor<double, 1> ymin_chunk() const;
+    xt::pytensor<double, 1> ymin_chunk() const;
 
     /**
     \copydoc QPot::Chunked::yleft()
     */
-    xt::xtensor<double, 1> yleft() const;
+    xt::pytensor<double, 1> yleft() const;
 
     /**
     \copydoc QPot::Chunked::yright()
     */
-    xt::xtensor<double, 1> yright() const;
+    xt::pytensor<double, 1> yright() const;
 
     /**
     \copydoc QPot::Chunked::i_chunk()
     */
-    xt::xtensor<size_t, 1> i_chunk() const;
+    xt::pytensor<size_t, 1> i_chunk() const;
 
     /**
     \copydoc QPot::Chunked::istart()
     */
-    xt::xtensor<long, 1> istart() const;
+    xt::pytensor<long, 1> istart() const;
 
     /**
     \copydoc QPot::Chunked::istop()
     */
-    xt::xtensor<long, 1> istop() const;
+    xt::pytensor<long, 1> istop() const;
 
     /**
     \copydoc QPot::Chunked::inbounds_left()
     */
-    xt::xtensor<bool, 1> inbounds_left(size_t n = 0) const;
+    xt::pytensor<bool, 1> inbounds_left(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::inbounds_right()
     */
-    xt::xtensor<bool, 1> inbounds_right(size_t n = 0) const;
+    xt::pytensor<bool, 1> inbounds_right(size_t n = 0) const;
 
     /**
     \copydoc QPot::Chunked::inbounds_left()
@@ -278,21 +279,21 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<long, 1> i() const;
+    xt::pytensor<long, 1> i() const;
 
     /**
     Distance to yield to the right (for each particle).
 
     \return [#N].
     */
-    xt::xtensor<double, 1> yieldDistanceRight() const;
+    xt::pytensor<double, 1> yieldDistanceRight() const;
 
     /**
     Distance to yield to the left (for each particle).
 
     \return [#N].
     */
-    xt::xtensor<double, 1> yieldDistanceLeft() const;
+    xt::pytensor<double, 1> yieldDistanceLeft() const;
 
     /**
     Set time.
@@ -353,56 +354,56 @@ public:
 
     \return [#N].
     */
-    xt::xtensor<double, 1> x() const;
+    xt::pytensor<double, 1> x() const;
 
     /**
     Velocity of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> v() const;
+    xt::pytensor<double, 1> v() const;
 
     /**
     Acceleration of each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> a() const;
+    xt::pytensor<double, 1> a() const;
 
     /**
     Resultant force acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f() const;
+    xt::pytensor<double, 1> f() const;
 
     /**
     Force associated to potentials acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_potential() const;
+    xt::pytensor<double, 1> f_potential() const;
 
     /**
     Force associated to the load frame acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_frame() const;
+    xt::pytensor<double, 1> f_frame() const;
 
     /**
     Force associated to neighbours acting on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_neighbours() const;
+    xt::pytensor<double, 1> f_neighbours() const;
 
     /**
     Force associated to damping on each particle.
 
     \return [#N].
     */
-    xt::xtensor<double, 1> f_damping() const;
+    xt::pytensor<double, 1> f_damping() const;
 
     /**
     The time, see set_t().
@@ -683,16 +684,16 @@ protected:
     double advanceUniformly(double dx, bool input_is_frame = true);
 
 protected:
-    xt::xtensor<double, 1> m_f; ///< See #f.
-    xt::xtensor<double, 1> m_f_potential; ///< See #f_potential.
-    xt::xtensor<double, 1> m_f_neighbours; ///< See #f_neighbours.
-    xt::xtensor<double, 1> m_f_frame; ///< See #f_frame.
-    xt::xtensor<double, 1> m_f_damping; ///< See #f_damping.
-    xt::xtensor<double, 1> m_x; ///< See #x.
-    xt::xtensor<double, 1> m_v; ///< See #v.
-    xt::xtensor<double, 1> m_a; ///< See #a.
-    xt::xtensor<double, 1> m_v_n; ///< #v at last time-step.
-    xt::xtensor<double, 1> m_a_n; ///< #a at last time-step.
+    xt::pytensor<double, 1> m_f; ///< See #f.
+    xt::pytensor<double, 1> m_f_potential; ///< See #f_potential.
+    xt::pytensor<double, 1> m_f_neighbours; ///< See #f_neighbours.
+    xt::pytensor<double, 1> m_f_frame; ///< See #f_frame.
+    xt::pytensor<double, 1> m_f_damping; ///< See #f_damping.
+    xt::pytensor<double, 1> m_x; ///< See #x.
+    xt::pytensor<double, 1> m_v; ///< See #v.
+    xt::pytensor<double, 1> m_a; ///< See #a.
+    xt::pytensor<double, 1> m_v_n; ///< #v at last time-step.
+    xt::pytensor<double, 1> m_a_n; ///< #a at last time-step.
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
@@ -788,10 +789,10 @@ protected:
     void computeForce() override;
 
     bool m_seq = false; ///< Use sequence to set random forces, set in setRandomForceSequence().
-    xt::xtensor<double, 2> m_seq_f; ///< Sequence of random forces.
-    xt::xtensor<size_t, 2> m_seq_s; ///< Start and end increment of each item in the sequence.
-    xt::xtensor<size_t, 1> m_seq_i; ///< Current column in #m_seq_f for each particle.
-    xt::xtensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
+    xt::pytensor<double, 2> m_seq_f; ///< Sequence of random forces.
+    xt::pytensor<size_t, 2> m_seq_s; ///< Start and end increment of each item in the sequence.
+    xt::pytensor<size_t, 1> m_seq_i; ///< Current column in #m_seq_f for each particle.
+    xt::pytensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
 };
 
 } // namespace Line1d
