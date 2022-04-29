@@ -19,7 +19,20 @@ Line in 1d.
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
-#include <xtensor-python/pytensor.hpp>
+
+/**
+\cond
+*/
+// Define an alias for "xtensor" if the module is not compiled with the Python API
+#ifndef PY_TENSOR_HPP
+namespace xt {
+template <class T, size_t N>
+using pytensor = xtensor<T, N>;
+} // namespace xt
+#endif
+/**
+\endcond
+*/
 
 namespace FrictionQPotSpringBlock {
 

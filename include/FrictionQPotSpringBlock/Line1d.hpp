@@ -39,7 +39,7 @@ inline std::vector<std::string> version_dependencies()
         detail::unquote(std::string(QUOTE(XTL_VERSION_PATCH))));
 #endif
 
-#ifdef XTENSOR_PYTHON_VERSION_MAJOR
+#if defined(XTENSOR_PYTHON_VERSION_MAJOR) || defined(PY_TENSOR_HPP)
     ret.push_back(
         "xtensor-python=" + detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_MAJOR))) +
         "." + detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_MINOR))) + "." +
