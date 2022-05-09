@@ -62,7 +62,7 @@ inline System::System(
     const T& x_y)
 {
     xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
-    this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
 template <class T, class I>
@@ -76,11 +76,11 @@ inline System::System(
     const T& x_y,
     const I& istart)
 {
-    this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
 template <class T, class I>
-inline void System::init(
+inline void System::initSystem(
     double m,
     double eta,
     double mu,
@@ -1028,10 +1028,8 @@ inline SystemThermalRandomForcing::SystemThermalRandomForcing(
     double dt,
     const T& x_y)
 {
-    m_seq = false;
-    m_f_thermal = xt::zeros<double>({x_y.shape(0)});
     xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
-    this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
 template <class T, class I>
@@ -1045,12 +1043,26 @@ inline SystemThermalRandomForcing::SystemThermalRandomForcing(
     const T& x_y,
     const I& istart)
 {
-    m_seq = false;
-    m_f_thermal = xt::zeros<double>({x_y.shape(0)});
-    this->init(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
-inline void SystemThermalRandomForcing::computeForce()
+template <class T, class I>
+inline void SystemThermalRandomForcing::initSystemThermalRandomForcing(
+    double m,
+    double eta,
+    double mu,
+    double k_neighbours,
+    double k_frame,
+    double dt,
+    const T& x_y,
+    const I& istart)
+{
+    m_seq = false;
+    m_f_thermal = xt::zeros<double>({x_y.shape(0)});
+    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+}
+
+inline void SystemThermalRandomForcing::updateThermalForce()
 {
     if (m_seq) {
         for (size_t p = 0; p < m_N; ++p) {
@@ -1064,7 +1076,11 @@ inline void SystemThermalRandomForcing::computeForce()
             }
         }
     }
+}
 
+inline void SystemThermalRandomForcing::computeForce()
+{
+    this->updateThermalForce();
     xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame + m_f_thermal;
 }
 
@@ -1104,6 +1120,45 @@ inline void SystemThermalRandomForcing::setRandomForceSequence(const T& f, const
             m_f_thermal(p) = m_seq_f(p, m_seq_i(p));
         }
     }
+}
+
+template <class T>
+inline ForceDrivenSystemThermalRandomForcing::ForceDrivenSystemThermalRandomForcing(
+    double m,
+    double eta,
+    double mu,
+    double k_neighbours,
+    double k_frame,
+    double dt,
+    const T& x_y)
+{
+    xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
+    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+}
+
+template <class T, class I>
+inline ForceDrivenSystemThermalRandomForcing::ForceDrivenSystemThermalRandomForcing(
+    double m,
+    double eta,
+    double mu,
+    double k_neighbours,
+    double k_frame,
+    double dt,
+    const T& x_y,
+    const I& istart)
+{
+    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+}
+
+inline void ForceDrivenSystemThermalRandomForcing::setRemoteForce(double f)
+{
+    m_f_remote = f;
+}
+
+inline void ForceDrivenSystemThermalRandomForcing::computeForce()
+{
+    this->updateThermalForce();
+    xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_remote + m_f_thermal;
 }
 
 } // namespace Line1d
