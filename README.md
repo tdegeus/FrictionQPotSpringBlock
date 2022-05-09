@@ -49,6 +49,11 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.11.0
+
+*   Adding `SystemThermalRandomForcing`: thermal system under external forcing
+    (i.e. constant force, without a 'driving frame').
+
 ## v0.10.1
 
 ### Internal changes
