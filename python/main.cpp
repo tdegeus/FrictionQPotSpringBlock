@@ -384,5 +384,58 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 return "<FrictionQPotSpringBlock.Line1d.SystemThermalRandomForcing>";
             });
         }
+
+        {
+            py::class_<SM::ForceDrivenSystemThermalRandomForcing, SM::SystemThermalRandomForcing>
+                cls(sm, "ForceDrivenSystemThermalRandomForcing");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const xt::pytensor<double, 2>&>(),
+                "ForceDrivenSystemThermalRandomForcing",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_neighbours"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("x_yield"));
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const xt::pytensor<double, 2>&,
+                    const xt::pytensor<long, 1>&>(),
+                "ForceDrivenSystemThermalRandomForcing",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_neighbours"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("x_yield"),
+                py::arg("istart"));
+
+            cls.def(
+                "setRemoteForce",
+                &SM::ForceDrivenSystemThermalRandomForcing::setRemoteForce,
+                "setRemoteForce",
+                py::arg("f"));
+
+            cls.def("__repr__", [](const SM::ForceDrivenSystemThermalRandomForcing&) {
+                return "<FrictionQPotSpringBlock.Line1d.ForceDrivenSystemThermalRandomForcing>";
+            });
+        }
     }
 }

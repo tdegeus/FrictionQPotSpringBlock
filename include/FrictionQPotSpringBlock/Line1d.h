@@ -623,7 +623,7 @@ protected:
     \copydoc System(double, double, double, double, double, double, const T&, const I&)
     */
     template <class T, class I>
-    void init(
+    void initSystem(
         double m,
         double eta,
         double mu,
@@ -799,6 +799,26 @@ public:
     void setRandomForceSequence(const T& f, const U& start_inc);
 
 protected:
+    /**
+    \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&,
+    const I&)
+    */
+    template <class T, class I>
+    void initSystemThermalRandomForcing(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield,
+        const I& istart);
+
+    /**
+    Update 'thermal' force for sequence (if needed).
+    */
+    void updateThermalForce();
+
     void computeForce() override;
 
     bool m_seq = false; ///< Use sequence to set random forces, set in setRandomForceSequence().
@@ -806,6 +826,77 @@ protected:
     xt::pytensor<size_t, 2> m_seq_s; ///< Start and end increment of each item in the sequence.
     xt::pytensor<size_t, 1> m_seq_i; ///< Current column in #m_seq_f for each particle.
     xt::pytensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
+};
+
+/**
+## Introduction
+
+Same as SystemThermalRandomForcing() but with a constant driving force.
+The system is completely decoupled from the frame (which thus looses all meaning).
+
+## Physics & API
+
+The physics and API are the same as in SystemThermalRandomForcing(),
+with the difference that the residual force now reads
+\f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
+f_\text{neighbours}^{(i)} + f_\text{remote} + f_\text{random}^{(i)} \f$.
+Thereby \f$ f_\text{remote} \f$ is specified instantaneously setRemoteForce().
+
+## Internal strategy
+
+To avoid code duplication this class derives from SystemThermalRandomForcing().
+To ensure the correct physics SystemThermalRandomForcing() is overridden to add
+\f$ f_\text{remote}} \f$ (and to remove \f$ f_\text{frame}^{(i)} \f$).
+
+\warning
+The functions x_frame(), set_x_frame(), f_frame(), flowSteps(), flowSteps_boundcheck(), and
+eventDrivenStep() have no meaning for this class. There is, however, no assertion on this.
+Accessibility could be changed to avoid any issues, however, the current 'lazy' choice is made
+to enhance maintainability.
+*/
+class ForceDrivenSystemThermalRandomForcing : public SystemThermalRandomForcing {
+public:
+    ForceDrivenSystemThermalRandomForcing() = default;
+
+    /**
+    \copydoc System(double, double, double, double, double, double, const T&)
+    */
+    template <class T>
+    ForceDrivenSystemThermalRandomForcing(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield);
+
+    /**
+    \copydoc System(double, double, double, double, double, double, const T&, const I&)
+    */
+    template <class T, class I>
+    ForceDrivenSystemThermalRandomForcing(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield,
+        const I& istart);
+
+    /**
+    Set remote force.
+    This force will be applied until it is overwritten.
+
+    \param f Force applied to all particles.
+    */
+    void setRemoteForce(double f);
+
+protected:
+    void computeForce() override;
+
+    double m_f_remote = 0.0; ///< Remote force
 };
 
 } // namespace Line1d

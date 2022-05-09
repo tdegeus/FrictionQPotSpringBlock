@@ -10,9 +10,9 @@ import QPot  # noqa:
 faulthandler.enable()
 
 
-class Test_main(unittest.TestCase):
+class Test_Line1d_System(unittest.TestCase):
     """
-    Test Line2d
+    Test Line1d.System
     """
 
     def test_forces(self):
