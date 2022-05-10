@@ -525,18 +525,33 @@ public:
     minimise(size_t nmargin = 0, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
 
     /**
-    Same as minimise() but with a slightly different output:
-    the duration of actual plastic activity.
+    Same as minimise() but with the difference that plastic activity is timed.
+    After this function you can find:
+
+    -   quasistaticActivityFirst() : Increment with the first plastic event.
+    -   quasistaticActivityLast() : Increment with the last plastic event.
 
     \warning
-        If a negative number is returned it is advised to re-roll the state to that before calling
-        this function, adapt the stored chunk of yield-positions, and restart.
+        The number of iterations.
+        **If a negative number if returned, equilibrium was not reached.**
     */
     long minimise_timeactivity(
         size_t nmargin = 0,
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9);
+
+    /**
+    Increment with the first plastic event.
+    This is the output of the last call of minimise_timeactivity().
+    */
+    size_t quasistaticActivityFirst() const;
+
+    /**
+    Increment with the last plastic event.
+    This is the output of the last call of minimise_timeactivity().
+    */
+    size_t quasistaticActivityLast() const;
 
     /**
     Same as minimise() but assuming  overdamped dynamics and using the no passing rule.
@@ -705,6 +720,8 @@ protected:
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
+    size_t m_qs_inc_first = 0; ///< First increment with plastic activity during minimisation.
+    size_t m_qs_inc_last = 0; ///< Last increment with plastic activity during minimisation.
     double m_dt; ///< Time step.
     double m_eta; ///< Damping constant (same for all particles).
     double m_m; ///< Mass (same for all particles).

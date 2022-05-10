@@ -731,8 +731,6 @@ inline long System::_minimise_timeactivity_nocheck(double tol, size_t niter_tol,
     auto i_n = this->i();
     long s = 0;
     long s_n = 0;
-    long first_iter = 0;
-    long last_iter = 0;
     bool init = true;
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
@@ -748,9 +746,9 @@ inline long System::_minimise_timeactivity_nocheck(double tol, size_t niter_tol,
         if (s != s_n) {
             if (init) {
                 init = false;
-                first_iter = iiter;
+                m_qs_inc_first = m_inc;
             }
-            last_iter = iiter;
+            m_qs_inc_last = m_inc;
         }
 
         s_n = s;
@@ -759,7 +757,7 @@ inline long System::_minimise_timeactivity_nocheck(double tol, size_t niter_tol,
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
             this->quench();
-            return last_iter - first_iter;
+            return iiter;
         }
     }
 
@@ -792,9 +790,9 @@ System::_minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_to
         if (s != s_n) {
             if (init) {
                 init = false;
-                first_iter = iiter;
+                m_qs_inc_first = m_inc;
             }
-            last_iter = iiter;
+            m_qs_inc_last = m_inc;
         }
 
         s_n = s;
@@ -802,16 +800,26 @@ System::_minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_to
         residuals.roll_insert(this->residual());
 
         if (!this->all_inbounds(nmargin)) {
-            return -(last_iter - first_iter);
+            return -iiter;
         }
 
         if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
             this->quench();
-            return last_iter - first_iter;
+            return iiter;
         }
     }
 
     throw std::runtime_error("No convergence found");
+}
+
+inline size_t System::quasistaticActivityFirst() const
+{
+    return m_qs_inc_first;
+}
+
+inline size_t System::quasistaticActivityLast() const
+{
+    return m_qs_inc_last;
 }
 
 inline long System::_minimise_nopassing_nocheck(double tol, size_t niter_tol, long max_iter)
