@@ -51,20 +51,6 @@ inline std::vector<std::string> version_dependencies()
     return ret;
 }
 
-template <class T>
-inline System::System(
-    double m,
-    double eta,
-    double mu,
-    double k_neighbours,
-    double k_frame,
-    double dt,
-    const T& x_y)
-{
-    xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
-    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
-}
-
 template <class T, class I>
 inline System::System(
     double m,
@@ -1018,20 +1004,6 @@ inline size_t System::triggerWeakest(double eps, int direction)
     return p;
 }
 
-template <class T>
-inline SystemThermalRandomForcing::SystemThermalRandomForcing(
-    double m,
-    double eta,
-    double mu,
-    double k_neighbours,
-    double k_frame,
-    double dt,
-    const T& x_y)
-{
-    xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
-    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
-}
-
 template <class T, class I>
 inline SystemThermalRandomForcing::SystemThermalRandomForcing(
     double m,
@@ -1120,20 +1092,6 @@ inline void SystemThermalRandomForcing::setRandomForceSequence(const T& f, const
             m_f_thermal(p) = m_seq_f(p, m_seq_i(p));
         }
     }
-}
-
-template <class T>
-inline ForceDrivenSystemThermalRandomForcing::ForceDrivenSystemThermalRandomForcing(
-    double m,
-    double eta,
-    double mu,
-    double k_neighbours,
-    double k_frame,
-    double dt,
-    const T& x_y)
-{
-    xt::pytensor<long, 1> istart = xt::zeros<long>({x_y.shape(0)});
-    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
 }
 
 template <class T, class I>
