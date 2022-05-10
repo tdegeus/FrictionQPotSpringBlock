@@ -597,6 +597,14 @@ public:
     */
     size_t triggerWeakest(double eps, int direction = 1);
 
+    /**
+    Change the position of the particles and of the loading frame such that
+    the mean of f_frame() is equal to a target value, and mechanical equilibrium is maintained.
+
+    \warning Call from a state of mechanical equilibrium. No assertions on this are made.
+    */
+    void advanceToFixedForce(double f_frame);
+
 private:
     long _minimise_nocheck(double tol, size_t niter_tol, long max_iter);
     long _minimise_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);

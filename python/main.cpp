@@ -302,6 +302,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("eps"),
                 py::arg("direction") = 1)
 
+            .def(
+                "advanceToFixedForce",
+                &SM::System::advanceToFixedForce,
+                "advanceToFixedForce",
+                py::arg("f_frame"))
+
             .def("__repr__", [](const SM::System&) {
                 return "<FrictionQPotSpringBlock.Line1d.System>";
             });
