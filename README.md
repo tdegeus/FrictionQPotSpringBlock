@@ -57,6 +57,9 @@ python -m pip install . -vv
     to enhance maintainability.
     See [#51](https://github.com/tdegeus/FrictionQPotSpringBlock/pull/51).
 
+*   [BREAKING CHANGE] Allowe the use of `minimise_timeactivity` with chunked storage.
+    See [#53](https://github.com/tdegeus/FrictionQPotSpringBlock/pull/53).
+
 *   Adding function to advance to a fixed force.
     See [#52](https://github.com/tdegeus/FrictionQPotSpringBlock/pull/52).
 
