@@ -119,19 +119,6 @@ public:
     \param k_frame Stiffness of springs between particles and load frame (same for all particles).
     \param dt Time step.
     \param x_yield Initial yield positions [#N, n_yield].
-    */
-    template <class T>
-    System(
-        double m,
-        double eta,
-        double mu,
-        double k_neighbours,
-        double k_frame,
-        double dt,
-        const T& x_yield);
-
-    /**
-    \copydoc System(double, double, double, double, double, double, const T&)
     \param istart Starting index corresponding to x_yield[:, 0], [#N].
     */
     template <class T, class I>
@@ -746,19 +733,6 @@ public:
     SystemThermalRandomForcing() = default;
 
     /**
-    \copydoc System(double, double, double, double, double, double, const T&)
-    */
-    template <class T>
-    SystemThermalRandomForcing(
-        double m,
-        double eta,
-        double mu,
-        double k_neighbours,
-        double k_frame,
-        double dt,
-        const T& x_yield);
-
-    /**
     \copydoc System(double, double, double, double, double, double, const T&, const I&)
     */
     template <class T, class I>
@@ -799,10 +773,11 @@ public:
     void setRandomForceSequence(const T& f, const U& start_inc);
 
 protected:
+    // clang-format off
     /**
-    \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&,
-    const I&)
+    \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&, const I&)
     */
+    // clang-format on
     template <class T, class I>
     void initSystemThermalRandomForcing(
         double m,
@@ -857,19 +832,6 @@ to enhance maintainability.
 class ForceDrivenSystemThermalRandomForcing : public SystemThermalRandomForcing {
 public:
     ForceDrivenSystemThermalRandomForcing() = default;
-
-    /**
-    \copydoc System(double, double, double, double, double, double, const T&)
-    */
-    template <class T>
-    ForceDrivenSystemThermalRandomForcing(
-        double m,
-        double eta,
-        double mu,
-        double k_neighbours,
-        double k_frame,
-        double dt,
-        const T& x_yield);
 
     /**
     \copydoc System(double, double, double, double, double, double, const T&, const I&)

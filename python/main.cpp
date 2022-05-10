@@ -80,24 +80,6 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                     double,
                     double,
                     double,
-                    const xt::pytensor<double, 2>&>(),
-                "System",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("x_yield"))
-
-            .def(
-                py::init<
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
                     const xt::pytensor<double, 2>&,
                     const xt::pytensor<long, 1>&>(),
                 "System",
@@ -336,24 +318,6 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                     double,
                     double,
                     double,
-                    const xt::pytensor<double, 2>&>(),
-                "SystemThermalRandomForcing",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("x_yield"));
-
-            cls.def(
-                py::init<
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
                     const xt::pytensor<double, 2>&,
                     const xt::pytensor<long, 1>&>(),
                 "SystemThermalRandomForcing",
@@ -388,24 +352,6 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         {
             py::class_<SM::ForceDrivenSystemThermalRandomForcing, SM::SystemThermalRandomForcing>
                 cls(sm, "ForceDrivenSystemThermalRandomForcing");
-
-            cls.def(
-                py::init<
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    const xt::pytensor<double, 2>&>(),
-                "ForceDrivenSystemThermalRandomForcing",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("x_yield"));
 
             cls.def(
                 py::init<
