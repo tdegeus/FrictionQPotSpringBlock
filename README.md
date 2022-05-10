@@ -49,6 +49,14 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.12.0
+
+### API changes
+
+*   [BREAKING CHANGE] The constructor overloads with default `istart = zeros` are removed
+    to enhance maintainability.
+    See [#51](https://github.com/tdegeus/FrictionQPotSpringBlock/pull/51).
+
 ## v0.11.0
 
 *   Adding `SystemThermalRandomForcing`: thermal system under external forcing
