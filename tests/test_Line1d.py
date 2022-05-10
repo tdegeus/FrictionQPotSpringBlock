@@ -196,6 +196,36 @@ class Test_Line1d_System(unittest.TestCase):
         x[0] = 0.5 + 0.1
         self.assertTrue(np.allclose(system.x(), x))
 
+    def test_advanceToFixedForce(self):
+
+        N = 3
+        istart = np.zeros([N], dtype=int)
+        y = np.ones((N, 100))
+        y[:, 0] = -48.5
+        y = np.cumsum(y, axis=1)
+
+        system = FrictionQPotSpringBlock.Line1d.System(
+            m=1.0,
+            eta=1.0,
+            mu=1.0,
+            k_neighbours=1.0,
+            k_frame=0.1,
+            dt=1.0,
+            x_yield=y,
+            istart=istart,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+        system.advanceToFixedForce(0.1)
+        self.assertTrue(np.isclose(np.mean(system.f_frame()), 0.1))
+        self.assertTrue(system.residual() < 1e-5)
+
+        self.assertTrue(system.residual() < 1e-5)
+        system.advanceToFixedForce(0.0)
+        self.assertTrue(np.isclose(np.mean(system.f_frame()), 0.0))
+        self.assertTrue(np.allclose(system.x(), 0.0))
+        self.assertTrue(np.allclose(system.x_frame(), 0.0))
+
     def test_chunkedSequenceGlobal(self):
         """
         Chunked sequence of random numbers that is used to reset the chunk of yield positions.

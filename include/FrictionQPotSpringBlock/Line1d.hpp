@@ -1004,6 +1004,13 @@ inline size_t System::triggerWeakest(double eps, int direction)
     return p;
 }
 
+inline void System::advanceToFixedForce(double f_frame)
+{
+    auto i_n = this->i();
+    this->advanceUniformly((f_frame - xt::mean(m_f_frame)()) / m_mu, false);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(this->i(), i_n)));
+}
+
 template <class T, class I>
 inline SystemThermalRandomForcing::SystemThermalRandomForcing(
     double m,
