@@ -22,6 +22,7 @@ int main()
     xt::xtensor<size_t, 1> initseq = xt::zeros<size_t>({N});
     auto generators = prrng::auto_pcg32(initstate, initseq);
 
+    xt::xtensor<long, 1> istart = xt::zeros<long>({N});
     xt::xtensor<double, 2> y = 2.0 * generators.random({20000});
     y = xt::cumsum(y, 1);
     y -= 50.0;
@@ -29,7 +30,7 @@ int main()
     double xdelta = 1e-3;
 
     FrictionQPotSpringBlock::Line1d::System sys(
-        1.0, 2.0 * std::sqrt(3.0) / 10.0, 1.0, 1.0, 1.0 / double(N), 0.1, y);
+        1.0, 2.0 * std::sqrt(3.0) / 10.0, 1.0, 1.0, 1.0 / double(N), 0.1, y, istart);
 
     size_t ninc = 1000;
     xt::xtensor<double, 1> ret_x_frame = xt::empty<double>({ninc});

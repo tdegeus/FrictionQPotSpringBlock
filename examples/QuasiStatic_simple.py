@@ -23,6 +23,8 @@ y = 2.0 * generators.random([20000])
 y = np.cumsum(y, 1)
 y -= 50.0
 
+istart = np.zeros([N], dtype=int)
+
 xdelta = 1e-3
 
 system = model.System(
@@ -33,6 +35,7 @@ system = model.System(
     k_frame=1.0 / N,
     dt=0.1,
     x_yield=y,
+    istart=istart,
 )
 
 ninc = 1000
