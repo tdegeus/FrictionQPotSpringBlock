@@ -18,6 +18,7 @@ class Test_Line1d_System(unittest.TestCase):
     def test_forces(self):
 
         N = 5
+        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -35,6 +36,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=k_frame,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -98,6 +100,7 @@ class Test_Line1d_System(unittest.TestCase):
     def test_eventDrivenStep(self):
 
         N = 3
+        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -110,6 +113,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -142,6 +146,7 @@ class Test_Line1d_System(unittest.TestCase):
     def test_trigger(self):
 
         N = 3
+        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -154,6 +159,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         system.trigger(0, 0.2)
@@ -165,6 +171,7 @@ class Test_Line1d_System(unittest.TestCase):
     def test_triggerWeakest(self):
 
         N = 3
+        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -177,6 +184,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         x = np.zeros(N)
@@ -224,6 +232,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         x = system.x()
@@ -309,6 +318,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         restore = FrictionQPotSpringBlock.Line1d.System(
@@ -319,6 +329,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         x = 10.0 * np.ones(N)
@@ -402,6 +413,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         restore = FrictionQPotSpringBlock.Line1d.System(
@@ -412,6 +424,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
+            istart=istart,
         )
 
         x = 10.0 * np.ones(N)

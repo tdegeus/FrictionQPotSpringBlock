@@ -26,6 +26,8 @@ y = 2.0 * generators.random([20000])
 y = np.cumsum(y, 1)
 y -= 50.0
 
+istart = np.zeros([N], dtype=int)
+
 # generate sequence of random forces and define start and end increment at which they are applied
 # (fixed internal "dinc" that is randomly shifted per particle by maximum "dinc")
 
@@ -48,6 +50,7 @@ system = model.SystemThermalRandomForcing(
     k_frame=1.0 / N,
     dt=0.1,
     x_yield=y,
+    istart=istart,
 )
 
 system.minimise()
