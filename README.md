@@ -57,6 +57,9 @@ python -m pip install . -vv
     to enhance maintainability.
     See [#51](https://github.com/tdegeus/FrictionQPotSpringBlock/pull/51).
 
+*   Adding function to advance to a fixed force.
+    See [#52](https://github.com/tdegeus/FrictionQPotSpringBlock/pull/52).
+
 ## v0.11.0
 
 *   Adding `SystemThermalRandomForcing`: thermal system under external forcing
