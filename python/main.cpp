@@ -271,6 +271,16 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("max_iter") = size_t(1e9))
 
             .def(
+                "quasistaticActivityFirst",
+                &SM::System::quasistaticActivityFirst,
+                "quasistaticActivityFirst")
+
+            .def(
+                "quasistaticActivityLast",
+                &SM::System::quasistaticActivityLast,
+                "quasistaticActivityLast")
+
+            .def(
                 "minimise_nopassing",
                 &SM::System::minimise_nopassing,
                 "minimise_nopassing",
