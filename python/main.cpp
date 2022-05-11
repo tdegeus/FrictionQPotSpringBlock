@@ -12,6 +12,7 @@ Python API
 
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
+#include <xtensor-python/xtensor_python_config.hpp>
 
 #define FRICTIONQPOTSPRINGBLOCK_NOALIAS
 #include <FrictionQPotSpringBlock/Line1d.h>
