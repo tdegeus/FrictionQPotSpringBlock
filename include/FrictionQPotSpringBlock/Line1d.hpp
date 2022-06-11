@@ -1109,31 +1109,6 @@ inline void SystemThermalRandomForcing::setRandomForceSequence(const T& f, const
     }
 }
 
-template <class T, class I>
-inline ForceDrivenSystemThermalRandomForcing::ForceDrivenSystemThermalRandomForcing(
-    double m,
-    double eta,
-    double mu,
-    double k_neighbours,
-    double k_frame,
-    double dt,
-    const T& x_y,
-    const I& istart)
-{
-    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
-}
-
-inline void ForceDrivenSystemThermalRandomForcing::setRemoteForce(double f)
-{
-    m_f_remote = f;
-}
-
-inline void ForceDrivenSystemThermalRandomForcing::computeForce()
-{
-    this->updateThermalForce();
-    xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_remote + m_f_thermal;
-}
-
 } // namespace Line1d
 } // namespace FrictionQPotSpringBlock
 
