@@ -116,10 +116,10 @@ inline size_t System::N() const
     return m_N;
 }
 
-inline xt::pytensor<double, 2> System::y()
+inline array_type::tensor<double, 2> System::y()
 {
     size_t n = static_cast<size_t>(m_y[0].cend() - m_y[0].cbegin());
-    xt::pytensor<double, 2> ret = xt::empty<double>({m_N, n});
+    array_type::tensor<double, 2> ret = xt::empty<double>({m_N, n});
 
     for (size_t p = 0; p < m_N; ++p) {
         size_t m = static_cast<size_t>(m_y[p].cend() - m_y[p].cbegin());
@@ -197,9 +197,9 @@ inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffe
     m_y[p].shift_dy(istart, dx_y, nbuffer);
 }
 
-inline xt::pytensor<double, 1> System::ymin() const
+inline array_type::tensor<double, 1> System::ymin() const
 {
-    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymin();
@@ -208,9 +208,9 @@ inline xt::pytensor<double, 1> System::ymin() const
     return ret;
 }
 
-inline xt::pytensor<double, 1> System::ymax() const
+inline array_type::tensor<double, 1> System::ymax() const
 {
-    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymax();
@@ -219,9 +219,9 @@ inline xt::pytensor<double, 1> System::ymax() const
     return ret;
 }
 
-inline xt::pytensor<double, 1> System::ymin_chunk() const
+inline array_type::tensor<double, 1> System::ymin_chunk() const
 {
-    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].ymin_chunk();
@@ -230,9 +230,9 @@ inline xt::pytensor<double, 1> System::ymin_chunk() const
     return ret;
 }
 
-inline xt::pytensor<double, 1> System::yleft() const
+inline array_type::tensor<double, 1> System::yleft() const
 {
-    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yleft();
@@ -241,9 +241,9 @@ inline xt::pytensor<double, 1> System::yleft() const
     return ret;
 }
 
-inline xt::pytensor<double, 1> System::yright() const
+inline array_type::tensor<double, 1> System::yright() const
 {
-    xt::pytensor<double, 1> ret = xt::empty<double>({m_N});
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].yright();
@@ -252,9 +252,9 @@ inline xt::pytensor<double, 1> System::yright() const
     return ret;
 }
 
-inline xt::pytensor<size_t, 1> System::i_chunk() const
+inline array_type::tensor<size_t, 1> System::i_chunk() const
 {
-    xt::pytensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+    array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].i_chunk();
@@ -263,9 +263,9 @@ inline xt::pytensor<size_t, 1> System::i_chunk() const
     return ret;
 }
 
-inline xt::pytensor<long, 1> System::istart() const
+inline array_type::tensor<long, 1> System::istart() const
 {
-    xt::pytensor<long, 1> ret = xt::empty<long>({m_N});
+    array_type::tensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].istart();
@@ -274,9 +274,9 @@ inline xt::pytensor<long, 1> System::istart() const
     return ret;
 }
 
-inline xt::pytensor<long, 1> System::istop() const
+inline array_type::tensor<long, 1> System::istop() const
 {
-    xt::pytensor<long, 1> ret = xt::empty<long>({m_N});
+    array_type::tensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].istop();
@@ -285,9 +285,9 @@ inline xt::pytensor<long, 1> System::istop() const
     return ret;
 }
 
-inline xt::pytensor<bool, 1> System::inbounds_left(size_t n) const
+inline array_type::tensor<bool, 1> System::inbounds_left(size_t n) const
 {
-    xt::pytensor<bool, 1> ret = xt::empty<bool>({m_N});
+    array_type::tensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].inbounds_left(n);
@@ -296,9 +296,9 @@ inline xt::pytensor<bool, 1> System::inbounds_left(size_t n) const
     return ret;
 }
 
-inline xt::pytensor<bool, 1> System::inbounds_right(size_t n) const
+inline array_type::tensor<bool, 1> System::inbounds_right(size_t n) const
 {
-    xt::pytensor<bool, 1> ret = xt::empty<bool>({m_N});
+    array_type::tensor<bool, 1> ret = xt::empty<bool>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].inbounds_right(n);
@@ -367,19 +367,19 @@ inline bool System::any_redraw(const T& xtrial) const
     return false;
 }
 
-inline xt::pytensor<double, 1> System::yieldDistanceRight() const
+inline array_type::tensor<double, 1> System::yieldDistanceRight() const
 {
     return this->yright() - m_x;
 }
 
-inline xt::pytensor<double, 1> System::yieldDistanceLeft() const
+inline array_type::tensor<double, 1> System::yieldDistanceLeft() const
 {
     return m_x - this->yleft();
 }
 
-inline xt::pytensor<long, 1> System::i() const
+inline array_type::tensor<long, 1> System::i() const
 {
-    xt::pytensor<long, 1> ret = xt::empty<long>({m_N});
+    array_type::tensor<long, 1> ret = xt::empty<long>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
         ret(p) = m_y[p].i();
@@ -449,42 +449,42 @@ inline double System::x_frame() const
     return m_x_frame;
 }
 
-inline xt::pytensor<double, 1> System::x() const
+inline array_type::tensor<double, 1> System::x() const
 {
     return m_x;
 }
 
-inline xt::pytensor<double, 1> System::v() const
+inline array_type::tensor<double, 1> System::v() const
 {
     return m_v;
 }
 
-inline xt::pytensor<double, 1> System::a() const
+inline array_type::tensor<double, 1> System::a() const
 {
     return m_a;
 }
 
-inline xt::pytensor<double, 1> System::f() const
+inline array_type::tensor<double, 1> System::f() const
 {
     return m_f;
 }
 
-inline xt::pytensor<double, 1> System::f_potential() const
+inline array_type::tensor<double, 1> System::f_potential() const
 {
     return m_f_potential;
 }
 
-inline xt::pytensor<double, 1> System::f_frame() const
+inline array_type::tensor<double, 1> System::f_frame() const
 {
     return m_f_frame;
 }
 
-inline xt::pytensor<double, 1> System::f_neighbours() const
+inline array_type::tensor<double, 1> System::f_neighbours() const
 {
     return m_f_neighbours;
 }
 
-inline xt::pytensor<double, 1> System::f_damping() const
+inline array_type::tensor<double, 1> System::f_damping() const
 {
     return m_f_damping;
 }

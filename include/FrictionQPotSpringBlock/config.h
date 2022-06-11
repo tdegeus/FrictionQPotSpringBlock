@@ -118,4 +118,35 @@ They can be enabled by:
 #define FRICTIONQPOTSPRINGBLOCK_WARNING_PYTHON(message)
 #endif
 
+/**
+Tensor products / operations.
+*/
+namespace FrictionQPotSpringBlock {
+
+/**
+Container type.
+*/
+namespace array_type {
+
+#ifdef FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
+
+/**
+Fixed (static) rank array.
+*/
+template <typename T, size_t N>
+using tensor = xt::pytensor<T, N>;
+
+#else
+
+/**
+Fixed (static) rank array.
+*/
+template <typename T, size_t N>
+using tensor = xt::xtensor<T, N>;
+
+#endif
+
+} // namespace array_type
+} // namespace FrictionQPotSpringBlock
+
 #endif
