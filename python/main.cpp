@@ -14,7 +14,7 @@ Python API
 #include <xtensor-python/pytensor.hpp>
 #include <xtensor-python/xtensor_python_config.hpp>
 
-#define FRICTIONQPOTSPRINGBLOCK_NOALIAS
+#define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
 #include <FrictionQPotSpringBlock/Line1d.h>
 #include <FrictionQPotSpringBlock/version.h>
 
