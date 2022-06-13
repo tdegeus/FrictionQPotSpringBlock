@@ -49,6 +49,20 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.13.0
+
+### API Changes
+
+*   Python API: converting many functions to properties
+*   Pre-processor switch FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON to using xtensor-python instead of xtensor
+*   Remove unused class for maintainability
+
+## Internal changes
+
+*   Fixing compiling warnings
+*   Upgrading to Catch2.v3
+*   Remove MSC work-around
+
 ## v0.12.0
 
 ### API changes
