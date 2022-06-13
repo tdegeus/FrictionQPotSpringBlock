@@ -1088,14 +1088,7 @@ inline void SystemThermalRandomForcing::setRandomForceSequence(const T& f, const
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(s, {m_N, f.shape(1) + 1}));
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::view(s, xt::all(), 0) <= m_inc));
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::view(s, xt::all(), s.shape(1) - 1) > m_inc));
-    // todo: remove after new release of xtensor with
-    // https://github.com/xtensor-stack/xtensor/pull/2510
-#ifdef _MSC_VER
-    xt::xtensor<double, 2> tmp = s;
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(s, xt::sort(tmp, 1))));
-#else
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(s, xt::sort(s, 1))));
-#endif
 
     m_seq = true;
     m_seq_f = f;
