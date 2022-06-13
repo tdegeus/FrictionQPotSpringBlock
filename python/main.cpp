@@ -93,14 +93,16 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("x_yield"),
                 py::arg("istart"))
 
-            .def("N", &SM::System::N, "N")
-            .def("y", &SM::System::y, "y")
+            .def_property_readonly("N", &SM::System::N, "Number of particles")
+            .def_property_readonly("y", &SM::System::y, "Matrix of yield positions (involves copy)")
 
             .def(
                 "refChunked",
                 &SM::System::refChunked,
                 "refChunked",
                 py::return_value_policy::reference_internal)
+
+            .def("updated_y", &SM::System::updated_y, "Update yield potential related variables")
 
             .def(
                 "set_y",
@@ -161,14 +163,19 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dy"),
                 py::arg("nbuffer") = 0)
 
-            .def("ymin", &SM::System::ymin, "ymin")
-            .def("ymax", &SM::System::ymax, "ymax")
-            .def("ymin_chunk", &SM::System::ymin_chunk, "ymin_chunk")
-            .def("yleft", &SM::System::yleft, "yleft")
-            .def("yright", &SM::System::yright, "yright")
-            .def("i_chunk", &SM::System::i_chunk, "i_chunk")
-            .def("istart", &SM::System::istart, "istart")
-            .def("istop", &SM::System::istop, "istop")
+            .def_property_readonly("ymin", &SM::System::ymin, "Equivalent of y[:, 0]")
+            .def_property_readonly("ymax", &SM::System::ymax, "Equivalent of y[:, -1]")
+            .def_property_readonly("ymin_chunk", &SM::System::ymin_chunk, "ymin_chunk (copy)")
+
+            .def_property_readonly(
+                "yleft", &SM::System::yleft, "Current yield position left (copy)")
+
+            .def_property_readonly(
+                "yright", &SM::System::yright, "Current yield position right (copy)")
+
+            .def_property_readonly("i_chunk", &SM::System::i_chunk, "i_chunk (copy)")
+            .def_property_readonly("istart", &SM::System::istart, "Index of ymin (copy)")
+            .def_property_readonly("istop", &SM::System::istop, "Index of ymax (copy)")
 
             .def(
                 "inbounds_left",
@@ -208,28 +215,56 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 static_cast<bool (SM::System::*)() const>(&SM::System::any_redraw),
                 "any_redraw")
 
-            .def("i", &SM::System::i, "i")
-            .def("yieldDistanceRight", &SM::System::yieldDistanceRight, "yieldDistanceRight")
-            .def("yieldDistanceLeft", &SM::System::yieldDistanceLeft, "yieldDistanceLeft")
-            .def("set_t", &SM::System::set_t, "set_t", py::arg("arg"))
-            .def("set_inc", &SM::System::set_inc, "set_inc", py::arg("arg"))
-            .def("set_x_frame", &SM::System::set_x_frame, "set_x_frame", py::arg("arg"))
-            .def("x_frame", &SM::System::x_frame, "x_frame")
-            .def("set_x", &SM::System::set_x<xt::pytensor<double, 1>>, "x")
-            .def("set_v", &SM::System::set_v<xt::pytensor<double, 1>>, "v")
-            .def("set_a", &SM::System::set_a<xt::pytensor<double, 1>>, "a")
-            .def("x", &SM::System::x, "x")
-            .def("v", &SM::System::v, "v")
-            .def("a", &SM::System::a, "a")
-            .def("f", &SM::System::f, "f")
-            .def("f_potential", &SM::System::f_potential, "f_potential")
-            .def("f_frame", &SM::System::f_frame, "f_frame")
-            .def("f_neighbours", &SM::System::f_neighbours, "f_neighbours")
-            .def("f_damping", &SM::System::f_damping, "f_damping")
-            .def("t", &SM::System::t, "t")
-            .def("inc", &SM::System::inc, "inc")
-            .def("temperature", &SM::System::temperature, "temperature")
-            .def("residual", &SM::System::residual, "residual")
+            .def_property_readonly("i", &SM::System::i, "Current index (copy)")
+
+            .def_property_readonly(
+                "yieldDistanceRight",
+                &SM::System::yieldDistanceRight,
+                "Distance to the next yield position right (copy)")
+
+            .def_property_readonly(
+                "yieldDistanceLeft",
+                &SM::System::yieldDistanceLeft,
+                "Distance to the next yield position left (copy)")
+
+            .def_property(
+                "x",
+                &SM::System::x,
+                &SM::System::template set_x<xt::pytensor<double, 1>>,
+                "Particle positions (updating updates all relevant variables)")
+
+            .def_property(
+                "v",
+                &SM::System::v,
+                &SM::System::template set_v<xt::pytensor<double, 1>>,
+                "Particle velocities (updating updates all relevant variables)")
+
+            .def_property(
+                "a",
+                &SM::System::a,
+                &SM::System::template set_a<xt::pytensor<double, 1>>,
+                "Particle accelerations (updating updates all relevant variables)")
+
+            .def_property("inc", &SM::System::inc, &SM::System::set_inc, "Current increment")
+
+            .def_property("t", &SM::System::t, &SM::System::set_t, "Current time")
+
+            .def_property(
+                "x_frame", &SM::System::x_frame, &SM::System::set_x_frame, "Current frame position")
+
+            .def_property_readonly("f", &SM::System::f, "Particle residual forces")
+
+            .def_property_readonly(
+                "f_potential", &SM::System::f_potential, "Particle elastic forces")
+
+            .def_property_readonly("f_frame", &SM::System::f_frame, "Particle frame forces")
+
+            .def_property_readonly(
+                "f_neighbours", &SM::System::f_neighbours, "Particle interaction forces")
+
+            .def_property_readonly("f_damping", &SM::System::f_damping, "Particle damping forces")
+            .def_property_readonly("temperature", &SM::System::temperature, "Current temperature")
+            .def_property_readonly("residual", &SM::System::residual, "Current residual")
             .def("quench", &SM::System::quench, "quench")
 
             .def("timeStep", &SM::System::timeStep, "timeStep")

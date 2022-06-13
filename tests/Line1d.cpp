@@ -222,6 +222,7 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
                     yp.shift_dy(
                         yp.istop(), xt::eval(2.0 * generators[p].random({nchunk - nb})), nb);
                 }
+                sys.updated_y();
             }
 
             REQUIRE(xt::all(xt::equal(sys.i(), i0)));

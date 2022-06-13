@@ -52,9 +52,9 @@ pbar = tqdm.tqdm(total=ninc)
 for inc in range(ninc):
 
     # Update chunk.
-    local_i = system.i() - system.istart()
+    local_i = system.i - system.istart
     if np.any(local_i > nchunk - nbuffer):
-        y = system.y()
+        y = system.y
         shift = local_i - nbuffer + 1
         generators.restore(state)
         generators.advance(shift)
@@ -64,11 +64,11 @@ for inc in range(ninc):
         system.shift_dy(istart=istart, dy=dy)
 
     # Extract output data.
-    i_n = system.i()
+    i_n = np.copy(system.i)
 
     # Apply event-driven protocol.
     if inc == 0:
-        system.set_x_frame(0.0)  # initial quench
+        system.x_frame = 0.0  # initial quench
     else:
         system.eventDrivenStep(xdelta, inc % 2 == 0)  # normal event driven step
 
@@ -81,9 +81,9 @@ for inc in range(ninc):
         pbar.refresh()
 
     # Extract output data.
-    ret_x_frame[inc] = system.x_frame()
-    ret_f_frame[inc] = np.mean(system.f_frame())
-    ret_S[inc] = np.sum(system.i() - i_n)
+    ret_x_frame[inc] = system.x_frame
+    ret_f_frame[inc] = np.mean(system.f_frame)
+    ret_S[inc] = np.sum(system.i - i_n)
 
 with h5py.File(os.path.join(os.path.dirname(__file__), "QuasiStatic.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])
