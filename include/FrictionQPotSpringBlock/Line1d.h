@@ -141,6 +141,12 @@ public:
     QPot::Chunked& refChunked(size_t p);
 
     /**
+    After modifying externally using refChunked(): update yield potential related variables.
+    Unless refChunked() is modified this function does not need to be called.
+    */
+    void updated_y();
+
+    /**
     \copydoc QPot::Chunked::set_y(long, const T&)
     */
     template <class I, class T>
@@ -182,12 +188,12 @@ public:
     /**
     \copydoc QPot::Chunked::ymin()
     */
-    array_type::tensor<double, 1> ymin() const;
+    const array_type::tensor<double, 1>& ymin() const;
 
     /**
     \copydoc QPot::Chunked::ymax()
     */
-    array_type::tensor<double, 1> ymax() const;
+    const array_type::tensor<double, 1>& ymax() const;
 
     /**
     \copydoc QPot::Chunked::ymin_chunk()
@@ -341,56 +347,56 @@ public:
 
     \return [#N].
     */
-    array_type::tensor<double, 1> x() const;
+    const array_type::tensor<double, 1>& x() const;
 
     /**
     Velocity of each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> v() const;
+    const array_type::tensor<double, 1>& v() const;
 
     /**
     Acceleration of each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> a() const;
+    const array_type::tensor<double, 1>& a() const;
 
     /**
     Resultant force acting on each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> f() const;
+    const array_type::tensor<double, 1>& f() const;
 
     /**
     Force associated to potentials acting on each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> f_potential() const;
+    const array_type::tensor<double, 1>& f_potential() const;
 
     /**
     Force associated to the load frame acting on each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> f_frame() const;
+    const array_type::tensor<double, 1>& f_frame() const;
 
     /**
     Force associated to neighbours acting on each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> f_neighbours() const;
+    const array_type::tensor<double, 1>& f_neighbours() const;
 
     /**
     Force associated to damping on each particle.
 
     \return [#N].
     */
-    array_type::tensor<double, 1> f_damping() const;
+    const array_type::tensor<double, 1>& f_damping() const;
 
     /**
     The time, see set_t().
@@ -705,6 +711,8 @@ protected:
     array_type::tensor<double, 1> m_v_n; ///< #v at last time-step.
     array_type::tensor<double, 1> m_a_n; ///< #a at last time-step.
     std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
+    array_type::tensor<double, 1> m_ymin; ///< Equivalent of #m_y[:, 0].
+    array_type::tensor<double, 1> m_ymax; ///< Equivalent of #m_y[:, -1].
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
     size_t m_qs_inc_first = 0; ///< First increment with plastic activity during minimisation.
@@ -815,7 +823,7 @@ protected:
 
     bool m_seq = false; ///< Use sequence to set random forces, set in setRandomForceSequence().
     array_type::tensor<double, 2> m_seq_f; ///< Sequence of random forces.
-    array_type::tensor<size_t, 2> m_seq_s; ///< Start and end increment of each item in the sequence.
+    array_type::tensor<size_t, 2> m_seq_s; ///< Start/end increment of each item in the sequence.
     array_type::tensor<size_t, 1> m_seq_i; ///< Current column in #m_seq_f for each particle.
     array_type::tensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
 };

@@ -54,7 +54,7 @@ system = model.SystemThermalRandomForcing(
 )
 
 system.minimise()
-system.set_inc(0)
+system.inc = 0
 system.setRandomForceSequence(f=f, start_inc=start_inc)
 
 # apply load at small finite rate "delta_gamma", write output every "dinc" increments
@@ -70,9 +70,9 @@ for iout in tqdm.tqdm(range(nout)):
 
     system.flowSteps(dinc, delta_gamma)
 
-    ret_x_frame[iout] = system.x_frame()
-    ret_f_frame[iout] = np.mean(system.f_frame())
-    ret_t_insta[iout] = system.temperature()
+    ret_x_frame[iout] = system.x_frame
+    ret_f_frame[iout] = np.mean(system.f_frame)
+    ret_t_insta[iout] = system.temperature
 
 with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])

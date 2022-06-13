@@ -39,42 +39,40 @@ class Test_Line1d_System(unittest.TestCase):
             istart=istart,
         )
 
-        self.assertTrue(system.residual() < 1e-5)
-        self.assertTrue(np.allclose(system.f(), 0.0))
-        self.assertTrue(np.allclose(system.f_potential(), 0.0))
-        self.assertTrue(np.allclose(system.f_frame(), 0.0))
-        self.assertTrue(np.allclose(system.f_neighbours(), 0.0))
-        self.assertTrue(np.allclose(system.f_damping(), 0.0))
+        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(np.allclose(system.f, 0.0))
+        self.assertTrue(np.allclose(system.f_potential, 0.0))
+        self.assertTrue(np.allclose(system.f_frame, 0.0))
+        self.assertTrue(np.allclose(system.f_neighbours, 0.0))
+        self.assertTrue(np.allclose(system.f_damping, 0.0))
 
-        x = system.x()
-        v = system.v()
-        dx = float(np.random.random(1))
-        dv = float(np.random.random(1))
-        x[0] = dx
-        v[2] = dv
-        system.set_x(x)
-        system.set_v(v)
-        xmin = np.floor(dx + 0.5)
+        dx = np.zeros(N)
+        dv = np.zeros(N)
+        dx[0] = float(np.random.random(1))
+        dv[2] = float(np.random.random(1))
+        system.x += dx
+        system.v += dv
+        xmin = np.floor(dx[0] + 0.5)
 
-        f_potential = mu * np.array([xmin - dx, 0, 0, 0, 0])
-        f_neighbours = k_neighbours * np.array([-2 * dx, dx, 0, 0, dx])
-        f_frame = k_frame * np.array([-dx, 0, 0, 0, 0])
-        f_damping = eta * np.array([0, 0, -dv, 0, 0])
+        f_potential = mu * np.array([xmin - dx[0], 0, 0, 0, 0])
+        f_neighbours = k_neighbours * np.array([-2 * dx[0], dx[0], 0, 0, dx[0]])
+        f_frame = k_frame * np.array([-dx[0], 0, 0, 0, 0])
+        f_damping = eta * np.array([0, 0, -dv[2], 0, 0])
 
-        self.assertTrue(np.allclose(system.f_potential(), f_potential))
-        self.assertTrue(np.allclose(system.f_frame(), f_frame))
-        self.assertTrue(np.allclose(system.f_neighbours(), f_neighbours))
-        self.assertTrue(np.allclose(system.f_damping(), f_damping))
-        self.assertTrue(np.allclose(system.f(), f_potential + f_frame + f_neighbours + f_damping))
+        self.assertTrue(np.allclose(system.f_potential, f_potential))
+        self.assertTrue(np.allclose(system.f_frame, f_frame))
+        self.assertTrue(np.allclose(system.f_neighbours, f_neighbours))
+        self.assertTrue(np.allclose(system.f_damping, f_damping))
+        self.assertTrue(np.allclose(system.f, f_potential + f_frame + f_neighbours + f_damping))
 
-        x = system.x()
-        v = system.v()
-        dx = 2.0 * float(np.random.random(1))
-        dv = 2.0 * float(np.random.random(1))
-        x[1] += dx
-        v[3] += dv
-        system.set_x(x)
-        system.set_v(v)
+        dx = np.zeros(N)
+        dv = np.zeros(N)
+        dx[1] = 2.0 * float(np.random.random(1))
+        dv[3] = 2.0 * float(np.random.random(1))
+        system.x += dx
+        system.v += dv
+        x = system.x
+        v = system.v
 
         f_potential = mu * np.array(
             [np.floor(x[0] + 0.5) - x[0], np.floor(x[1] + 0.5) - x[1], 0, 0, 0]
@@ -91,11 +89,11 @@ class Test_Line1d_System(unittest.TestCase):
         f_frame = k_frame * np.array([-x[0], -x[1], 0, 0, 0])
         f_damping = eta * np.array([0, 0, -v[2], -v[3], 0])
 
-        self.assertTrue(np.allclose(system.f_potential(), f_potential))
-        self.assertTrue(np.allclose(system.f_frame(), f_frame))
-        self.assertTrue(np.allclose(system.f_neighbours(), f_neighbours))
-        self.assertTrue(np.allclose(system.f_damping(), f_damping))
-        self.assertTrue(np.allclose(system.f(), f_potential + f_frame + f_neighbours + f_damping))
+        self.assertTrue(np.allclose(system.f_potential, f_potential))
+        self.assertTrue(np.allclose(system.f_frame, f_frame))
+        self.assertTrue(np.allclose(system.f_neighbours, f_neighbours))
+        self.assertTrue(np.allclose(system.f_damping, f_damping))
+        self.assertTrue(np.allclose(system.f, f_potential + f_frame + f_neighbours + f_damping))
 
     def test_eventDrivenStep(self):
 
@@ -116,32 +114,32 @@ class Test_Line1d_System(unittest.TestCase):
             istart=istart,
         )
 
-        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(system.residual < 1e-5)
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, False)
-        self.assertTrue(system.residual() < 1e-5)
-        self.assertTrue(np.allclose(system.x(), (0.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(system.i() == i_n))
-        self.assertTrue(np.isclose(system.x_frame(), (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
+        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(np.allclose(system.x, (0.5 - 0.1) * np.ones(N)))
+        self.assertTrue(np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, True)
-        self.assertTrue(np.allclose(system.x(), (0.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(system.i() == i_n))
-        self.assertTrue(np.isclose(system.x_frame(), (0.5 + 0.1) * (1.0 + 0.1) / 0.1))
+        self.assertTrue(np.allclose(system.x, (0.5 + 0.1) * np.ones(N)))
+        self.assertTrue(not np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, False)
-        self.assertTrue(np.allclose(system.x(), (1.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(system.i() == i_n))
-        self.assertTrue(np.isclose(system.x_frame(), (1.5 - 0.1) * (1.0 + 0.1) / 0.1))
+        self.assertTrue(np.allclose(system.x, (1.5 - 0.1) * np.ones(N)))
+        self.assertTrue(np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, True)
-        self.assertTrue(np.allclose(system.x(), (1.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(system.i() == i_n))
-        self.assertTrue(np.isclose(system.x_frame(), (1.5 + 0.1) * (1.0 + 0.1) / 0.1))
+        self.assertTrue(np.allclose(system.x, (1.5 + 0.1) * np.ones(N)))
+        self.assertTrue(not np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
     def test_trigger(self):
 
@@ -166,7 +164,7 @@ class Test_Line1d_System(unittest.TestCase):
 
         x = np.zeros(N)
         x[0] = 0.5 + 0.1
-        self.assertTrue(np.allclose(system.x(), x))
+        self.assertTrue(np.allclose(system.x, x))
 
     def test_triggerWeakest(self):
 
@@ -189,12 +187,12 @@ class Test_Line1d_System(unittest.TestCase):
 
         x = np.zeros(N)
         x[0] = 0.5 - 0.1
-        system.set_x(x)
+        system.x = x
 
         system.triggerWeakest(0.2)
 
         x[0] = 0.5 + 0.1
-        self.assertTrue(np.allclose(system.x(), x))
+        self.assertTrue(np.allclose(system.x, x))
 
     def test_advanceToFixedForce(self):
 
@@ -215,16 +213,16 @@ class Test_Line1d_System(unittest.TestCase):
             istart=istart,
         )
 
-        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(system.residual < 1e-5)
         system.advanceToFixedForce(0.1)
-        self.assertTrue(np.isclose(np.mean(system.f_frame()), 0.1))
-        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(np.isclose(np.mean(system.f_frame), 0.1))
+        self.assertTrue(system.residual < 1e-5)
 
-        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(system.residual < 1e-5)
         system.advanceToFixedForce(0.0)
-        self.assertTrue(np.isclose(np.mean(system.f_frame()), 0.0))
-        self.assertTrue(np.allclose(system.x(), 0.0))
-        self.assertTrue(np.allclose(system.x_frame(), 0.0))
+        self.assertTrue(np.isclose(np.mean(system.f_frame), 0.0))
+        self.assertTrue(np.allclose(system.x, 0.0))
+        self.assertTrue(np.allclose(system.x_frame, 0.0))
 
     def test_chunkedSequenceGlobal(self):
         """
@@ -265,11 +263,11 @@ class Test_Line1d_System(unittest.TestCase):
             istart=istart,
         )
 
-        x = system.x()
+        x = system.x
 
         for loop in range(100):
 
-            y = system.y()
+            y = system.y
 
             # check: last yield positions in chunk
             index = np.empty([2, N], dtype=int)
@@ -290,7 +288,7 @@ class Test_Line1d_System(unittest.TestCase):
             dy = 2.0 * generators.random([nchunk])
 
             system.shift_dy(istart, dy, 10)
-            system.set_x(x)
+            system.x = x
 
             # check: i, yleft, yright must be the same as global search
             i = np.argmax(yref >= x.reshape(-1, 1), axis=1)
@@ -302,9 +300,9 @@ class Test_Line1d_System(unittest.TestCase):
             index[1, :] = i - 1
             yleft = yref.flat[np.ravel_multi_index(index, yref.shape)]
 
-            self.assertTrue(np.allclose(system.i(), i - 1))
-            self.assertTrue(np.allclose(system.yleft(), yleft))
-            self.assertTrue(np.allclose(system.yright(), yright))
+            self.assertTrue(np.allclose(system.i, i - 1))
+            self.assertTrue(np.allclose(system.yleft, yleft))
+            self.assertTrue(np.allclose(system.yright, yright))
 
     def test_chunkedSequence(self):
         """
@@ -370,7 +368,7 @@ class Test_Line1d_System(unittest.TestCase):
 
             xi = i * x
             self.assertFalse(system.any_redraw(xi))
-            system.set_x(xi)
+            system.x = xi
 
             if not system.all_inbounds(nmargin):
 
@@ -402,13 +400,13 @@ class Test_Line1d_System(unittest.TestCase):
             ry[:, 0] = ymin_n
             ry = np.cumsum(ry, 1)
             restore.set_y(istart_n, ry)
-            restore.set_x(system.x())
+            restore.x = system.x
 
-            self.assertTrue(np.all(system.i() == restore.i()))
-            self.assertTrue(np.allclose(system.yieldDistanceLeft(), restore.yieldDistanceLeft()))
-            self.assertTrue(np.allclose(system.yieldDistanceRight(), restore.yieldDistanceRight()))
-            self.assertTrue(np.allclose(system.yleft(), restore.yleft()))
-            self.assertTrue(np.allclose(system.yright(), restore.yright()))
+            self.assertTrue(np.all(system.i == restore.i))
+            self.assertTrue(np.allclose(system.yieldDistanceLeft, restore.yieldDistanceLeft))
+            self.assertTrue(np.allclose(system.yieldDistanceRight, restore.yieldDistanceRight))
+            self.assertTrue(np.allclose(system.yleft, restore.yleft))
+            self.assertTrue(np.allclose(system.yright, restore.yright))
 
     def test_chunkedSequence2(self):
         """
@@ -463,11 +461,10 @@ class Test_Line1d_System(unittest.TestCase):
 
         for i in range(50):
 
-            xi = i * x
-            system.set_x(xi)
-            i0 = system.i()
+            system.x = i * x
+            i0 = np.copy(system.i)
 
-            if np.any(system.i_chunk() > nbuffer):
+            if np.any(system.i_chunk > nbuffer):
 
                 for p in range(N):
 
@@ -480,30 +477,32 @@ class Test_Line1d_System(unittest.TestCase):
                     istart[p] = yp.istop()
                     yp.shift_dy(yp.istop(), 2.0 * generators[p].random([nchunk - nb]), nb)
 
-            self.assertTrue(np.all(system.i() == i0))
-            self.assertTrue(np.all(system.i() - system.istart() <= nbuffer))
-            self.assertTrue(np.all(system.i_chunk() == system.i() - system.istart()))
+                system.updated_y()
+
+            self.assertTrue(np.all(system.i == i0))
+            self.assertTrue(np.all(system.i - system.istart <= nbuffer))
+            self.assertTrue(np.all(system.i_chunk == system.i - system.istart))
 
             # restore state: start with the latests draw that is quite close and reverse back
             # in the sequence until the start of the current chunk held in memory
             regenerators.restore(state)
-            regenerators.advance(system.istart() - istart)
+            regenerators.advance(system.istart - istart)
 
             # generate the yield distances, convert to yield positions using the first yield
             # position of the current chunk as memory (was also the state from which the random
             # numbers were generated)
             ry = 2.0 * regenerators.random([nchunk])
-            ry[:, 0] = system.ymin()
+            ry[:, 0] = system.ymin
             ry = np.cumsum(ry, 1)
 
-            restore.set_y(system.istart(), ry)
-            restore.set_x(system.x())
+            restore.set_y(system.istart, ry)
+            restore.x = system.x
 
-            self.assertTrue(np.all(system.i() == restore.i()))
-            self.assertTrue(np.allclose(system.yieldDistanceLeft(), restore.yieldDistanceLeft()))
-            self.assertTrue(np.allclose(system.yieldDistanceRight(), restore.yieldDistanceRight()))
-            self.assertTrue(np.allclose(system.yleft(), restore.yleft()))
-            self.assertTrue(np.allclose(system.yright(), restore.yright()))
+            self.assertTrue(np.all(system.i == restore.i))
+            self.assertTrue(np.allclose(system.yieldDistanceLeft, restore.yieldDistanceLeft))
+            self.assertTrue(np.allclose(system.yieldDistanceRight, restore.yieldDistanceRight))
+            self.assertTrue(np.allclose(system.yleft, restore.yleft))
+            self.assertTrue(np.allclose(system.yright, restore.yright))
 
 
 if __name__ == "__main__":

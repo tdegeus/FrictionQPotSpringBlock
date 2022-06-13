@@ -101,10 +101,14 @@ inline void System::initSystem(
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
+    m_ymin = xt::empty<double>({m_N});
+    m_ymax = xt::empty<double>({m_N});
     m_y.resize(m_N);
 
     for (size_t p = 0; p < m_N; ++p) {
         m_y[p] = QPot::Chunked(m_x(p), xt::eval(xt::view(x_y, p, xt::all())), istart(p));
+        m_ymin(p) = m_y[p].ymin();
+        m_ymax(p) = m_y[p].ymax();
     }
 
     this->updated_x();
@@ -136,6 +140,14 @@ inline QPot::Chunked& System::refChunked(size_t p)
     return m_y[p];
 }
 
+inline void System::updated_y()
+{
+    for (size_t p = 0; p < m_N; ++p) {
+        m_ymin(p) = m_y[p].ymin();
+        m_ymax(p) = m_y[p].ymax();
+    }
+}
+
 template <class I, class T>
 inline void System::set_y(const I& istart, const T& x_y)
 {
@@ -145,6 +157,8 @@ inline void System::set_y(const I& istart, const T& x_y)
 
     for (size_t p = 0; p < m_N; ++p) {
         m_y[p].set_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())));
+        m_ymin(p) = m_y[p].ymin();
+        m_ymax(p) = m_y[p].ymax();
     }
 }
 
@@ -157,6 +171,8 @@ inline void System::shift_y(const I& istart, const T& x_y, size_t nbuffer)
 
     for (size_t p = 0; p < m_N; ++p) {
         m_y[p].shift_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())), nbuffer);
+        m_ymin(p) = m_y[p].ymin();
+        m_ymax(p) = m_y[p].ymax();
     }
 }
 
@@ -170,6 +186,8 @@ inline void System::shift_dy(const I& istart, const T& dx_y, size_t nbuffer)
 
     for (size_t p = 0; p < m_N; ++p) {
         m_y[p].shift_dy(istart(p), &dx_y(p, xt::missing), &dx_y(p, xt::missing) + n, nbuffer);
+        m_ymin(p) = m_y[p].ymin();
+        m_ymax(p) = m_y[p].ymax();
     }
 }
 
@@ -179,6 +197,8 @@ inline void System::set_y(size_t p, long istart, const T& x_y)
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
     m_y[p].set_y(istart, x_y);
+    m_ymin(p) = m_y[p].ymin();
+    m_ymax(p) = m_y[p].ymax();
 }
 
 template <class T>
@@ -187,6 +207,8 @@ inline void System::shift_y(size_t p, long istart, const T& x_y, size_t nbuffer)
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
     m_y[p].shift_y(istart, x_y, nbuffer);
+    m_ymin(p) = m_y[p].ymin();
+    m_ymax(p) = m_y[p].ymax();
 }
 
 template <class T>
@@ -195,28 +217,18 @@ inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffe
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.dimension() == 1);
     m_y[p].shift_dy(istart, dx_y, nbuffer);
+    m_ymin(p) = m_y[p].ymin();
+    m_ymax(p) = m_y[p].ymax();
 }
 
-inline array_type::tensor<double, 1> System::ymin() const
+inline const array_type::tensor<double, 1>& System::ymin() const
 {
-    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].ymin();
-    }
-
-    return ret;
+    return m_ymin;
 }
 
-inline array_type::tensor<double, 1> System::ymax() const
+inline const array_type::tensor<double, 1>& System::ymax() const
 {
-    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].ymax();
-    }
-
-    return ret;
+    return m_ymax;
 }
 
 inline array_type::tensor<double, 1> System::ymin_chunk() const
@@ -449,42 +461,42 @@ inline double System::x_frame() const
     return m_x_frame;
 }
 
-inline array_type::tensor<double, 1> System::x() const
+inline const array_type::tensor<double, 1>& System::x() const
 {
     return m_x;
 }
 
-inline array_type::tensor<double, 1> System::v() const
+inline const array_type::tensor<double, 1>& System::v() const
 {
     return m_v;
 }
 
-inline array_type::tensor<double, 1> System::a() const
+inline const array_type::tensor<double, 1>& System::a() const
 {
     return m_a;
 }
 
-inline array_type::tensor<double, 1> System::f() const
+inline const array_type::tensor<double, 1>& System::f() const
 {
     return m_f;
 }
 
-inline array_type::tensor<double, 1> System::f_potential() const
+inline const array_type::tensor<double, 1>& System::f_potential() const
 {
     return m_f_potential;
 }
 
-inline array_type::tensor<double, 1> System::f_frame() const
+inline const array_type::tensor<double, 1>& System::f_frame() const
 {
     return m_f_frame;
 }
 
-inline array_type::tensor<double, 1> System::f_neighbours() const
+inline const array_type::tensor<double, 1>& System::f_neighbours() const
 {
     return m_f_neighbours;
 }
 
-inline array_type::tensor<double, 1> System::f_damping() const
+inline const array_type::tensor<double, 1>& System::f_damping() const
 {
     return m_f_damping;
 }
