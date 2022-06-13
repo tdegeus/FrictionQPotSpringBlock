@@ -1,6 +1,5 @@
-#define CATCH_CONFIG_MAIN // tells Catch to provide a main() - only do this in one cpp file
 #include <FrictionQPotSpringBlock/Line1d.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <prrng.h>
 #include <xtensor/xrandom.hpp>
 
@@ -23,25 +22,25 @@ TEST_CASE("FrictionQPotSpringBlock::Line1d", "Line1d.h")
         REQUIRE(sys.residual() < 1e-5);
         REQUIRE(xt::allclose(sys.x(), (0.5 - 0.1) * xt::ones<double>({N})));
         REQUIRE(xt::all(xt::equal(sys.i(), i_n)));
-        REQUIRE(sys.x_frame() == Approx((0.5 - 0.1) * (1.0 + 0.1) / 0.1));
+        REQUIRE(sys.x_frame() == Catch::Approx((0.5 - 0.1) * (1.0 + 0.1) / 0.1));
 
         i_n = sys.i();
         sys.eventDrivenStep(0.2, true);
         REQUIRE(xt::allclose(sys.x(), (0.5 + 0.1) * xt::ones<double>({N})));
         REQUIRE(!xt::all(xt::equal(sys.i(), i_n)));
-        REQUIRE(sys.x_frame() == Approx((0.5 + 0.1) * (1.0 + 0.1) / 0.1));
+        REQUIRE(sys.x_frame() == Catch::Approx((0.5 + 0.1) * (1.0 + 0.1) / 0.1));
 
         i_n = sys.i();
         sys.eventDrivenStep(0.2, false);
         REQUIRE(xt::allclose(sys.x(), (1.5 - 0.1) * xt::ones<double>({N})));
         REQUIRE(xt::all(xt::equal(sys.i(), i_n)));
-        REQUIRE(sys.x_frame() == Approx((1.5 - 0.1) * (1.0 + 0.1) / 0.1));
+        REQUIRE(sys.x_frame() == Catch::Approx((1.5 - 0.1) * (1.0 + 0.1) / 0.1));
 
         i_n = sys.i();
         sys.eventDrivenStep(0.2, true);
         REQUIRE(xt::allclose(sys.x(), (1.5 + 0.1) * xt::ones<double>({N})));
         REQUIRE(!xt::all(xt::equal(sys.i(), i_n)));
-        REQUIRE(sys.x_frame() == Approx((1.5 + 0.1) * (1.0 + 0.1) / 0.1));
+        REQUIRE(sys.x_frame() == Catch::Approx((1.5 + 0.1) * (1.0 + 0.1) / 0.1));
     }
 
     SECTION("System::trigger")
