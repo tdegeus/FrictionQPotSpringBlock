@@ -785,8 +785,6 @@ System::_minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_to
     auto i_n = this->i();
     long s = 0;
     long s_n = 0;
-    long first_iter = 0;
-    long last_iter = 0;
     bool init = true;
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
