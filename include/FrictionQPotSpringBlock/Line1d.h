@@ -495,7 +495,7 @@ private:
 
 protected:
     /**
-    \copydoc System(double, double, double, double, double, double, const T&, const I&)
+    \copydoc System(double, double, double, double, double, double, const T&)
     */
     template <class T>
     void initSystem(

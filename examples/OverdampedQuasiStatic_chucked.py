@@ -4,8 +4,8 @@ import FrictionQPotSpringBlock.Line1d as model
 import h5py
 import numpy as np
 import prrng
-import tqdm
 import QPot
+import tqdm
 
 try:
     import matplotlib.pyplot as plt

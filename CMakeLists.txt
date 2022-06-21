@@ -196,8 +196,6 @@ if(BUILD_DOCS OR BUILD_ALL)
 
     find_package(Doxygen REQUIRED)
 
-    get_target_property(QPot_INCLUDE QPot INTERFACE_INCLUDE_DIRECTORIES)
-
     set(DOXYGEN_EXCLUDE_SYMBOLS detail)
     set(DOXYGEN_CASE_SENSE_NAMES YES)
     set(DOXYGEN_USE_MATHJAX YES)
@@ -214,16 +212,9 @@ if(BUILD_DOCS OR BUILD_ALL)
         "${CMAKE_CURRENT_SOURCE_DIR}/docs/doxystyle/doxygen-awesome.css"
         "${CMAKE_CURRENT_SOURCE_DIR}/docs/doxystyle/custom.css")
 
-    set(DOXYGEN_STRIP_FROM_INC_PATH
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${QPot_INCLUDE}")
+    set(DOXYGEN_STRIP_FROM_INC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    set(DOXYGEN_STRIP_FROM_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-    set(DOXYGEN_STRIP_FROM_PATH
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${QPot_INCLUDE}")
-
-    doxygen_add_docs(html
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${QPot_INCLUDE}/QPot")
+    doxygen_add_docs(html "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 endif()
