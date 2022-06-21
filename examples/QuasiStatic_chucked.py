@@ -5,6 +5,7 @@ import h5py
 import numpy as np
 import prrng
 import tqdm
+import QPot
 
 try:
     import matplotlib.pyplot as plt
@@ -22,12 +23,15 @@ generators = prrng.pcg32_array(initstate, initseq)
 nchunk = 1500
 nbuffer = 200
 state = generators.state()
+istart = np.zeros(N, dtype=np.int64)
+istate = np.zeros(N, dtype=np.int64)
 
 y = 2.0 * generators.random([nchunk])
 y = np.cumsum(y, 1)
 y -= 50.0
 
-istart = np.zeros([N], dtype=int)
+istate += y.shape[1]
+state = generators.state()
 
 xdelta = 1e-3
 
@@ -39,7 +43,6 @@ system = model.System(
     k_frame=1.0 / N,
     dt=0.1,
     x_yield=y,
-    istart=istart,
 )
 
 ninc = 1000
@@ -52,16 +55,17 @@ pbar = tqdm.tqdm(total=ninc)
 for inc in range(ninc):
 
     # Update chunk.
-    local_i = system.i - system.istart
-    if np.any(local_i > nchunk - nbuffer):
-        y = system.y
-        shift = local_i - nbuffer + 1
-        generators.restore(state)
-        generators.advance(shift)
+    if np.any(system.i > nchunk - nbuffer):
+        shift = system.i - nbuffer + 1
+        advance = np.where(shift < 0, shift + istart - istate, nchunk + istart - istate)
+        generators.advance(advance)
+        istate += advance
+        n = np.max(np.abs(shift)) + 1
+        dy = 2.0 * generators.random([n])
         state = generators.state()
         istart += shift
-        dy = 2.0 * generators.random([nchunk])
-        system.shift_dy(istart=istart, dy=dy)
+        istate += n
+        system.y = QPot.cumsum_chunk(system.y, dy, shift)
 
     # Extract output data.
     i_n = np.copy(system.i)

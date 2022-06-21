@@ -16,7 +16,7 @@ Line in 1d.
 
 #include <GooseFEM/Iterate.h>
 #include <GooseFEM/version.h>
-#include <QPot/Chunked.hpp>
+#include <QPot.h>
 #include <string>
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
@@ -105,10 +105,9 @@ public:
     \param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all particles).
     \param k_frame Stiffness of springs between particles and load frame (same for all particles).
     \param dt Time step.
-    \param x_yield Initial yield positions [#N, n_yield].
-    \param istart Starting index corresponding to x_yield[:, 0], [#N].
+    \param x_yield Yield positions [#N, n_yield].
     */
-    template <class T, class I>
+    template <class T>
     System(
         double m,
         double eta,
@@ -116,8 +115,7 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield,
-        const I& istart);
+        const T& x_yield);
 
     /**
     Number of particles.
@@ -128,161 +126,27 @@ public:
 
     /**
     Return yield positions.
-    \return Array.
+    \return Array of shape [#N, n].
     */
-    array_type::tensor<double, 2> y();
+    const array_type::tensor<double, 2>& y();
 
     /**
-    Return reference to the underlying QPot::Chunked storage.
-
-    \param p Particle number.
-    \return Reference.
+    Current index in the current chunk of the potential energy landscape (for each particle).
+    \return Array of shape [#N].
     */
-    QPot::Chunked& refChunked(size_t p);
-
-    /**
-    After modifying externally using refChunked(): update yield potential related variables.
-    Unless refChunked() is modified this function does not need to be called.
-    */
-    void updated_y();
-
-    /**
-    \copydoc QPot::Chunked::set_y(long, const T&)
-    */
-    template <class I, class T>
-    void set_y(const I& istart, const T& y);
-
-    /**
-    \copydoc QPot::Chunked::shift_y(long, const T&, size_t)
-    */
-    template <class I, class T>
-    void shift_y(const I& istart, const T& y, size_t nbuffer = 0);
-
-    /**
-    \copydoc QPot::Chunked::shift_dy(long, const T&, size_t)
-    */
-    template <class I, class T>
-    void shift_dy(const I& istart, const T& dy, size_t nbuffer = 0);
-
-    /**
-    \copydoc QPot::Chunked::set_y(long, const T&)
-    \param p Particle number.
-    */
-    template <class T>
-    void set_y(size_t p, long istart, const T& y);
-
-    /**
-    \copydoc QPot::Chunked::shift_y(long, const T&, size_t)
-    \param p Particle number.
-    */
-    template <class T>
-    void shift_y(size_t p, long istart, const T& y, size_t nbuffer = 0);
-
-    /**
-    \copydoc QPot::Chunked::shift_dy(long, const T&, size_t)
-    \param p Particle number.
-    */
-    template <class T>
-    void shift_dy(size_t p, long istart, const T& dy, size_t nbuffer = 0);
-
-    /**
-    \copydoc QPot::Chunked::ymin()
-    */
-    const array_type::tensor<double, 1>& ymin() const;
-
-    /**
-    \copydoc QPot::Chunked::ymax()
-    */
-    const array_type::tensor<double, 1>& ymax() const;
-
-    /**
-    \copydoc QPot::Chunked::ymin_chunk()
-    */
-    array_type::tensor<double, 1> ymin_chunk() const;
-
-    /**
-    \copydoc QPot::Chunked::yleft()
-    */
-    array_type::tensor<double, 1> yleft() const;
-
-    /**
-    \copydoc QPot::Chunked::yright()
-    */
-    array_type::tensor<double, 1> yright() const;
-
-    /**
-    \copydoc QPot::Chunked::i_chunk()
-    */
-    array_type::tensor<size_t, 1> i_chunk() const;
-
-    /**
-    \copydoc QPot::Chunked::istart()
-    */
-    array_type::tensor<long, 1> istart() const;
-
-    /**
-    \copydoc QPot::Chunked::istop()
-    */
-    array_type::tensor<long, 1> istop() const;
-
-    /**
-    \copydoc QPot::Chunked::inbounds_left()
-    */
-    array_type::tensor<bool, 1> inbounds_left(size_t n = 0) const;
-
-    /**
-    \copydoc QPot::Chunked::inbounds_right()
-    */
-    array_type::tensor<bool, 1> inbounds_right(size_t n = 0) const;
-
-    /**
-    \copydoc QPot::Chunked::inbounds_left()
-    */
-    bool all_inbounds_left(size_t n = 0) const;
-
-    /**
-    \copydoc QPot::Chunked::inbounds_right()
-    */
-    bool all_inbounds_right(size_t n = 0) const;
-
-    /**
-    \copydoc QPot::Chunked::inbounds()
-    */
-    bool all_inbounds(size_t n = 0) const;
-
-    /**
-    Check if any yield position chunk needs to be updated based on the current x().
-
-    \return true if redraw is needed for one of more particle.
-    */
-    bool any_redraw() const;
-
-    /**
-    Check if any yield position chunk needs to be updated if the position would be updated
-    to a given value.
-
-    \param x Trial particle positions (internally the position is not updated).
-    \return true if redraw is needed for one of more particle.
-    */
-    template <class T>
-    bool any_redraw(const T& x) const;
-
-    /**
-    Current index in the global potential energy landscape (for each particle).
-
-    \return [#N].
-    */
-    array_type::tensor<long, 1> i() const;
+    const array_type::tensor<long, 1>& i() const;
 
     /**
     Distance to yield to the right (for each particle).
+    Convenience function: same as `y[arange(N), i + 1] - x`.
 
     \return [#N].
     */
     array_type::tensor<double, 1> yieldDistanceRight() const;
 
     /**
-    Distance to yield to the left (for each particle).
+    Distance to yield to the left for each particle.
+    Convenience function: same as `x - y[arange(N), i + 1]`.
 
     \return [#N].
     */
@@ -313,6 +177,14 @@ public:
     \return double
     */
     double x_frame() const;
+
+    /**
+    Overwrite the yield positions.
+
+    \param arg Array [#N, n].
+    */
+    template <class T>
+    void set_y(const T& arg);
 
     /**
     Set the position of each particle.
@@ -625,7 +497,7 @@ protected:
     /**
     \copydoc System(double, double, double, double, double, double, const T&, const I&)
     */
-    template <class T, class I>
+    template <class T>
     void initSystem(
         double m,
         double eta,
@@ -633,8 +505,7 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield,
-        const I& istart);
+        const T& x_yield);
 
     /**
     Compute #f based on the current #x and #v.
@@ -710,9 +581,8 @@ protected:
     array_type::tensor<double, 1> m_a; ///< See #a.
     array_type::tensor<double, 1> m_v_n; ///< #v at last time-step.
     array_type::tensor<double, 1> m_a_n; ///< #a at last time-step.
-    std::vector<QPot::Chunked> m_y; ///< Potential energy landscape.
-    array_type::tensor<double, 1> m_ymin; ///< Equivalent of #m_y[:, 0].
-    array_type::tensor<double, 1> m_ymax; ///< Equivalent of #m_y[:, -1].
+    array_type::tensor<double, 2> m_y; ///< Potential energy landscape.
+    array_type::tensor<long, 1> m_i; ///< Current index in the potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
     size_t m_qs_inc_first = 0; ///< First increment with plastic activity during minimisation.
@@ -758,9 +628,9 @@ public:
     SystemThermalRandomForcing() = default;
 
     /**
-    \copydoc System(double, double, double, double, double, double, const T&, const I&)
+    \copydoc System(double, double, double, double, double, double, const T&)
     */
-    template <class T, class I>
+    template <class T>
     SystemThermalRandomForcing(
         double m,
         double eta,
@@ -768,8 +638,7 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield,
-        const I& istart);
+        const T& x_yield);
 
     /**
     Set random force.
@@ -800,10 +669,10 @@ public:
 protected:
     // clang-format off
     /**
-    \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&, const I&)
+    \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&)
     */
     // clang-format on
-    template <class T, class I>
+    template <class T>
     void initSystemThermalRandomForcing(
         double m,
         double eta,
@@ -811,8 +680,7 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield,
-        const I& istart);
+        const T& x_yield);
 
     /**
     Update 'thermal' force for sequence (if needed).
