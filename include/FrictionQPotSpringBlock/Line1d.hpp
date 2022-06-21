@@ -51,7 +51,7 @@ inline std::vector<std::string> version_dependencies()
     return ret;
 }
 
-template <class T, class I>
+template <class T>
 inline System::System(
     double m,
     double eta,
@@ -59,13 +59,12 @@ inline System::System(
     double k_neighbours,
     double k_frame,
     double dt,
-    const T& x_y,
-    const I& istart)
+    const T& x_y)
 {
-    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y);
 }
 
-template <class T, class I>
+template <class T>
 inline void System::initSystem(
     double m,
     double eta,
@@ -73,12 +72,10 @@ inline void System::initSystem(
     double k_neighbours,
     double k_frame,
     double dt,
-    const T& x_y,
-    const I& istart)
+    const T& x_y)
 {
 #ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(istart.dimension() == 1);
     auto y0 = xt::view(x_y, xt::all(), 0);
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(y0 < 0.0));
 #endif
@@ -101,15 +98,8 @@ inline void System::initSystem(
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
-    m_ymin = xt::empty<double>({m_N});
-    m_ymax = xt::empty<double>({m_N});
-    m_y.resize(m_N);
-
-    for (size_t p = 0; p < m_N; ++p) {
-        m_y[p] = QPot::Chunked(m_x(p), xt::eval(xt::view(x_y, p, xt::all())), istart(p));
-        m_ymin(p) = m_y[p].ymin();
-        m_ymax(p) = m_y[p].ymax();
-    }
+    m_i = (m_N - 1) * xt::ones<long>({m_N}); // consistent with `lower_bound`
+    m_y = x_y;
 
     this->updated_x();
     this->updated_v();
@@ -120,281 +110,33 @@ inline size_t System::N() const
     return m_N;
 }
 
-inline array_type::tensor<double, 2> System::y()
+inline const array_type::tensor<double, 2>& System::y()
 {
-    size_t n = static_cast<size_t>(m_y[0].cend() - m_y[0].cbegin());
-    array_type::tensor<double, 2> ret = xt::empty<double>({m_N, n});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        size_t m = static_cast<size_t>(m_y[p].cend() - m_y[p].cbegin());
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m == n);
-        std::copy(m_y[p].cbegin(), m_y[p].cend(), &ret(p, xt::missing));
-    }
-
-    return ret;
+    return m_y;
 }
 
-inline QPot::Chunked& System::refChunked(size_t p)
+inline const array_type::tensor<long, 1>& System::i() const
 {
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    return m_y[p];
-}
-
-inline void System::updated_y()
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        m_ymin(p) = m_y[p].ymin();
-        m_ymax(p) = m_y[p].ymax();
-    }
-}
-
-template <class I, class T>
-inline void System::set_y(const I& istart, const T& x_y)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(istart, {m_N}));
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.shape(0) == m_N);
-
-    for (size_t p = 0; p < m_N; ++p) {
-        m_y[p].set_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())));
-        m_ymin(p) = m_y[p].ymin();
-        m_ymax(p) = m_y[p].ymax();
-    }
-}
-
-template <class I, class T>
-inline void System::shift_y(const I& istart, const T& x_y, size_t nbuffer)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(istart, {m_N}));
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.shape(0) == m_N);
-
-    for (size_t p = 0; p < m_N; ++p) {
-        m_y[p].shift_y(istart(p), xt::eval(xt::view(x_y, p, xt::all())), nbuffer);
-        m_ymin(p) = m_y[p].ymin();
-        m_ymax(p) = m_y[p].ymax();
-    }
-}
-
-template <class I, class T>
-inline void System::shift_dy(const I& istart, const T& dx_y, size_t nbuffer)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(istart, {m_N}));
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.dimension() == 2);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.shape(0) == m_N);
-    size_t n = xt::strides(dx_y, 0);
-
-    for (size_t p = 0; p < m_N; ++p) {
-        m_y[p].shift_dy(istart(p), &dx_y(p, xt::missing), &dx_y(p, xt::missing) + n, nbuffer);
-        m_ymin(p) = m_y[p].ymin();
-        m_ymax(p) = m_y[p].ymax();
-    }
-}
-
-template <class T>
-inline void System::set_y(size_t p, long istart, const T& x_y)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
-    m_y[p].set_y(istart, x_y);
-    m_ymin(p) = m_y[p].ymin();
-    m_ymax(p) = m_y[p].ymax();
-}
-
-template <class T>
-inline void System::shift_y(size_t p, long istart, const T& x_y, size_t nbuffer)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 1);
-    m_y[p].shift_y(istart, x_y, nbuffer);
-    m_ymin(p) = m_y[p].ymin();
-    m_ymax(p) = m_y[p].ymax();
-}
-
-template <class T>
-inline void System::shift_dy(size_t p, long istart, const T& dx_y, size_t nbuffer)
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(dx_y.dimension() == 1);
-    m_y[p].shift_dy(istart, dx_y, nbuffer);
-    m_ymin(p) = m_y[p].ymin();
-    m_ymax(p) = m_y[p].ymax();
-}
-
-inline const array_type::tensor<double, 1>& System::ymin() const
-{
-    return m_ymin;
-}
-
-inline const array_type::tensor<double, 1>& System::ymax() const
-{
-    return m_ymax;
-}
-
-inline array_type::tensor<double, 1> System::ymin_chunk() const
-{
-    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].ymin_chunk();
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<double, 1> System::yleft() const
-{
-    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].yleft();
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<double, 1> System::yright() const
-{
-    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].yright();
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<size_t, 1> System::i_chunk() const
-{
-    array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].i_chunk();
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<long, 1> System::istart() const
-{
-    array_type::tensor<long, 1> ret = xt::empty<long>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].istart();
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<long, 1> System::istop() const
-{
-    array_type::tensor<long, 1> ret = xt::empty<long>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].istop();
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<bool, 1> System::inbounds_left(size_t n) const
-{
-    array_type::tensor<bool, 1> ret = xt::empty<bool>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].inbounds_left(n);
-    }
-
-    return ret;
-}
-
-inline array_type::tensor<bool, 1> System::inbounds_right(size_t n) const
-{
-    array_type::tensor<bool, 1> ret = xt::empty<bool>({m_N});
-
-    for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].inbounds_right(n);
-    }
-
-    return ret;
-}
-
-inline bool System::all_inbounds_left(size_t n) const
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        if (!m_y[p].inbounds_left(n)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-inline bool System::all_inbounds_right(size_t n) const
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        if (!m_y[p].inbounds_right(n)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-inline bool System::all_inbounds(size_t n) const
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        if (!m_y[p].inbounds(n)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-inline bool System::any_redraw() const
-{
-    for (size_t p = 0; p < m_N; ++p) {
-        auto r = m_y[p].redraw(m_x(p));
-        if (r != 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-template <class T>
-inline bool System::any_redraw(const T& xtrial) const
-{
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(xtrial, {m_N}));
-
-    for (size_t p = 0; p < m_N; ++p) {
-        auto r = m_y[p].redraw(xtrial(p));
-        if (r != 0) {
-            return true;
-        }
-    }
-
-    return false;
+    return m_i;
 }
 
 inline array_type::tensor<double, 1> System::yieldDistanceRight() const
 {
-    return this->yright() - m_x;
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
+
+    for (size_t p = 0; p < m_N; ++p) {
+        ret(p) = m_y(p, m_i(p) + 1) - m_x(p);
+    }
+
+    return ret;
 }
 
 inline array_type::tensor<double, 1> System::yieldDistanceLeft() const
 {
-    return m_x - this->yleft();
-}
-
-inline array_type::tensor<long, 1> System::i() const
-{
-    array_type::tensor<long, 1> ret = xt::empty<long>({m_N});
+    array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
     for (size_t p = 0; p < m_N; ++p) {
-        ret(p) = m_y[p].i();
+        ret(p) = m_x(p) - m_y(p, m_i(p));
     }
 
     return ret;
@@ -416,6 +158,15 @@ inline void System::set_x_frame(double arg)
     m_x_frame = arg;
     this->computeForceFrame();
     this->computeForce();
+}
+
+template <class T>
+inline void System::set_y(const T& arg)
+{
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.dimension() == 2);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.shape(0) == m_N);
+    xt::noalias(m_y) = arg;
+    this->updated_x();
 }
 
 template <class T>
@@ -517,10 +268,11 @@ inline void System::updated_v()
 
 inline void System::computeForcePotential()
 {
+    QPot::inplace::lower_bound(m_y, m_x, m_i);
+
     for (size_t p = 0; p < m_N; ++p) {
-        double x = m_x(p);
-        m_y[p].set_x(x);
-        m_f_potential(p) = m_mu * (0.5 * (m_y[p].yright() + m_y[p].yleft()) - x);
+        auto* l = &m_y(p, m_i(p));
+        m_f_potential(p) = m_mu * (0.5 * (*(l) + *(l + 1)) - m_x(p));
     }
 }
 
@@ -606,16 +358,14 @@ inline size_t System::timeStepsUntilEvent(double tol, size_t niter_tol, size_t m
     GooseFEM::Iterate::StopList residuals(niter_tol);
     double tol2 = tol * tol;
 
-    auto i_n = this->i();
+    auto i_n = m_i;
 
     for (size_t iiter = 1; iiter < max_iter; ++iiter) {
 
         this->timeStep();
 
-        for (size_t p = 0; p < m_N; ++p) {
-            if (m_y[p].i() != i_n(p)) {
-                return iiter;
-            }
+        if (xt::any(xt::not_equal(m_i, i_n))) {
+            return iiter;
         }
 
         residuals.roll_insert(this->residual());
@@ -639,7 +389,10 @@ inline void System::flowSteps(size_t n, double v_frame)
 
 inline size_t System::flowSteps_boundcheck(size_t n, double v_frame, size_t nmargin)
 {
-    if (!this->all_inbounds_right(nmargin)) {
+    auto nyield = m_y.shape(1);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+
+    if (xt::any(m_i > nyield - nmargin)) {
         return 0;
     }
 
@@ -647,7 +400,7 @@ inline size_t System::flowSteps_boundcheck(size_t n, double v_frame, size_t nmar
         m_x_frame += v_frame * m_dt;
         this->timeStep();
 
-        if (!this->all_inbounds_right(nmargin)) {
+        if (xt::any(m_i > nyield - nmargin)) {
             return 0;
         }
     }
@@ -716,13 +469,15 @@ inline long System::_minimise_check(size_t nmargin, double tol, size_t niter_tol
 {
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
+    auto nyield = m_y.shape(1);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
         this->timeStep();
         residuals.roll_insert(this->residual());
 
-        if (!this->all_inbounds(nmargin)) {
+        if (xt::any(m_i < nmargin) || xt::any(m_i > nyield - nmargin)) {
             return -iiter;
         }
 
@@ -740,7 +495,7 @@ inline long System::_minimise_timeactivity_nocheck(double tol, size_t niter_tol,
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
 
-    auto i_n = this->i();
+    auto i_n = m_i;
     long s = 0;
     long s_n = 0;
     bool init = true;
@@ -749,11 +504,7 @@ inline long System::_minimise_timeactivity_nocheck(double tol, size_t niter_tol,
 
         this->timeStep();
 
-        s = 0;
-
-        for (size_t p = 0; p < m_N; ++p) {
-            s += std::abs(m_y[p].i() - i_n(p));
-        }
+        s = xt::sum(xt::abs(m_i - i_n))();
 
         if (s != s_n) {
             if (init) {
@@ -782,20 +533,18 @@ System::_minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_to
     double tol2 = tol * tol;
     GooseFEM::Iterate::StopList residuals(niter_tol);
 
-    auto i_n = this->i();
+    auto i_n = m_i;
     long s = 0;
     long s_n = 0;
     bool init = true;
+    auto nyield = m_y.shape(1);
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
         this->timeStep();
 
-        s = 0;
-
-        for (size_t p = 0; p < m_N; ++p) {
-            s += std::abs(m_y[p].i() - i_n(p));
-        }
+        s = xt::sum(xt::abs(m_i - i_n))();
 
         if (s != s_n) {
             if (init) {
@@ -809,7 +558,7 @@ System::_minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_to
 
         residuals.roll_insert(this->residual());
 
-        if (!this->all_inbounds(nmargin)) {
+        if (xt::any(m_i < nmargin) || xt::any(m_i > nyield - nmargin)) {
             return -iiter;
         }
 
@@ -841,6 +590,7 @@ inline long System::_minimise_nopassing_nocheck(double tol, size_t niter_tol, lo
     double x;
     double xmin;
     long i;
+    auto nyield = m_y.shape(1);
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
@@ -858,16 +608,18 @@ inline long System::_minimise_nopassing_nocheck(double tol, size_t niter_tol, lo
             else {
                 xneigh = m_v_n(p - 1) + m_v_n(p + 1);
             }
-            i = m_y[p].i();
+            auto i = m_i(p);
+            auto* l = &m_y(p, i);
+            auto* y = &m_y(p, 0);
             while (true) {
-                xmin = 0.5 * (m_y[p].yright() + m_y[p].yleft());
+                xmin = 0.5 * (*(l) + *(l + 1));
                 x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
                     (2 * m_k_neighbours + m_k_frame + m_mu);
-                m_y[p].set_x(x);
-                if (m_y[p].i() == i) {
+                m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
+                if (m_i(p) == i) {
                     break;
                 }
-                i = m_y[p].i();
+                i = m_i(p);
             }
             m_x(p) = x;
         }
@@ -894,6 +646,9 @@ System::_minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, 
     double x;
     double xmin;
     long i;
+    auto nyield = m_y.shape(1);
+
+    FRICTIONQPOTSPRINGBLOCK_ASSERT(nyield > nmargin);
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
 
@@ -911,20 +666,22 @@ System::_minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, 
             else {
                 xneigh = m_v_n(p - 1) + m_v_n(p + 1);
             }
-            i = m_y[p].i();
+            i = m_i(p);
+            auto* l = &m_y(p, i);
+            auto* y = &m_y(p, 0);
             while (true) {
-                xmin = 0.5 * (m_y[p].yright() + m_y[p].yleft());
+                xmin = 0.5 * (*(l) + *(l + 1));
                 x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
                     (2 * m_k_neighbours + m_k_frame + m_mu);
-                m_y[p].set_x(x);
-                if (!m_y[p].inbounds(nmargin)) {
+                m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
+                if (m_i(p) > nyield - nmargin) {
                     xt::noalias(m_x) = m_v_n;
                     return -iiter;
                 }
-                if (m_y[p].i() == i) {
+                if (m_i(p) == i) {
                     break;
                 }
-                i = m_y[p].i();
+                i = m_i(p);
             }
             m_x(p) = x;
         }
@@ -997,10 +754,10 @@ inline void System::trigger(size_t p, double eps, int direction)
 {
     FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
     if (direction > 0) {
-        m_x(p) = m_y[p].yright() + 0.5 * eps;
+        m_x(p) = m_y(p, m_i(p) + 1) + 0.5 * eps;
     }
     else {
-        m_x(p) = m_y[p].yleft() - 0.5 * eps;
+        m_x(p) = m_y(p, m_i(p)) - 0.5 * eps;
     }
     this->updated_x();
 }
@@ -1029,7 +786,7 @@ inline void System::advanceToFixedForce(double f_frame)
     FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(this->i(), i_n)));
 }
 
-template <class T, class I>
+template <class T>
 inline SystemThermalRandomForcing::SystemThermalRandomForcing(
     double m,
     double eta,
@@ -1037,13 +794,12 @@ inline SystemThermalRandomForcing::SystemThermalRandomForcing(
     double k_neighbours,
     double k_frame,
     double dt,
-    const T& x_y,
-    const I& istart)
+    const T& x_y)
 {
-    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y);
 }
 
-template <class T, class I>
+template <class T>
 inline void SystemThermalRandomForcing::initSystemThermalRandomForcing(
     double m,
     double eta,
@@ -1051,12 +807,11 @@ inline void SystemThermalRandomForcing::initSystemThermalRandomForcing(
     double k_neighbours,
     double k_frame,
     double dt,
-    const T& x_y,
-    const I& istart)
+    const T& x_y)
 {
     m_seq = false;
     m_f_thermal = xt::zeros<double>({x_y.shape(0)});
-    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y, istart);
+    this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y);
 }
 
 inline void SystemThermalRandomForcing::updateThermalForce()

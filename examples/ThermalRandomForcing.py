@@ -5,6 +5,7 @@ import h5py
 import numpy as np
 import prrng
 import tqdm
+import QPot
 
 try:
     import matplotlib.pyplot as plt
@@ -50,7 +51,6 @@ system = model.SystemThermalRandomForcing(
     k_frame=1.0 / N,
     dt=0.1,
     x_yield=y,
-    istart=istart,
 )
 
 system.minimise()
