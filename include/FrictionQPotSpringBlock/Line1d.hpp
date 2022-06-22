@@ -74,11 +74,7 @@ inline void System::initSystem(
     double dt,
     const T& x_y)
 {
-#ifdef FRICTIONQPOTSPRINGBLOCK_ENABLE_ASSERT
     FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
-    auto y0 = xt::view(x_y, xt::all(), 0);
-    FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(y0 < 0.0));
-#endif
 
     m_N = x_y.shape(0);
     m_m = m;
@@ -98,7 +94,7 @@ inline void System::initSystem(
     m_a = xt::zeros<double>({m_N});
     m_v_n = xt::zeros<double>({m_N});
     m_a_n = xt::zeros<double>({m_N});
-    m_i = (m_N - 1) * xt::ones<long>({m_N}); // consistent with `lower_bound`
+    m_i = xt::zeros<long>({m_N}); // consistent with `lower_bound`
     m_y = x_y;
 
     this->updated_x();
