@@ -589,7 +589,6 @@ inline long System::_minimise_nopassing_nocheck(double tol, size_t niter_tol, lo
     double xneigh;
     double x;
     double xmin;
-    long i;
     auto nyield = m_y.shape(1);
 
     for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
@@ -674,7 +673,7 @@ System::_minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, 
                 x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
                     (2 * m_k_neighbours + m_k_frame + m_mu);
                 m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
-                if (m_i(p) > nyield - nmargin) {
+                if (static_cast<size_t>(m_i(p)) > nyield - nmargin) {
                     xt::noalias(m_x) = m_v_n;
                     return -iiter;
                 }
