@@ -18,7 +18,6 @@ class Test_Line1d_System(unittest.TestCase):
     def test_forces(self):
 
         N = 5
-        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -36,7 +35,6 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=k_frame,
             dt=1.0,
             x_yield=y,
-            istart=istart,
         )
 
         self.assertTrue(system.residual < 1e-5)
@@ -98,7 +96,6 @@ class Test_Line1d_System(unittest.TestCase):
     def test_eventDrivenStep(self):
 
         N = 3
-        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -111,31 +108,30 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
-            istart=istart,
         )
 
         self.assertTrue(system.residual < 1e-5)
 
-        i_n = system.i
+        i_n = np.copy(system.i)
         system.eventDrivenStep(0.2, False)
         self.assertTrue(system.residual < 1e-5)
         self.assertTrue(np.allclose(system.x, (0.5 - 0.1) * np.ones(N)))
         self.assertTrue(np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i
+        i_n = np.copy(system.i)
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.x, (0.5 + 0.1) * np.ones(N)))
         self.assertTrue(not np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i
+        i_n = np.copy(system.i)
         system.eventDrivenStep(0.2, False)
         self.assertTrue(np.allclose(system.x, (1.5 - 0.1) * np.ones(N)))
         self.assertTrue(np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i
+        i_n = np.copy(system.i)
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.x, (1.5 + 0.1) * np.ones(N)))
         self.assertTrue(not np.all(system.i == i_n))
@@ -144,7 +140,6 @@ class Test_Line1d_System(unittest.TestCase):
     def test_trigger(self):
 
         N = 3
-        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -157,7 +152,6 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
-            istart=istart,
         )
 
         system.trigger(0, 0.2)
@@ -169,7 +163,6 @@ class Test_Line1d_System(unittest.TestCase):
     def test_triggerWeakest(self):
 
         N = 3
-        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -182,7 +175,6 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
-            istart=istart,
         )
 
         x = np.zeros(N)
@@ -197,7 +189,6 @@ class Test_Line1d_System(unittest.TestCase):
     def test_advanceToFixedForce(self):
 
         N = 3
-        istart = np.zeros([N], dtype=int)
         y = np.ones((N, 100))
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
@@ -210,7 +201,6 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
-            istart=istart,
         )
 
         self.assertTrue(system.residual < 1e-5)
@@ -224,87 +214,7 @@ class Test_Line1d_System(unittest.TestCase):
         self.assertTrue(np.allclose(system.x, 0.0))
         self.assertTrue(np.allclose(system.x_frame, 0.0))
 
-    def test_chunkedSequenceGlobal(self):
-        """
-        Chunked sequence of random numbers that is used to reset the chunk of yield positions.
-        This is how it is probably done in a simulation for the Python API,
-        with particles moving to the right.
-        """
-
-        N = 10
-        seed = int(time.time())
-        initstate = seed + np.arange(N)
-
-        nchunk = 100  # size of chunk of yield positions kept in memory
-        nbuffer = 40  # buffer when shifting chunks of yield positions
-        istart = np.zeros([N], dtype=int)
-        ystart = -20.0 * np.ones([N, 1])
-
-        # generate full history of yield positions, for later reference
-        generators = prrng.pcg32_array(initstate)
-        dy = 2.0 * generators.random([nchunk * 100])
-        yref = np.cumsum(dy, 1) + ystart
-
-        # generate chunk of yield positions
-        generators = prrng.pcg32_array(initstate)
-        state = generators.state()
-        dy = 2.0 * generators.random([nchunk])
-        y = np.cumsum(dy, 1) + ystart
-
-        # initialise system
-        system = FrictionQPotSpringBlock.Line1d.System(
-            m=1.0,
-            eta=1.0,
-            mu=1.0,
-            k_neighbours=1.0,
-            k_frame=0.1,
-            dt=1.0,
-            x_yield=y,
-            istart=istart,
-        )
-
-        x = system.x
-
-        for loop in range(100):
-
-            y = system.y
-
-            # check: last yield positions in chunk
-            index = np.empty([2, N], dtype=int)
-            index[0, :] = np.arange(N)
-            index[1, :] = istart + y.shape[1] - 1
-            j = np.ravel_multi_index(index, yref.shape)
-            self.assertTrue(np.allclose(yref.flat[j], y[:, -1]))
-
-            # advance position randomly, find which part of the chunk to generate
-            x += 0.7 * nchunk * np.random.random(N)
-            x = np.where(x > y[:, -1], y[:, -2], x)
-            i = np.argmax(y >= x.reshape(-1, 1), axis=1)
-
-            generators.restore(state)
-            generators.advance(i - nbuffer)
-            state = generators.state()
-            istart += i - nbuffer
-            dy = 2.0 * generators.random([nchunk])
-
-            system.shift_dy(istart, dy, 10)
-            system.x = x
-
-            # check: i, yleft, yright must be the same as global search
-            i = np.argmax(yref >= x.reshape(-1, 1), axis=1)
-            index = np.empty([2, N], dtype=int)
-            index[0, :] = np.arange(N)
-            index[1, :] = i
-            yright = yref.flat[np.ravel_multi_index(index, yref.shape)]
-
-            index[1, :] = i - 1
-            yleft = yref.flat[np.ravel_multi_index(index, yref.shape)]
-
-            self.assertTrue(np.allclose(system.i, i - 1))
-            self.assertTrue(np.allclose(system.yleft, yleft))
-            self.assertTrue(np.allclose(system.yright, yright))
-
-    def test_chunkedSequence(self):
+    def test_chunked(self):
         """
         Chunked sequence, shift optimally left
         """
@@ -316,26 +226,25 @@ class Test_Line1d_System(unittest.TestCase):
         nchunk = 100  # size of chunk of yield positions kept in memory
         nbuffer = 50  # buffer when shifting chunks of yield positions
         nmargin = 30  # boundary region to check of chunk-shifting is needed
-        nmax = 20  # maximal boundary region for which chunk-shifting is applied
         init_offset = 50.0  # initial negative position shift
 
         # generators
         generators = prrng.pcg32_array(initstate)
-        regenerators = prrng.pcg32_array(initstate)
         state = generators.state()
+        istate = np.zeros(N, dtype=np.int64)
         istart = np.zeros(N, dtype=np.int64)
+
+        # draw reference yield positions
+        yref = 2.0 * generators.random([nchunk * 10])
+        yref = np.cumsum(yref, 1)
+        yref -= init_offset
+        generators.restore(state)
 
         # draw initial chunk from the generators and convert to yield positions
         y = 2.0 * generators.random([nchunk])
         y = np.cumsum(y, 1)
         y -= init_offset
-        ymin = y[:, 0]
-
-        # keep history to the state to facilitate restoring the right chunk for a given position
-        # (the buffer can make that the current position is in the last chunk)
-        state_n = state.copy()
-        istart_n = istart.copy()
-        ymin_n = ymin.copy()
+        istate += nchunk
 
         # initialise system
         system = FrictionQPotSpringBlock.Line1d.System(
@@ -346,113 +255,6 @@ class Test_Line1d_System(unittest.TestCase):
             k_frame=0.1,
             dt=1.0,
             x_yield=y,
-            istart=istart,
-        )
-
-        restore = FrictionQPotSpringBlock.Line1d.System(
-            m=1.0,
-            eta=1.0,
-            mu=1.0,
-            k_neighbours=1.0,
-            k_frame=0.1,
-            dt=1.0,
-            x_yield=y,
-            istart=istart,
-        )
-
-        x = 10.0 * np.ones(N)
-        x[0] = 5.0
-        x[1] = 7.0
-
-        for i in range(50):
-
-            xi = i * x
-            self.assertFalse(system.any_redraw(xi))
-            system.x = xi
-
-            if not system.all_inbounds(nmargin):
-
-                inbounds_left = system.inbounds_left(nmax)
-                inbounds_right = system.inbounds_right(nmax)
-
-                self.assertTrue(np.all(inbounds_left))
-
-                for p in range(N):
-
-                    if not inbounds_right[p]:
-
-                        yp = system.refChunked(p)
-
-                        state_n[p] = state[p]
-                        istart_n[p] = istart[p]
-                        ymin_n[p] = ymin[p]
-
-                        state[p] = generators[p].state()
-                        istart[p] += nchunk
-
-                        yp.shift_dy(istart[p], 2.0 * generators[p].random([nchunk]), nbuffer)
-                        ymin[p] = yp.ymin_chunk()
-
-                self.assertFalse(system.any_redraw())
-
-            regenerators.restore(state_n)
-            ry = 2.0 * regenerators.random([2 * nchunk])
-            ry[:, 0] = ymin_n
-            ry = np.cumsum(ry, 1)
-            restore.set_y(istart_n, ry)
-            restore.x = system.x
-
-            self.assertTrue(np.all(system.i == restore.i))
-            self.assertTrue(np.allclose(system.yieldDistanceLeft, restore.yieldDistanceLeft))
-            self.assertTrue(np.allclose(system.yieldDistanceRight, restore.yieldDistanceRight))
-            self.assertTrue(np.allclose(system.yleft, restore.yleft))
-            self.assertTrue(np.allclose(system.yright, restore.yright))
-
-    def test_chunkedSequence2(self):
-        """
-        Chunked sequence, shift optimally left.
-        """
-
-        N = 3
-        seed = int(time.time())
-        initstate = seed + np.arange(N)
-
-        nchunk = 100  # size of chunk of yield positions kept in memory
-        nbuffer = 10  # buffer to keep left
-        init_offset = 5.0  # initial negative position shift
-
-        # generators
-        generators = prrng.pcg32_array(initstate)
-        regenerators = prrng.pcg32_array(initstate)
-        state = generators.state()
-        istart = np.zeros(N, dtype=np.int64)
-
-        # draw initial chunk from the generators and convert to yield positions
-        y = 2.0 * generators.random([nchunk])
-        y = np.cumsum(y, 1)
-        y -= init_offset
-
-        # initialise system
-        system = FrictionQPotSpringBlock.Line1d.System(
-            m=1.0,
-            eta=1.0,
-            mu=1.0,
-            k_neighbours=1.0,
-            k_frame=0.1,
-            dt=1.0,
-            x_yield=y,
-            istart=istart,
-        )
-
-        restore = FrictionQPotSpringBlock.Line1d.System(
-            m=1.0,
-            eta=1.0,
-            mu=1.0,
-            k_neighbours=1.0,
-            k_frame=0.1,
-            dt=1.0,
-            x_yield=y,
-            istart=istart,
         )
 
         x = 10.0 * np.ones(N)
@@ -462,47 +264,31 @@ class Test_Line1d_System(unittest.TestCase):
         for i in range(50):
 
             system.x = i * x
-            i0 = np.copy(system.i)
 
-            if np.any(system.i_chunk > nbuffer):
+            if np.any(system.i > system.y.shape[1] - nmargin):
 
-                for p in range(N):
+                shift = system.i - nbuffer + 1
+                advance = np.where(shift < 0, shift + istart - istate, nchunk + istart - istate)
+                generators.advance(advance)
+                istate += advance
+                n = np.max(np.abs(shift)) + 1
+                dy = 2.0 * generators.random([n])
+                state = generators.state()
+                istart += shift
+                istate += n
+                system.y = QPot.cumsum_chunk(system.y, dy, shift)
 
-                    yp = system.refChunked(p)
-                    nb = yp.size() - yp.i_chunk() + nbuffer
-                    if nb >= nchunk:
-                        continue
+            j = QPot.lower_bound(yref, i * x)
+            r = np.arange(N)
 
-                    state[p] = generators[p].state()
-                    istart[p] = yp.istop()
-                    yp.shift_dy(yp.istop(), 2.0 * generators[p].random([nchunk - nb]), nb)
+            self.assertTrue(np.all(system.i + istart == j))
+            self.assertTrue(np.allclose(system.y[r, system.i], yref[r, j]))
+            self.assertTrue(np.allclose(system.y[r, system.i + 1], yref[r, j + 1]))
 
-                system.updated_y()
-
-            self.assertTrue(np.all(system.i == i0))
-            self.assertTrue(np.all(system.i - system.istart <= nbuffer))
-            self.assertTrue(np.all(system.i_chunk == system.i - system.istart))
-
-            # restore state: start with the latests draw that is quite close and reverse back
-            # in the sequence until the start of the current chunk held in memory
-            regenerators.restore(state)
-            regenerators.advance(system.istart - istart)
-
-            # generate the yield distances, convert to yield positions using the first yield
-            # position of the current chunk as memory (was also the state from which the random
-            # numbers were generated)
-            ry = 2.0 * regenerators.random([nchunk])
-            ry[:, 0] = system.ymin
-            ry = np.cumsum(ry, 1)
-
-            restore.set_y(system.istart, ry)
-            restore.x = system.x
-
-            self.assertTrue(np.all(system.i == restore.i))
-            self.assertTrue(np.allclose(system.yieldDistanceLeft, restore.yieldDistanceLeft))
-            self.assertTrue(np.allclose(system.yieldDistanceRight, restore.yieldDistanceRight))
-            self.assertTrue(np.allclose(system.yleft, restore.yleft))
-            self.assertTrue(np.allclose(system.yright, restore.yright))
+            xl = system.yieldDistanceLeft
+            xr = system.yieldDistanceRight
+            self.assertTrue(np.allclose(system.y[r, system.i + 1] - system.x, xr))
+            self.assertTrue(np.allclose(system.x - system.y[r, system.i], xl))
 
 
 if __name__ == "__main__":

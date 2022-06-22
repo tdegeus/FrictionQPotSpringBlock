@@ -23,8 +23,8 @@ generators = prrng.pcg32_array(initstate, initseq)
 nchunk = 1500
 nbuffer = 200
 state = generators.state()
-istart = np.zeros(N, dtype=np.int64)
 istate = np.zeros(N, dtype=np.int64)
+istart = np.zeros(N, dtype=np.int64)
 
 y = 2.0 * generators.random([nchunk])
 y = np.cumsum(y, 1)
