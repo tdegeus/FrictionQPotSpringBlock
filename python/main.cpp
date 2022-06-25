@@ -139,6 +139,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def_property_readonly("temperature", &SM::System::temperature, "Temperature")
             .def_property_readonly("residual", &SM::System::residual, "Residual")
 
+            .def("refresh", &SM::System::refresh, "refresh")
             .def("quench", &SM::System::quench, "quench")
             .def("timeStep", &SM::System::timeStep, "timeStep")
             .def("timeSteps", &SM::System::timeSteps, "timeSteps", py::arg("n"))

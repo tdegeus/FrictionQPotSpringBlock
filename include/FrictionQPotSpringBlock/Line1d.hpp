@@ -248,6 +248,15 @@ inline const array_type::tensor<double, 1>& System::f_damping() const
     return m_f_damping;
 }
 
+inline void System::refresh()
+{
+    this->computeForcePotential();
+    this->computeForceNeighbours();
+    this->computeForceFrame();
+    this->computeForceDamping();
+    this->computeForce();
+}
+
 inline void System::updated_x()
 {
     this->computeForcePotential();
