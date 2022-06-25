@@ -215,6 +215,11 @@ public:
     void set_a(const T& arg);
 
     /**
+    Recompute all forces.
+    */
+    void refresh();
+
+    /**
     Position of each particle.
 
     \return [#N].
