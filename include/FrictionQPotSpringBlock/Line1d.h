@@ -573,11 +573,12 @@ public:
         size_t nmax = nyield - nmargin;
 
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
-        for (long iiter = 0; iiter < static_cast<long>(n + 1); ++iiter) {
+        for (long iiter = 1; iiter < static_cast<long>(n + 1); ++iiter) {
 
             m_x_frame += v_frame * m_dt;
+
             this->timeStep();
 
             if (nmargin > 0) {
@@ -593,71 +594,36 @@ public:
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
 
-    A bounds-check is available:
+    \param nmargin
+        Number of potentials to leave as margin.
+        -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
+            from the beginning or the end.
+            If that is the case the function returns a negative number.
+        -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
+            is assumed infinitely elastic to the right (or left).
 
-    -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
-        from the beginning or the end. If that is the case the function returns a negative number.
+    \param tol
+        Relative force tolerance for equilibrium. See residual() for definition.
 
-    -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
-        is assumed infinitely elastic to the right (or left).
+    \param niter_tol
+        Enforce the residual check for ``niter_tol`` consecutive increments.
 
-    \param nmargin Number of potentials to leave as margin.
-    \param tol Relative force tolerance for equilibrium. See residual() for definition.
-    \param niter_tol Enforce the residual check for ``niter_tol`` consecutive increments.
-    \param max_iter Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+    \param max_iter
+        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+
+    \param time_activity
+        If `true` plastic activity is timed.    After this function you can find:
+        -   quasistaticActivityFirst() : Increment with the first plastic event.
+        -   quasistaticActivityLast() : Increment with the last plastic event.
+
     \return Number of time-steps made (negative if failure).
     */
-    long
-    minimise(size_t nmargin = 1, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
-    {
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
-
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-        auto nyield = m_y.shape(1);
-        size_t nmax = nyield - nmargin;
-
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
-
-        for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
-
-            this->timeStep();
-
-            residuals.roll_insert(this->residual());
-
-            if (nmargin > 0) {
-                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
-                    return -iiter;
-                }
-            }
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
-    }
-
-    /**
-    Same as minimise() but with the difference that plastic activity is timed.
-    After this function you can find:
-
-    -   quasistaticActivityFirst() : Increment with the first plastic event.
-    -   quasistaticActivityLast() : Increment with the last plastic event.
-
-    \warning
-        The number of iterations.
-        **If a negative number if returned, equilibrium was not reached.**
-    */
-    long minimise_timeactivity(
+    long minimise(
         size_t nmargin = 1,
         double tol = 1e-5,
         size_t niter_tol = 10,
-        size_t max_iter = 1e9)
+        size_t max_iter = 1e9,
+        bool time_activity = false)
     {
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
@@ -666,30 +632,17 @@ public:
         GooseFEM::Iterate::StopList residuals(niter_tol);
         auto nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
-
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
-
         auto i_n = m_i;
         long s = 0;
         long s_n = 0;
         bool init = true;
 
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
+
         for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
 
             this->timeStep();
-
-            s = xt::sum(xt::abs(m_i - i_n))();
-
-            if (s != s_n) {
-                if (init) {
-                    init = false;
-                    m_qs_inc_first = m_inc;
-                }
-                m_qs_inc_last = m_inc;
-            }
-
-            s_n = s;
 
             residuals.roll_insert(this->residual());
 
@@ -697,6 +650,18 @@ public:
                 if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
                     return -iiter;
                 }
+            }
+
+            if (time_activity) {
+                s = xt::sum(xt::abs(m_i - i_n))();
+                if (s != s_n) {
+                    if (init) {
+                        init = false;
+                        m_qs_inc_first = m_inc;
+                    }
+                    m_qs_inc_last = m_inc;
+                }
+                s_n = s;
             }
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
@@ -753,7 +718,7 @@ public:
         size_t nmax = nyield - nmargin;
 
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
         for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
 
