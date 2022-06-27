@@ -38,7 +38,44 @@ The output is a list of strings, e.g.::
 
 \return List of strings.
 */
-inline std::vector<std::string> version_dependencies();
+inline std::vector<std::string> version_dependencies()
+{
+    std::vector<std::string> ret;
+
+    ret.push_back("frictionqpotspringblock=" + version());
+    ret.push_back("goosefem=" + GooseFEM::version());
+    ret.push_back("qpot=" + QPot::version());
+
+    ret.push_back(
+        "xtensor=" + detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_PATCH))));
+
+#ifdef XSIMD_VERSION_MAJOR
+    ret.push_back(
+        "xsimd=" + detail::unquote(std::string(QUOTE(XSIMD_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(XSIMD_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XSIMD_VERSION_PATCH))));
+#endif
+
+#ifdef XTL_VERSION_MAJOR
+    ret.push_back(
+        "xtl=" + detail::unquote(std::string(QUOTE(XTL_VERSION_MAJOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTL_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTL_VERSION_PATCH))));
+#endif
+
+#if defined(XTENSOR_PYTHON_VERSION_MAJOR)
+    ret.push_back(
+        "xtensor-python=" + detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_MAJOR))) +
+        "." + detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_MINOR))) + "." +
+        detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_PATCH))));
+#endif
+
+    std::sort(ret.begin(), ret.end(), std::greater<std::string>());
+
+    return ret;
+}
 
 /**
 ## Introduction
@@ -115,26 +152,38 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield);
+        const T& x_yield)
+    {
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+    }
 
     /**
     Number of particles.
 
     \return unsigned int
     */
-    size_t N() const;
+    size_t N() const
+    {
+        return m_N;
+    }
 
     /**
     Return yield positions.
     \return Array of shape [#N, n].
     */
-    const array_type::tensor<double, 2>& y();
+    const array_type::tensor<double, 2>& y()
+    {
+        return m_y;
+    }
 
     /**
     Current index in the current chunk of the potential energy landscape (for each particle).
     \return Array of shape [#N].
     */
-    const array_type::tensor<long, 1>& i() const;
+    const array_type::tensor<long, 1>& i() const
+    {
+        return m_i;
+    }
 
     /**
     Distance to yield to the right (for each particle).
@@ -142,7 +191,16 @@ public:
 
     \return [#N].
     */
-    array_type::tensor<double, 1> yieldDistanceRight() const;
+    array_type::tensor<double, 1> yieldDistanceRight() const
+    {
+        array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
+
+        for (size_t p = 0; p < m_N; ++p) {
+            ret(p) = m_y(p, m_i(p) + 1) - m_x(p);
+        }
+
+        return ret;
+    }
 
     /**
     Distance to yield to the left for each particle.
@@ -150,33 +208,57 @@ public:
 
     \return [#N].
     */
-    array_type::tensor<double, 1> yieldDistanceLeft() const;
+    array_type::tensor<double, 1> yieldDistanceLeft() const
+    {
+        array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
+
+        for (size_t p = 0; p < m_N; ++p) {
+            ret(p) = m_x(p) - m_y(p, m_i(p));
+        }
+
+        return ret;
+    }
 
     /**
     Set time.
     \param arg double.
     */
-    void set_t(double arg);
+    void set_t(double arg)
+    {
+        m_inc = static_cast<size_t>(arg / m_dt);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::allclose(this->t(), arg));
+    }
 
     /**
     Set increment.
     \param arg size_t.
     */
-    void set_inc(size_t arg);
+    void set_inc(size_t arg)
+    {
+        m_inc = arg;
+    }
 
     /**
     Set position of the load frame.
 
     \param arg double.
     */
-    void set_x_frame(double arg);
+    void set_x_frame(double arg)
+    {
+        m_x_frame = arg;
+        this->computeForceFrame();
+        this->computeForce();
+    }
 
     /**
     Position of the load frame.
 
     \return double
     */
-    double x_frame() const;
+    double x_frame() const
+    {
+        return m_x_frame;
+    }
 
     /**
     Overwrite the yield positions.
@@ -184,7 +266,13 @@ public:
     \param arg Array [#N, n].
     */
     template <class T>
-    void set_y(const T& arg);
+    void set_y(const T& arg)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.shape(0) == m_N);
+        xt::noalias(m_y) = arg;
+        this->updated_x();
+    }
 
     /**
     Set the position of each particle.
@@ -194,7 +282,12 @@ public:
     \param arg The particles' positions [#N].
     */
     template <class T>
-    void set_x(const T& arg);
+    void set_x(const T& arg)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
+        xt::noalias(m_x) = arg;
+        this->updated_x();
+    }
 
     /**
     Set the velocity of each particle.
@@ -204,7 +297,12 @@ public:
     \param arg The particles' velocities [#N].
     */
     template <class T>
-    void set_v(const T& arg);
+    void set_v(const T& arg)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
+        xt::noalias(m_v) = arg;
+        this->updated_v();
+    }
 
     /**
     Set the acceleration of each particle.
@@ -212,80 +310,121 @@ public:
     \param arg The particles' accelerations [#N].
     */
     template <class T>
-    void set_a(const T& arg);
+    void set_a(const T& arg)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, {m_N}));
+        xt::noalias(m_a) = arg;
+    }
 
     /**
     Recompute all forces.
     */
-    void refresh();
+    void refresh()
+    {
+        this->computeForcePotential();
+        this->computeForceNeighbours();
+        this->computeForceFrame();
+        this->computeForceDamping();
+        this->computeForce();
+    }
 
     /**
     Position of each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& x() const;
+    const array_type::tensor<double, 1>& x() const
+    {
+        return m_x;
+    }
 
     /**
     Velocity of each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& v() const;
+    const array_type::tensor<double, 1>& v() const
+    {
+        return m_v;
+    }
 
     /**
     Acceleration of each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& a() const;
+    const array_type::tensor<double, 1>& a() const
+    {
+        return m_a;
+    }
 
     /**
     Resultant force acting on each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& f() const;
+    const array_type::tensor<double, 1>& f() const
+    {
+        return m_f;
+    }
 
     /**
     Force associated to potentials acting on each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& f_potential() const;
+    const array_type::tensor<double, 1>& f_potential() const
+    {
+        return m_f_potential;
+    }
 
     /**
     Force associated to the load frame acting on each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& f_frame() const;
+    const array_type::tensor<double, 1>& f_frame() const
+    {
+        return m_f_frame;
+    }
 
     /**
     Force associated to neighbours acting on each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& f_neighbours() const;
+    const array_type::tensor<double, 1>& f_neighbours() const
+    {
+        return m_f_neighbours;
+    }
 
     /**
     Force associated to damping on each particle.
 
     \return [#N].
     */
-    const array_type::tensor<double, 1>& f_damping() const;
+    const array_type::tensor<double, 1>& f_damping() const
+    {
+        return m_f_damping;
+    }
 
     /**
     The time, see set_t().
     \return double.
     */
-    double t() const;
+    double t() const
+    {
+        return static_cast<double>(m_inc) * m_dt;
+    }
 
     /**
     The increment, see set_inc().
     \return size_t.
     */
-    size_t inc() const;
+    size_t inc() const
+    {
+        return m_inc;
+    }
 
     /**
     The instantaneous temperature, defined as
@@ -293,32 +432,80 @@ public:
     Note that by definition Boltzmann's constant is taken equal to 1.
     \return double.
     */
-    double temperature() const;
+    double temperature() const
+    {
+        return xt::norm_sq(m_v)() * m_m / m_N;
+    }
 
     /**
     Residual: the ratio between the norm of #f and #f_frame.
 
     \return double.
     */
-    double residual() const;
+    double residual() const
+    {
+        double r_fres = xt::norm_l2(m_f)();
+        double r_fext = xt::norm_l2(m_f_frame)();
+        if (r_fext != 0.0) {
+            return r_fres / r_fext;
+        }
+        return r_fres;
+    }
 
     /**
     Set #v and #a equal to zero.
     Call this function after an energy minimisation (taken care of in minimise()).
     */
-    void quench();
+    void quench()
+    {
+        m_v.fill(0.0);
+        m_a.fill(0.0);
+        this->updated_v();
+    }
 
     /**
     Effectuates time step using the velocity Verlet algorithm.
     Updates #x, #v, #a, and #f, and increment #inc.
     */
-    void timeStep();
+    void timeStep()
+    {
+        m_inc++;
+        xt::noalias(m_v_n) = m_v;
+        xt::noalias(m_a_n) = m_a;
+
+        xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
+        this->updated_x();
+
+        xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
+        this->updated_v();
+
+        xt::noalias(m_a) = m_f * m_inv_m;
+
+        xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+        this->updated_v();
+
+        xt::noalias(m_a) = m_f * m_inv_m;
+
+        xt::noalias(m_v) = m_v_n + 0.5 * m_dt * (m_a_n + m_a);
+        this->updated_v();
+
+        xt::noalias(m_a) = m_f * m_inv_m;
+
+        if (xt::any(xt::isnan(m_x))) {
+            throw std::runtime_error("NaN entries found");
+        }
+    }
 
     /**
     Make a number of time steps, see timeStep().
     \param n Number of steps to make.
     */
-    void timeSteps(size_t n);
+    void timeSteps(size_t n)
+    {
+        for (size_t i = 0; i < n; ++i) {
+            this->timeStep();
+        }
+    }
 
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
@@ -336,7 +523,31 @@ public:
         The number of iterations.
         `0` is returned if there was no plastic activity and the residual was reached.
     */
-    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
+    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
+    {
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+        double tol2 = tol * tol;
+
+        auto i_n = m_i;
+
+        for (size_t iiter = 1; iiter < max_iter; ++iiter) {
+
+            this->timeStep();
+
+            if (xt::any(xt::not_equal(m_i, i_n))) {
+                return iiter;
+            }
+
+            residuals.roll_insert(this->residual());
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return 0;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
 
     /**
     Make a number of steps with the following protocol.
@@ -346,7 +557,13 @@ public:
     \param n Number of steps to make.
     \param v_frame Velocity of the frame.
     */
-    void flowSteps(size_t n, double v_frame);
+    void flowSteps(size_t n, double v_frame)
+    {
+        for (size_t i = 0; i < n; ++i) {
+            m_x_frame += v_frame * m_dt;
+            this->timeStep();
+        }
+    }
 
     /**
     \copydoc flowSteps(size_t, double)
@@ -357,7 +574,26 @@ public:
     \param nmargin
         Number of potentials to leave as margin.
     */
-    size_t flowSteps_boundcheck(size_t n, double v_frame, size_t nmargin = 5);
+    size_t flowSteps_boundcheck(size_t n, double v_frame, size_t nmargin = 5)
+    {
+        auto nyield = m_y.shape(1);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+
+        if (xt::any(m_i > nyield - nmargin)) {
+            return 0;
+        }
+
+        for (size_t i = 0; i < n; ++i) {
+            m_x_frame += v_frame * m_dt;
+            this->timeStep();
+
+            if (xt::any(m_i > nyield - nmargin)) {
+                return 0;
+            }
+        }
+
+        return n;
+    }
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
@@ -392,7 +628,17 @@ public:
         **If a negative number if returned, equilibrium was not reached.**
     */
     long
-    minimise(size_t nmargin = 0, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9);
+    minimise(size_t nmargin = 0, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
+    {
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+
+        if (nmargin == 0) {
+            return _minimise_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+        }
+
+        return _minimise_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+    }
 
     /**
     Same as minimise() but with the difference that plastic activity is timed.
@@ -409,19 +655,35 @@ public:
         size_t nmargin = 0,
         double tol = 1e-5,
         size_t niter_tol = 10,
-        size_t max_iter = 1e9);
+        size_t max_iter = 1e9)
+    {
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+
+        if (nmargin == 0) {
+            return _minimise_timeactivity_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+        }
+
+        return _minimise_timeactivity_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+    }
 
     /**
     Increment with the first plastic event.
     This is the output of the last call of minimise_timeactivity().
     */
-    size_t quasistaticActivityFirst() const;
+    size_t quasistaticActivityFirst() const
+    {
+        return m_qs_inc_first;
+    }
 
     /**
     Increment with the last plastic event.
     This is the output of the last call of minimise_timeactivity().
     */
-    size_t quasistaticActivityLast() const;
+    size_t quasistaticActivityLast() const
+    {
+        return m_qs_inc_last;
+    }
 
     /**
     Same as minimise() but assuming  overdamped dynamics and using the no passing rule.
@@ -433,7 +695,17 @@ public:
         size_t nmargin = 0,
         double tol = 1e-5,
         size_t niter_tol = 10,
-        size_t max_iter = 1e9);
+        size_t max_iter = 1e9)
+    {
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+
+        if (nmargin == 0) {
+            return _minimise_nopassing_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+        }
+
+        return _minimise_nopassing_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+    }
 
     /**
     Make event driven step.
@@ -460,7 +732,32 @@ public:
     \param direction If ``+1``: move right. If ``-1`` move left.
     \return Position increment of the frame.
     */
-    double eventDrivenStep(double eps, bool kick, int direction = 1);
+    double eventDrivenStep(double eps, bool kick, int direction = 1)
+    {
+        if (direction > 0 && !kick) {
+            double dx = xt::amin(this->yieldDistanceRight())();
+            if (dx < 0.5 * eps) {
+                return 0.0;
+            }
+            return this->advanceUniformly(dx - 0.5 * eps, false);
+        }
+
+        if (direction > 0 && kick) {
+            return this->advanceUniformly(eps, false);
+        }
+
+        // direction < 0
+
+        if (!kick) {
+            double dx = xt::amin(this->yieldDistanceLeft())();
+            if (dx < 0.5 * eps) {
+                return 0.0;
+            }
+            return this->advanceUniformly(0.5 * eps - dx, false);
+        }
+
+        return this->advanceUniformly(-eps, false);
+    }
 
     /**
     Trigger a specific particle:
@@ -471,7 +768,17 @@ public:
     \param eps Margin.
     \param direction If ``+1``: move right. If ``-1`` move left.
     */
-    void trigger(size_t p, double eps, int direction = 1);
+    void trigger(size_t p, double eps, int direction = 1)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+        if (direction > 0) {
+            m_x(p) = m_y(p, m_i(p) + 1) + 0.5 * eps;
+        }
+        else {
+            m_x(p) = m_y(p, m_i(p)) - 0.5 * eps;
+        }
+        this->updated_x();
+    }
 
     /**
     Trigger the closest point to yielding right or left, see trigger().
@@ -480,7 +787,22 @@ public:
     \param direction If ``+1``: move right. If ``-1`` move left.
     \return The index of the triggered particle.
     */
-    size_t triggerWeakest(double eps, int direction = 1);
+    size_t triggerWeakest(double eps, int direction = 1)
+    {
+        size_t p;
+
+        if (direction > 0) {
+            auto v = this->yieldDistanceRight();
+            p = std::distance(v.begin(), std::min_element(v.begin(), v.end()));
+        }
+        else {
+            auto v = this->yieldDistanceLeft();
+            p = std::distance(v.begin(), std::min_element(v.begin(), v.end()));
+        }
+
+        this->trigger(p, eps, direction);
+        return p;
+    }
 
     /**
     Change the position of the particles and of the loading frame such that
@@ -488,15 +810,252 @@ public:
 
     \warning Call from a state of mechanical equilibrium. No assertions on this are made.
     */
-    void advanceToFixedForce(double f_frame);
+    void advanceToFixedForce(double f_frame)
+    {
+        auto i_n = this->i();
+        this->advanceUniformly((f_frame - xt::mean(m_f_frame)()) / m_mu, false);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(this->i(), i_n)));
+    }
 
 private:
-    long _minimise_nocheck(double tol, size_t niter_tol, long max_iter);
-    long _minimise_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);
-    long _minimise_timeactivity_nocheck(double tol, size_t niter_tol, long max_iter);
-    long _minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);
-    long _minimise_nopassing_nocheck(double tol, size_t niter_tol, long max_iter);
-    long _minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, long max_iter);
+    long _minimise_nocheck(double tol, size_t niter_tol, long max_iter)
+    {
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+            this->timeStep();
+            residuals.roll_insert(this->residual());
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return iiter;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
+
+    long _minimise_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
+    {
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+        auto nyield = m_y.shape(1);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+
+        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+            this->timeStep();
+            residuals.roll_insert(this->residual());
+
+            if (xt::any(m_i < nmargin) || xt::any(m_i > nyield - nmargin)) {
+                return -iiter;
+            }
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return iiter;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
+
+    long _minimise_timeactivity_nocheck(double tol, size_t niter_tol, long max_iter)
+    {
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        auto i_n = m_i;
+        long s = 0;
+        long s_n = 0;
+        bool init = true;
+
+        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+            this->timeStep();
+
+            s = xt::sum(xt::abs(m_i - i_n))();
+
+            if (s != s_n) {
+                if (init) {
+                    init = false;
+                    m_qs_inc_first = m_inc;
+                }
+                m_qs_inc_last = m_inc;
+            }
+
+            s_n = s;
+
+            residuals.roll_insert(this->residual());
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return iiter;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
+
+    long _minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
+    {
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        auto i_n = m_i;
+        long s = 0;
+        long s_n = 0;
+        bool init = true;
+        auto nyield = m_y.shape(1);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+
+        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+            this->timeStep();
+
+            s = xt::sum(xt::abs(m_i - i_n))();
+
+            if (s != s_n) {
+                if (init) {
+                    init = false;
+                    m_qs_inc_first = m_inc;
+                }
+                m_qs_inc_last = m_inc;
+            }
+
+            s_n = s;
+
+            residuals.roll_insert(this->residual());
+
+            if (xt::any(m_i < nmargin) || xt::any(m_i > nyield - nmargin)) {
+                return -iiter;
+            }
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return iiter;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
+
+    long _minimise_nopassing_nocheck(double tol, size_t niter_tol, long max_iter)
+    {
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        double xneigh;
+        double x;
+        double xmin;
+        auto nyield = m_y.shape(1);
+
+        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+            // "misuse" unused variable
+            xt::noalias(m_v_n) = m_x;
+
+            for (size_t p = 0; p < m_N; ++p) {
+                // first assuming the particle is always in its local minimum
+                if (p == 0) {
+                    xneigh = m_v_n.back() + m_v_n(1);
+                }
+                else if (p == m_N - 1) {
+                    xneigh = m_v_n(m_N - 2) + m_v_n.front();
+                }
+                else {
+                    xneigh = m_v_n(p - 1) + m_v_n(p + 1);
+                }
+                auto i = m_i(p);
+                auto* l = &m_y(p, i);
+                auto* y = &m_y(p, 0);
+                while (true) {
+                    xmin = 0.5 * (*(l) + *(l + 1));
+                    x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
+                        (2 * m_k_neighbours + m_k_frame + m_mu);
+                    m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
+                    if (m_i(p) == i) {
+                        break;
+                    }
+                    i = m_i(p);
+                }
+                m_x(p) = x;
+            }
+
+            this->updated_x();
+            residuals.roll_insert(this->residual());
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench(); // no dynamics are run: make sure that the user is not confused
+                return iiter;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
+
+    long _minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
+    {
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        double xneigh;
+        double x;
+        double xmin;
+        long i;
+        auto nyield = m_y.shape(1);
+
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nyield > nmargin);
+
+        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
+
+            // "misuse" unused variable
+            xt::noalias(m_v_n) = m_x;
+
+            for (size_t p = 0; p < m_N; ++p) {
+                // first assuming the particle is always in its local minimum
+                if (p == 0) {
+                    xneigh = m_v_n.back() + m_v_n(1);
+                }
+                else if (p == m_N - 1) {
+                    xneigh = m_v_n(m_N - 2) + m_v_n.front();
+                }
+                else {
+                    xneigh = m_v_n(p - 1) + m_v_n(p + 1);
+                }
+                i = m_i(p);
+                auto* l = &m_y(p, i);
+                auto* y = &m_y(p, 0);
+                while (true) {
+                    xmin = 0.5 * (*(l) + *(l + 1));
+                    x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
+                        (2 * m_k_neighbours + m_k_frame + m_mu);
+                    m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
+                    if (static_cast<size_t>(m_i(p)) > nyield - nmargin) {
+                        xt::noalias(m_x) = m_v_n;
+                        return -iiter;
+                    }
+                    if (m_i(p) == i) {
+                        break;
+                    }
+                    i = m_i(p);
+                }
+                m_x(p) = x;
+            }
+
+            this->updated_x();
+            residuals.roll_insert(this->residual());
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench(); // no dynamics are run: make sure that the user is not confused
+                return iiter;
+            }
+        }
+
+        throw std::runtime_error("No convergence found");
+    }
 
 protected:
     /**
@@ -510,42 +1069,103 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield);
+        const T& x_yield)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(x_yield.dimension() == 2);
+
+        m_N = x_yield.shape(0);
+        m_m = m;
+        m_inv_m = 1.0 / m;
+        m_eta = eta;
+        m_mu = mu;
+        m_k_neighbours = k_neighbours;
+        m_k_frame = k_frame;
+        m_dt = dt;
+        m_f = xt::zeros<double>({m_N});
+        m_f_potential = xt::zeros<double>({m_N});
+        m_f_neighbours = xt::zeros<double>({m_N});
+        m_f_frame = xt::zeros<double>({m_N});
+        m_f_damping = xt::zeros<double>({m_N});
+        m_x = xt::zeros<double>({m_N});
+        m_v = xt::zeros<double>({m_N});
+        m_a = xt::zeros<double>({m_N});
+        m_v_n = xt::zeros<double>({m_N});
+        m_a_n = xt::zeros<double>({m_N});
+        m_i = xt::zeros<long>({m_N}); // consistent with `lower_bound`
+        m_y = x_yield;
+
+        this->updated_x();
+        this->updated_v();
+    }
 
     /**
     Compute #f based on the current #x and #v.
     */
-    virtual void computeForce();
+    virtual void computeForce()
+    {
+        xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame;
+    }
 
     /**
     Compute #f_potential based on the current #x.
     */
-    void computeForcePotential();
+    void computeForcePotential()
+    {
+        QPot::inplace::lower_bound(m_y, m_x, m_i);
+
+        for (size_t p = 0; p < m_N; ++p) {
+            auto* l = &m_y(p, m_i(p));
+            m_f_potential(p) = m_mu * (0.5 * (*(l) + *(l + 1)) - m_x(p));
+        }
+    }
 
     /**
     Compute #f_neighbours based on the current #x.
     */
-    void computeForceNeighbours();
+    void computeForceNeighbours()
+    {
+        for (size_t p = 1; p < m_N - 1; ++p) {
+            m_f_neighbours(p) = m_k_neighbours * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1));
+        }
+        m_f_neighbours.front() = m_k_neighbours * (m_x.back() - 2 * m_x.front() + m_x(1));
+        m_f_neighbours.back() = m_k_neighbours * (m_x(m_N - 2) - 2 * m_x.back() + m_x.front());
+    }
 
     /**
     Compute #f_frame based on the current #x.
     */
-    void computeForceFrame();
+    void computeForceFrame()
+    {
+        xt::noalias(m_f_frame) = m_k_frame * (m_x_frame - m_x);
+    }
 
     /**
     Compute #f_damping based on the current #v.
     */
-    void computeForceDamping();
+    void computeForceDamping()
+    {
+        xt::noalias(m_f_damping) = -m_eta * m_v;
+    }
 
     /**
     Update forces that depend on #m_x.
     */
-    void updated_x();
+    void updated_x()
+    {
+        this->computeForcePotential();
+        this->computeForceNeighbours();
+        this->computeForceFrame();
+        this->computeForce();
+    }
 
     /**
     Update forces that depend on #m_v.
     */
-    void updated_v();
+    void updated_v()
+    {
+        this->computeForceDamping();
+        this->computeForce();
+    }
 
     /**
     Advance the system uniform: the particles and the frame are moved proportionally,
@@ -573,7 +1193,30 @@ protected:
 
     \return `dx` for the particles in `input_is_frame == true`, otherwise `dx` of the frame.
     */
-    double advanceUniformly(double dx, bool input_is_frame = true);
+    double advanceUniformly(double dx, bool input_is_frame = true)
+    {
+        double dx_particles;
+        double dx_frame;
+
+        if (input_is_frame) {
+            dx_frame = dx;
+            dx_particles = dx * m_k_frame / (m_k_frame + m_mu);
+        }
+        else {
+            dx_particles = dx;
+            dx_frame = dx * (m_k_frame + m_mu) / m_k_frame;
+        }
+
+        m_x += dx_particles;
+        m_x_frame += dx_frame;
+        this->updated_x();
+
+        if (input_is_frame) {
+            return dx_particles;
+        }
+
+        return dx_frame;
+    }
 
 protected:
     array_type::tensor<double, 1> m_f; ///< See #f.
@@ -643,7 +1286,10 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield);
+        const T& x_yield)
+    {
+        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+    }
 
     /**
     Set random force.
@@ -654,7 +1300,14 @@ public:
     \param f Force per particle.
     */
     template <class T>
-    void setRandomForce(const T& f);
+    void setRandomForce(const T& f)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(f.dimension() == 1);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(f.size() == m_N);
+
+        m_seq = false;
+        m_f_thermal = f;
+    }
 
     /**
     Set sequence of random forces.
@@ -669,7 +1322,26 @@ public:
         The sequence is thus bounded and should be updated in time.
     */
     template <class T, class U>
-    void setRandomForceSequence(const T& f, const U& start_inc);
+    void setRandomForceSequence(const T& f, const U& start_inc)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f, {m_N, start_inc.shape(1) - 1}));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(start_inc, {m_N, f.shape(1) + 1}));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::view(start_inc, xt::all(), 0) <= m_inc));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(
+            xt::all(xt::view(start_inc, xt::all(), start_inc.shape(1) - 1) > m_inc));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(start_inc, xt::sort(start_inc, 1))));
+
+        m_seq = true;
+        m_seq_f = f;
+        m_seq_s = start_inc;
+        m_seq_i = xt::argmax(m_seq_s >= m_inc, 1);
+
+        for (size_t p = 0; p < m_N; ++p) {
+            if (m_inc >= m_seq_s(p, m_seq_i(p))) {
+                m_f_thermal(p) = m_seq_f(p, m_seq_i(p));
+            }
+        }
+    }
 
 protected:
     // clang-format off
@@ -685,14 +1357,37 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield);
+        const T& x_yield)
+    {
+        m_seq = false;
+        m_f_thermal = xt::zeros<double>({x_yield.shape(0)});
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+    }
 
     /**
     Update 'thermal' force for sequence (if needed).
     */
-    void updateThermalForce();
+    void updateThermalForce()
+    {
+        if (m_seq) {
+            for (size_t p = 0; p < m_N; ++p) {
+                if (m_inc >= m_seq_s(p, m_seq_i(p) + 1)) {
+                    m_seq_i(p)++;
+                    FRICTIONQPOTSPRINGBLOCK_ASSERT(m_seq_i(p) < m_seq_f.shape(1));
+                    FRICTIONQPOTSPRINGBLOCK_ASSERT(m_inc < m_seq_s(p, m_seq_i(p) + 1));
+                }
+                if (m_inc >= m_seq_s(p, m_seq_i(p))) {
+                    m_f_thermal(p) = m_seq_f(p, m_seq_i(p));
+                }
+            }
+        }
+    }
 
-    void computeForce() override;
+    void computeForce() override
+    {
+        this->updateThermalForce();
+        xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame + m_f_thermal;
+    }
 
     bool m_seq = false; ///< Use sequence to set random forces, set in setRandomForceSequence().
     array_type::tensor<double, 2> m_seq_f; ///< Sequence of random forces.
@@ -703,7 +1398,5 @@ protected:
 
 } // namespace Line1d
 } // namespace FrictionQPotSpringBlock
-
-#include "Line1d.hpp"
 
 #endif

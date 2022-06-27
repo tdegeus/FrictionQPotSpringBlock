@@ -40,6 +40,17 @@ overwrite the automatic version.
 
 namespace FrictionQPotSpringBlock {
 
+namespace detail {
+
+inline std::string unquote(const std::string& arg)
+{
+    std::string ret = arg;
+    ret.erase(std::remove(ret.begin(), ret.end(), '\"'), ret.end());
+    return ret;
+}
+
+} // namespace detail
+
 /**
 Return version string, e.g.::
 
@@ -47,10 +58,11 @@ Return version string, e.g.::
 
 \return std::string
 */
-inline std::string version();
+inline std::string version()
+{
+    return detail::unquote(std::string(QUOTE(FRICTIONQPOTSPRINGBLOCK_VERSION)));
+}
 
 } // namespace FrictionQPotSpringBlock
-
-#include "version.hpp"
 
 #endif
