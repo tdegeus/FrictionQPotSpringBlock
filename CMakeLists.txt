@@ -8,8 +8,6 @@ string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 # ====================
 
 option(BUILD_ALL "${PROJECT_NAME}: Build tests, Python API & docs" OFF)
-option(BUILD_TESTS "${PROJECT_NAME}: Build tests" OFF)
-option(BUILD_EXAMPLES "${PROJECT_NAME}: Build examples" OFF)
 option(BUILD_PYTHON "${PROJECT_NAME}: Build Python API" OFF)
 option(BUILD_DOCS "${PROJECT_NAME}: Build docs (use `make html`)" OFF)
 option(USE_WARNINGS "${PROJECT_NAME}: Build with runtime warnings" ON)
@@ -19,7 +17,6 @@ option(USE_SIMD "${PROJECT_NAME}: Build with hardware optimization" OFF)
 
 if(SKBUILD)
     set(BUILD_ALL 0)
-    set(BUILD_TESTS 0)
     set(BUILD_PYTHON 1)
     set(BUILD_DOCS 0)
 endif()
@@ -63,7 +60,6 @@ target_compile_definitions(${PROJECT_NAME} INTERFACE
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
-include(CTest)
 include("${PROJECT_NAME}Config.cmake")
 
 # Installation headers / CMake / pkg-config
@@ -100,26 +96,6 @@ if(NOT SKBUILD)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}Config.cmake"
                   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
             DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
-
-endif()
-
-# Build tests
-# ===========
-
-if(BUILD_TESTS OR BUILD_ALL)
-
-    enable_testing()
-    add_subdirectory(tests)
-
-endif()
-
-# Build examples
-# ==============
-
-if(BUILD_EXAMPLES OR BUILD_ALL)
-
-    enable_testing()
-    add_subdirectory(examples)
 
 endif()
 

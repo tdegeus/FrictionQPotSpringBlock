@@ -1,13 +1,11 @@
 channels:
 - conda-forge
 dependencies:
-- catch2 >=3.0.0
 - cmake
 - doxygen
 - goosefem
 - ninja
 - numpy
-- prrng
 - pybind11
 - python
 - python-qpot >=0.12.1
