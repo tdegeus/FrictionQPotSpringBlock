@@ -98,7 +98,7 @@ The physics are as follows:
 -   Each particle \f$ i \f$ has interactions with its neighbours equal to
     \f$ f_\text{neighbours}^{(i)} =  k_\text{neighbours} (x_{i - 1} - 2 x_i + x_{i + 1}) \f$.
 -   Each particle \f$ i \f$ is connected to the load frame given a force equal to
-    \f$ f_\text{frame}^{(i)} =  k_\text{frame} (x_\text{frame} - x_i \f$.
+    \f$ f_\text{frame}^{(i)} =  k_\text{frame} (x_\text{frame} - x_i) \f$.
     Typically \f$ k_\text{frame} = \mathcal{O}(1 / N) \f$ with \f$ N \f$ the number of particles.
 
 The dynamics follow
@@ -107,18 +107,20 @@ The dynamics follow
 \f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
 f_\text{neighbours}^{(i)} + f_\text{frame}^{(i)} \f$.
 This differential equation is integrated using Velocity-Verlet in timeStep()
-Note that this function updates the time t() (or increment number inc()),
+Note that this function updates the time #t (or increment number #inc),
 and that this is the only function that does so.
 
 The implementation is is such that all forces are updated (if needed) every time the positions
 and velocities are updated, either internally in timeStep(), or externally when calling
 set_x() and set_v().
+In absolute need refresh() can be called to force re-computation of forces,
+but this should normally not be needed.
 
 ## Yield positions
 
 For computational efficiency one can choose to store only a chunk of the sequence of yield positions
-around the current position, which is updated when the particle is close to running out-of-bounds,
-see shift_y() and shift_dy(), or set_y().
+around the current position, which then has to updated when the particle is close to running
+out-of-bounds, using set_y().
 
 ## Internal strategy
 
@@ -169,7 +171,7 @@ public:
 
     /**
     Return yield positions.
-    \return Array of shape [#N, n].
+    \return Array of shape [#N, n_yield].
     */
     const array_type::tensor<double, 2>& y()
     {
@@ -177,7 +179,7 @@ public:
     }
 
     /**
-    Current index in the current chunk of the potential energy landscape (for each particle).
+    Current index (in the current chunk) of the potential energy landscape of each particle.
     \return Array of shape [#N].
     */
     const array_type::tensor<long, 1>& i() const
@@ -186,7 +188,7 @@ public:
     }
 
     /**
-    Distance to yield to the right (for each particle).
+    Distance to yield to the right of each particle.
     Convenience function: same as `y[arange(N), i + 1] - x`.
 
     \return [#N].
@@ -203,7 +205,7 @@ public:
     }
 
     /**
-    Distance to yield to the left for each particle.
+    Distance to yield to the left of each particle.
     Convenience function: same as `x - y[arange(N), i + 1]`.
 
     \return [#N].
@@ -261,9 +263,9 @@ public:
     }
 
     /**
-    Overwrite the yield positions.
+    Overwrite the chunk of yield positions changes #i.
 
-    \param arg Array [#N, n].
+    \param arg Array [#N, n_yield].
     */
     template <class T>
     void set_y(const T& arg)
@@ -428,7 +430,7 @@ public:
 
     /**
     The instantaneous temperature, defined as
-    \f$ T \equiv m / N \sum\limits_{i = 1}^N v_i^2 \f$
+    \f$ T \equiv (m / N) \sum\limits_{i = 1}^N v_i^2 \f$
     Note that by definition Boltzmann's constant is taken equal to 1.
     \return double.
     */
@@ -675,7 +677,8 @@ public:
 
     /**
     Increment with the first plastic event.
-    This is the output of the last call of minimise_timeactivity().
+    This value is only relevant if `time_activity = true` in minimise().
+    \return Increment.
     */
     size_t quasistaticActivityFirst() const
     {
@@ -684,7 +687,8 @@ public:
 
     /**
     Increment with the last plastic event.
-    This is the output of the last call of minimise_timeactivity().
+    This value is only relevant if `time_activity = true` in minimise().
+    \return Increment.
     */
     size_t quasistaticActivityLast() const
     {
@@ -772,14 +776,15 @@ public:
 
     /**
     Make event driven step.
-    *   `kick = false`: Increment the position of the load-frame and that of the particles to a
+
+    -   `kick = false`: Increment the position of the load-frame and that of the particles to a
         new mechanical equilibrium just before yielding
         (if `direction = 1`, the new position for the particle `p` closest to yielding right is
         `x[p] = y[p] - eps / 2`).
         This assumes incrementing the load-frame infinitely slowly such that,
         in the absence of yielding, the equilibrium configuration for a new position of the load
         frame is knows.
-    *   `kick = true` : Advance the system uniformly
+    -   `kick = true` : Advance the system uniformly
         (the particles and the frame are moved proportionally depending on the relative stiffness)
         such that the particle closest to yielding if brought just past yielding
         (if `direction = 1`, the new position for the particle `p` closest to yielding right is
@@ -871,7 +876,7 @@ public:
     Change the position of the particles and of the loading frame such that
     the mean of f_frame() is equal to a target value, and mechanical equilibrium is maintained.
 
-    \warning Call from a state of mechanical equilibrium. No assertions on this are made.
+    \warning Assumes mechanical equilibrium. No assertions are made on this.
     */
     void advanceToFixedForce(double f_frame)
     {
@@ -991,7 +996,7 @@ protected:
     }
 
     /**
-    Advance the system uniform: the particles and the frame are moved proportionally,
+    Advance the system uniformly: the particles and the frame are moved proportionally,
     while all particles are moved in the same way.
     This maintains equilibrium as long as no particle yields.
     In particular:
