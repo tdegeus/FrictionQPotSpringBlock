@@ -551,93 +551,95 @@ public:
 
     /**
     Make a number of steps with the following protocol.
-    (1) Add a step \f$ v_\text{frame} \Delta t \f$ to the frame.
-    (2) Make a timeStep().
+    1.  Add a step \f$ v_\text{frame} \Delta t \f$ to the frame.
+    2.  Make a timeStep().
+
+    A bounds-check is available:
+
+    -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
+        from the beginning or the end. If that is the case the function returns a negative number.
+
+    -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
+        is assumed infinitely elastic to the right (or left).
 
     \param n Number of steps to make.
     \param v_frame Velocity of the frame.
+    \param nmargin Number of potentials to leave as margin.
+    \return Number of time-steps made (negative if failure).
     */
-    void flowSteps(size_t n, double v_frame)
-    {
-        for (size_t i = 0; i < n; ++i) {
-            m_x_frame += v_frame * m_dt;
-            this->timeStep();
-        }
-    }
-
-    /**
-    \copydoc flowSteps(size_t, double)
-
-    This function stops if the yield-index of any particle is close the end.
-    In that case the function returns zero (in all other cases it returns a positive number).
-
-    \param nmargin
-        Number of potentials to leave as margin.
-    */
-    size_t flowSteps_boundcheck(size_t n, double v_frame, size_t nmargin = 5)
+    long flowSteps(size_t n, double v_frame, size_t nmargin = 1)
     {
         auto nyield = m_y.shape(1);
+        size_t nmax = nyield - nmargin;
+
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
 
-        if (xt::any(m_i > nyield - nmargin)) {
-            return 0;
-        }
+        for (long iiter = 0; iiter < static_cast<long>(n + 1); ++iiter) {
 
-        for (size_t i = 0; i < n; ++i) {
             m_x_frame += v_frame * m_dt;
             this->timeStep();
 
-            if (xt::any(m_i > nyield - nmargin)) {
-                return 0;
+            if (nmargin > 0) {
+                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
+                    return -iiter;
+                }
             }
         }
 
-        return n;
+        return static_cast<long>(n);
     }
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
 
-    A concern is running out-of-bounds in terms of yield positions.
-    Consider setting `nmargin` to your need:
+    A bounds-check is available:
 
-    -   If `nmargin > 0` this function checks, after every time-step, that the yield-positions
-        are not within `nmargin` from running out-of-bounds (for every particle).
-        If that is the case the function stops and
-        returns the number of iterations as a negative number.
-        It is relatively safe to update the chunk of yield-positions and continue the minimisation
-        by recalling this function.
-        If unlucky, this can slightly delay finding equilibrium.
+    -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
+        from the beginning or the end. If that is the case the function returns a negative number.
 
-    -   If `nmargin == 0` there is no protection from running out-of-bounds.
+    -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
+        is assumed infinitely elastic to the right (or left).
 
-    \param nmargin
-        Number of potentials to leave as margin (see above).
-
-    \param tol
-        Relative force tolerance for equilibrium. See residual() for definition.
-
-    \param niter_tol
-        Enforce the residual check for ``niter_tol`` consecutive increments.
-
-    \param max_iter
-        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
-
-    \return
-        The number of iterations.
-        **If a negative number if returned, equilibrium was not reached.**
+    \param nmargin Number of potentials to leave as margin.
+    \param tol Relative force tolerance for equilibrium. See residual() for definition.
+    \param niter_tol Enforce the residual check for ``niter_tol`` consecutive increments.
+    \param max_iter Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+    \return Number of time-steps made (negative if failure).
     */
     long
-    minimise(size_t nmargin = 0, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
+    minimise(size_t nmargin = 1, double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
     {
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
 
-        if (nmargin == 0) {
-            return _minimise_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+        auto nyield = m_y.shape(1);
+        size_t nmax = nyield - nmargin;
+
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
+
+        for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
+
+            this->timeStep();
+
+            residuals.roll_insert(this->residual());
+
+            if (nmargin > 0) {
+                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
+                    return -iiter;
+                }
+            }
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return iiter;
+            }
         }
 
-        return _minimise_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+        throw std::runtime_error("No convergence found");
     }
 
     /**
@@ -652,7 +654,7 @@ public:
         **If a negative number if returned, equilibrium was not reached.**
     */
     long minimise_timeactivity(
-        size_t nmargin = 0,
+        size_t nmargin = 1,
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9)
@@ -660,11 +662,50 @@ public:
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
 
-        if (nmargin == 0) {
-            return _minimise_timeactivity_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+        auto nyield = m_y.shape(1);
+        size_t nmax = nyield - nmargin;
+
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
+
+        auto i_n = m_i;
+        long s = 0;
+        long s_n = 0;
+        bool init = true;
+
+        for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
+
+            this->timeStep();
+
+            s = xt::sum(xt::abs(m_i - i_n))();
+
+            if (s != s_n) {
+                if (init) {
+                    init = false;
+                    m_qs_inc_first = m_inc;
+                }
+                m_qs_inc_last = m_inc;
+            }
+
+            s_n = s;
+
+            residuals.roll_insert(this->residual());
+
+            if (nmargin > 0) {
+                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
+                    return -iiter;
+                }
+            }
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return iiter;
+            }
         }
 
-        return _minimise_timeactivity_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+        throw std::runtime_error("No convergence found");
     }
 
     /**
@@ -686,13 +727,13 @@ public:
     }
 
     /**
-    Same as minimise() but assuming  overdamped dynamics and using the no passing rule.
+    Same as minimise() but assuming overdamped dynamics and using the no passing rule.
 
     \warning
         The increment is not updated as time is not physical. The mass and viscosity are ignored.
     */
     long minimise_nopassing(
-        size_t nmargin = 0,
+        size_t nmargin = 1,
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9)
@@ -700,11 +741,68 @@ public:
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
 
-        if (nmargin == 0) {
-            return _minimise_nopassing_nocheck(tol, niter_tol, static_cast<long>(max_iter));
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        double xneigh;
+        double x;
+        double xmin;
+        long i;
+        long j;
+        auto nyield = m_y.shape(1);
+        size_t nmax = nyield - nmargin;
+
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::any(m_i <= nmax));
+
+        for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
+
+            // "misuse" unused variable
+            xt::noalias(m_v_n) = m_x;
+
+            for (size_t p = 0; p < m_N; ++p) {
+
+                if (p == 0) {
+                    xneigh = m_v_n.back() + m_v_n(1);
+                }
+                else if (p == m_N - 1) {
+                    xneigh = m_v_n(m_N - 2) + m_v_n.front();
+                }
+                else {
+                    xneigh = m_v_n(p - 1) + m_v_n(p + 1);
+                }
+
+                i = m_i(p);
+                auto* y = &m_y(p, 0);
+
+                while (true) {
+                    xmin = 0.5 * (*(y + i) + *(y + i + 1));
+                    x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
+                        (2 * m_k_neighbours + m_k_frame + m_mu);
+                    j = QPot::iterator::lower_bound(y, y + nyield, x, i);
+                    if ((j < nmargin) || (j > nmax)) {
+                        xt::noalias(m_x) = m_v_n;
+                        return -iiter;
+                    }
+                    if (j == i) {
+                        break;
+                    }
+                    i = j;
+                }
+                m_i(p) = j;
+                m_x(p) = x;
+            }
+
+            this->updated_x();
+            residuals.roll_insert(this->residual());
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench(); // no dynamics are run: make sure that the user is not confused
+                return iiter;
+            }
         }
 
-        return _minimise_nopassing_check(nmargin, tol, niter_tol, static_cast<long>(max_iter));
+        throw std::runtime_error("No convergence found");
     }
 
     /**
@@ -815,246 +913,6 @@ public:
         auto i_n = this->i();
         this->advanceUniformly((f_frame - xt::mean(m_f_frame)()) / m_mu, false);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(this->i(), i_n)));
-    }
-
-private:
-    long _minimise_nocheck(double tol, size_t niter_tol, long max_iter)
-    {
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
-
-            this->timeStep();
-            residuals.roll_insert(this->residual());
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
-    }
-
-    long _minimise_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
-    {
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-        auto nyield = m_y.shape(1);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-
-        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
-
-            this->timeStep();
-            residuals.roll_insert(this->residual());
-
-            if (xt::any(m_i < nmargin) || xt::any(m_i > nyield - nmargin)) {
-                return -iiter;
-            }
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
-    }
-
-    long _minimise_timeactivity_nocheck(double tol, size_t niter_tol, long max_iter)
-    {
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        auto i_n = m_i;
-        long s = 0;
-        long s_n = 0;
-        bool init = true;
-
-        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
-
-            this->timeStep();
-
-            s = xt::sum(xt::abs(m_i - i_n))();
-
-            if (s != s_n) {
-                if (init) {
-                    init = false;
-                    m_qs_inc_first = m_inc;
-                }
-                m_qs_inc_last = m_inc;
-            }
-
-            s_n = s;
-
-            residuals.roll_insert(this->residual());
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
-    }
-
-    long _minimise_timeactivity_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
-    {
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        auto i_n = m_i;
-        long s = 0;
-        long s_n = 0;
-        bool init = true;
-        auto nyield = m_y.shape(1);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-
-        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
-
-            this->timeStep();
-
-            s = xt::sum(xt::abs(m_i - i_n))();
-
-            if (s != s_n) {
-                if (init) {
-                    init = false;
-                    m_qs_inc_first = m_inc;
-                }
-                m_qs_inc_last = m_inc;
-            }
-
-            s_n = s;
-
-            residuals.roll_insert(this->residual());
-
-            if (xt::any(m_i < nmargin) || xt::any(m_i > nyield - nmargin)) {
-                return -iiter;
-            }
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
-    }
-
-    long _minimise_nopassing_nocheck(double tol, size_t niter_tol, long max_iter)
-    {
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        double xneigh;
-        double x;
-        double xmin;
-        auto nyield = m_y.shape(1);
-
-        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
-
-            // "misuse" unused variable
-            xt::noalias(m_v_n) = m_x;
-
-            for (size_t p = 0; p < m_N; ++p) {
-                // first assuming the particle is always in its local minimum
-                if (p == 0) {
-                    xneigh = m_v_n.back() + m_v_n(1);
-                }
-                else if (p == m_N - 1) {
-                    xneigh = m_v_n(m_N - 2) + m_v_n.front();
-                }
-                else {
-                    xneigh = m_v_n(p - 1) + m_v_n(p + 1);
-                }
-                auto i = m_i(p);
-                auto* l = &m_y(p, i);
-                auto* y = &m_y(p, 0);
-                while (true) {
-                    xmin = 0.5 * (*(l) + *(l + 1));
-                    x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
-                        (2 * m_k_neighbours + m_k_frame + m_mu);
-                    m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
-                    if (m_i(p) == i) {
-                        break;
-                    }
-                    i = m_i(p);
-                }
-                m_x(p) = x;
-            }
-
-            this->updated_x();
-            residuals.roll_insert(this->residual());
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench(); // no dynamics are run: make sure that the user is not confused
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
-    }
-
-    long _minimise_nopassing_check(size_t nmargin, double tol, size_t niter_tol, long max_iter)
-    {
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        double xneigh;
-        double x;
-        double xmin;
-        long i;
-        auto nyield = m_y.shape(1);
-
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nyield > nmargin);
-
-        for (long iiter = 1; iiter < max_iter + 1; ++iiter) {
-
-            // "misuse" unused variable
-            xt::noalias(m_v_n) = m_x;
-
-            for (size_t p = 0; p < m_N; ++p) {
-                // first assuming the particle is always in its local minimum
-                if (p == 0) {
-                    xneigh = m_v_n.back() + m_v_n(1);
-                }
-                else if (p == m_N - 1) {
-                    xneigh = m_v_n(m_N - 2) + m_v_n.front();
-                }
-                else {
-                    xneigh = m_v_n(p - 1) + m_v_n(p + 1);
-                }
-                i = m_i(p);
-                auto* l = &m_y(p, i);
-                auto* y = &m_y(p, 0);
-                while (true) {
-                    xmin = 0.5 * (*(l) + *(l + 1));
-                    x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
-                        (2 * m_k_neighbours + m_k_frame + m_mu);
-                    m_i(p) = QPot::iterator::lower_bound(y, y + nyield, x, i);
-                    if (static_cast<size_t>(m_i(p)) > nyield - nmargin) {
-                        xt::noalias(m_x) = m_v_n;
-                        return -iiter;
-                    }
-                    if (m_i(p) == i) {
-                        break;
-                    }
-                    i = m_i(p);
-                }
-                m_x(p) = x;
-            }
-
-            this->updated_x();
-            residuals.roll_insert(this->residual());
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench(); // no dynamics are run: make sure that the user is not confused
-                return iiter;
-            }
-        }
-
-        throw std::runtime_error("No convergence found");
     }
 
 protected:
