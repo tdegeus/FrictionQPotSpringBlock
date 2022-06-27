@@ -154,7 +154,7 @@ public:
         double dt,
         const T& x_yield)
     {
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
     }
 
     /**
@@ -1071,9 +1071,9 @@ protected:
         double dt,
         const T& x_yield)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(x_y.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(x_yield.dimension() == 2);
 
-        m_N = x_y.shape(0);
+        m_N = x_yield.shape(0);
         m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
@@ -1092,7 +1092,7 @@ protected:
         m_v_n = xt::zeros<double>({m_N});
         m_a_n = xt::zeros<double>({m_N});
         m_i = xt::zeros<long>({m_N}); // consistent with `lower_bound`
-        m_y = x_y;
+        m_y = x_yield;
 
         this->updated_x();
         this->updated_v();
@@ -1288,7 +1288,7 @@ public:
         double dt,
         const T& x_yield)
     {
-        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_y);
+        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
     }
 
     /**
@@ -1324,15 +1324,16 @@ public:
     template <class T, class U>
     void setRandomForceSequence(const T& f, const U& start_inc)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f, {m_N, s.shape(1) - 1}));
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(s, {m_N, f.shape(1) + 1}));
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::view(s, xt::all(), 0) <= m_inc));
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::view(s, xt::all(), s.shape(1) - 1) > m_inc));
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(s, xt::sort(s, 1))));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f, {m_N, start_inc.shape(1) - 1}));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(start_inc, {m_N, f.shape(1) + 1}));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::view(start_inc, xt::all(), 0) <= m_inc));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(
+            xt::all(xt::view(start_inc, xt::all(), start_inc.shape(1) - 1) > m_inc));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(start_inc, xt::sort(start_inc, 1))));
 
         m_seq = true;
         m_seq_f = f;
-        m_seq_s = s;
+        m_seq_s = start_inc;
         m_seq_i = xt::argmax(m_seq_s >= m_inc, 1);
 
         for (size_t p = 0; p < m_N; ++p) {
@@ -1359,8 +1360,8 @@ protected:
         const T& x_yield)
     {
         m_seq = false;
-        m_f_thermal = xt::zeros<double>({x_y.shape(0)});
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_y);
+        m_f_thermal = xt::zeros<double>({x_yield.shape(0)});
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
     }
 
     /**
