@@ -332,7 +332,6 @@ public:
 
     /**
     Position of each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& x() const
@@ -342,7 +341,6 @@ public:
 
     /**
     Velocity of each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& v() const
@@ -352,7 +350,6 @@ public:
 
     /**
     Acceleration of each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& a() const
@@ -362,7 +359,6 @@ public:
 
     /**
     Resultant force acting on each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& f() const
@@ -372,7 +368,6 @@ public:
 
     /**
     Force associated to potentials acting on each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& f_potential() const
@@ -382,7 +377,6 @@ public:
 
     /**
     Force associated to the load frame acting on each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& f_frame() const
@@ -392,7 +386,6 @@ public:
 
     /**
     Force associated to neighbours acting on each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& f_neighbours() const
@@ -402,7 +395,6 @@ public:
 
     /**
     Force associated to damping on each particle.
-
     \return [#N].
     */
     const array_type::tensor<double, 1>& f_damping() const
@@ -441,7 +433,6 @@ public:
 
     /**
     Residual: the ratio between the norm of #f and #f_frame.
-
     \return double.
     */
     double residual() const
@@ -556,18 +547,22 @@ public:
     1.  Add a step \f$ v_\text{frame} \Delta t \f$ to the frame.
     2.  Make a timeStep().
 
-    A bounds-check is available:
+    \param n
+        Number of steps to make.
 
-    -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
-        from the beginning or the end. If that is the case the function returns a negative number.
+    \param v_frame
+        Velocity of the frame.
 
-    -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
-        is assumed infinitely elastic to the right (or left).
+    \param nmargin
+        Number of potentials to leave as margin.
+        -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
+            from the beginning or the end.
+            If that is the case the function returns a negative number.
+        -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
+            is assumed infinitely elastic to the right (or left).
 
-    \param n Number of steps to make.
-    \param v_frame Velocity of the frame.
-    \param nmargin Number of potentials to leave as margin.
-    \return Number of time-steps made (negative if failure).
+    \return
+        Number of time-steps made (negative if failure).
     */
     long flowSteps(size_t n, double v_frame, size_t nmargin = 1)
     {
@@ -614,7 +609,7 @@ public:
         Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
 
     \param time_activity
-        If `true` plastic activity is timed.    After this function you can find:
+        If `true` plastic activity is timed. After this function you can find:
         -   quasistaticActivityFirst() : Increment with the first plastic event.
         -   quasistaticActivityLast() : Increment with the last plastic event.
 
@@ -677,7 +672,7 @@ public:
 
     /**
     Increment with the first plastic event.
-    This value is only relevant if `time_activity = true` in minimise().
+    This value is only relevant if `time_activity = true` was used in the last call of minimise().
     \return Increment.
     */
     size_t quasistaticActivityFirst() const
@@ -687,7 +682,7 @@ public:
 
     /**
     Increment with the last plastic event.
-    This value is only relevant if `time_activity = true` in minimise().
+    This value is only relevant if `time_activity = true` was used in the last call of minimise().
     \return Increment.
     */
     size_t quasistaticActivityLast() const
