@@ -148,6 +148,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 "timeStepsUntilEvent",
                 &SM::System::timeStepsUntilEvent,
                 "timeStepsUntilEvent",
+                py::arg("nmargin") = 1,
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
                 py::arg("max_iter") = size_t(1e9))
