@@ -503,6 +503,9 @@ public:
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
 
+    \param nmargin
+        Number of potentials to have as margin initially.
+
     \param tol
         Relative force tolerance for equilibrium. See residual() for definition.
 
@@ -516,12 +519,22 @@ public:
         The number of iterations.
         `0` is returned if there was no plastic activity and the residual was reached.
     */
-    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
+    size_t timeStepsUntilEvent(
+        size_t nmargin = 1,
+        double tol = 1e-5,
+        size_t niter_tol = 10,
+        size_t max_iter = 1e9)
     {
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-        double tol2 = tol * tol;
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
 
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+        auto nyield = m_y.shape(1);
+        size_t nmax = nyield - nmargin;
         auto i_n = m_i;
+
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
         for (size_t iiter = 1; iiter < max_iter; ++iiter) {
 
@@ -612,6 +625,9 @@ public:
         If `true` plastic activity is timed. After this function you can find:
         -   quasistaticActivityFirst() : Increment with the first plastic event.
         -   quasistaticActivityLast() : Increment with the last plastic event.
+        Attention: if you are changing the chunk of yield positions during the minimisation you
+        should copy quasistaticActivityFirst() after the first (relevant) call of minimise():
+        each time you call minimise(), quasistaticActivityFirst() is reset.
 
     \return Number of time-steps made (negative if failure).
     */
