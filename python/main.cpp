@@ -169,7 +169,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("tol") = 1e-5,
                 py::arg("niter_tol") = 10,
                 py::arg("max_iter") = size_t(1e9),
-                py::arg("time_activity") = false)
+                py::arg("time_activity") = false,
+                py::arg("max_iter_is_error") = true)
 
             .def(
                 "quasistaticActivityFirst",

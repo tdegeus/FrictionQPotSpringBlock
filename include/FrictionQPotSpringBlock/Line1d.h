@@ -619,7 +619,7 @@ public:
         Enforce the residual check for ``niter_tol`` consecutive increments.
 
     \param max_iter
-        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+        Maximum number of time-steps. Throws ``std::runtime_error`` otherwise.
 
     \param time_activity
         If `true` plastic activity is timed. After this function you can find:
@@ -629,6 +629,10 @@ public:
         should copy quasistaticActivityFirst() after the first (relevant) call of minimise():
         each time you call minimise(), quasistaticActivityFirst() is reset.
 
+    \param max_iter_is_error
+        If `true` an error is thrown when the maximum number of time-steps is reached.
+        If `false` the function simply returns `0`.
+
     \return Number of time-steps made (negative if failure).
     */
     long minimise(
@@ -636,10 +640,11 @@ public:
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9,
-        bool time_activity = false)
+        bool time_activity = false,
+        bool max_iter_is_error = true)
     {
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
@@ -683,7 +688,11 @@ public:
             }
         }
 
-        throw std::runtime_error("No convergence found");
+        if (max_iter_is_error) {
+            throw std::runtime_error("No convergence found");
+        }
+
+        return 0;
     }
 
     /**
@@ -719,7 +728,7 @@ public:
         size_t max_iter = 1e9)
     {
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
