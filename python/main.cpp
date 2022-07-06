@@ -71,6 +71,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             &SM::version_dependencies,
             "Return version information of library and its dependencies.");
 
+        sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
+
         py::class_<SM::System>(sm, "System")
 
             .def(

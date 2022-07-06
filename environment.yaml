@@ -3,13 +3,14 @@ channels:
 dependencies:
 - cmake
 - doxygen
+- gmattensor >0.10.1
 - goosefem
 - ninja
 - numpy
 - pybind11
 - python
-- python-qpot >=0.12.1
 - python-prrng
+- python-qpot >=0.12.1
 - qpot >=0.12.1
 - scikit-build
 - setuptools_scm
