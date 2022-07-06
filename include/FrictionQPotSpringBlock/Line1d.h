@@ -21,6 +21,10 @@ Line in 1d.
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
 
+// clang-format off
+#include <GMatTensor/version.h>
+// clang-format on
+
 namespace FrictionQPotSpringBlock {
 
 /**
@@ -40,41 +44,16 @@ The output is a list of strings, e.g.::
 */
 inline std::vector<std::string> version_dependencies()
 {
-    std::vector<std::string> ret;
+    return GMatTensor::version_dependencies();
+}
 
-    ret.push_back("frictionqpotspringblock=" + version());
-    ret.push_back("goosefem=" + GooseFEM::version());
-    ret.push_back("qpot=" + QPot::version());
-
-    ret.push_back(
-        "xtensor=" + detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MAJOR))) + "." +
-        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_MINOR))) + "." +
-        detail::unquote(std::string(QUOTE(XTENSOR_VERSION_PATCH))));
-
-#ifdef XSIMD_VERSION_MAJOR
-    ret.push_back(
-        "xsimd=" + detail::unquote(std::string(QUOTE(XSIMD_VERSION_MAJOR))) + "." +
-        detail::unquote(std::string(QUOTE(XSIMD_VERSION_MINOR))) + "." +
-        detail::unquote(std::string(QUOTE(XSIMD_VERSION_PATCH))));
-#endif
-
-#ifdef XTL_VERSION_MAJOR
-    ret.push_back(
-        "xtl=" + detail::unquote(std::string(QUOTE(XTL_VERSION_MAJOR))) + "." +
-        detail::unquote(std::string(QUOTE(XTL_VERSION_MINOR))) + "." +
-        detail::unquote(std::string(QUOTE(XTL_VERSION_PATCH))));
-#endif
-
-#if defined(XTENSOR_PYTHON_VERSION_MAJOR)
-    ret.push_back(
-        "xtensor-python=" + detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_MAJOR))) +
-        "." + detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_MINOR))) + "." +
-        detail::unquote(std::string(QUOTE(XTENSOR_PYTHON_VERSION_PATCH))));
-#endif
-
-    std::sort(ret.begin(), ret.end(), std::greater<std::string>());
-
-    return ret;
+/**
+Return information on the compiler, the platform, the C++ standard, and the compilation data.
+\return List of strings.
+*/
+inline std::vector<std::string> version_compiler()
+{
+    return GMatTensor::version_compiler();
 }
 
 /**
