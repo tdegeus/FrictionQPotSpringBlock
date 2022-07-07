@@ -138,7 +138,6 @@ public:
 
     /**
     Number of particles.
-
     \return unsigned int
     */
     size_t N() const
@@ -217,7 +216,6 @@ public:
 
     /**
     Set position of the load frame.
-
     \param arg double.
     */
     void set_x_frame(double arg)
@@ -229,7 +227,6 @@ public:
 
     /**
     Position of the load frame.
-
     \return double
     */
     double x_frame() const
@@ -239,7 +236,6 @@ public:
 
     /**
     Overwrite the chunk of yield positions changes #i.
-
     \param arg Array [#N, n_yield].
     */
     template <class T>
@@ -283,7 +279,6 @@ public:
 
     /**
     Set the acceleration of each particle.
-
     \param arg The particles' accelerations [#N].
     */
     template <class T>
