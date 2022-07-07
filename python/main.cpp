@@ -96,14 +96,14 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def_property_readonly("i", &SM::System::i, "Index: y[:, i] < x <= y[:, i + 1]")
 
             .def_property_readonly(
-                "yieldDistanceRight",
-                &SM::System::yieldDistanceRight,
-                "Convenience function: same as `y[arange(N), i + 1] - x`.")
+                "y_right",
+                &SM::System::y_right,
+                "Convenience function: same as `system.y[arange(system.N), system.i + 1]`.")
 
             .def_property_readonly(
-                "yieldDistanceLeft",
-                &SM::System::yieldDistanceLeft,
-                "Convenience function: same as `x - y[arange(N), i]`.")
+                "y_left",
+                &SM::System::y_left,
+                "Convenience function: same as `system.y[arange(system.N), system.i]`.")
 
             .def_property(
                 "y",

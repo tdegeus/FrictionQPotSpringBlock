@@ -165,34 +165,32 @@ public:
     }
 
     /**
-    Distance to yield to the right of each particle.
-    Convenience function: same as `y[arange(N), i + 1] - x`.
-
+    Closest yield position right of the particle.
+    Convenience function: same as `system.y[np.arange(system.N), system.i + 1]`.
     \return [#N].
     */
-    array_type::tensor<double, 1> yieldDistanceRight() const
+    array_type::tensor<double, 1> y_right() const
     {
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_y(p, m_i(p) + 1) - m_x(p);
+            ret(p) = m_y(p, m_i(p) + 1);
         }
 
         return ret;
     }
 
     /**
-    Distance to yield to the left of each particle.
-    Convenience function: same as `x - y[arange(N), i + 1]`.
-
+    Closest yield position left of the particle.
+    Convenience function: same as `system.y[np.arange(system.N), system.i]`.
     \return [#N].
     */
-    array_type::tensor<double, 1> yieldDistanceLeft() const
+    array_type::tensor<double, 1> y_left() const
     {
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_x(p) - m_y(p, m_i(p));
+            ret(p) = m_y(p, m_i(p));
         }
 
         return ret;
@@ -800,7 +798,7 @@ public:
     double eventDrivenStep(double eps, bool kick, int direction = 1)
     {
         if (direction > 0 && !kick) {
-            double dx = xt::amin(this->yieldDistanceRight())();
+            double dx = xt::amin(this->y_right() - m_x)();
             if (dx < 0.5 * eps) {
                 return 0.0;
             }
@@ -814,7 +812,7 @@ public:
         // direction < 0
 
         if (!kick) {
-            double dx = xt::amin(this->yieldDistanceLeft())();
+            double dx = xt::amin(m_x - this->y_left())();
             if (dx < 0.5 * eps) {
                 return 0.0;
             }
