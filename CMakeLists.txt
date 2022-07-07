@@ -70,11 +70,11 @@ if(NOT SKBUILD)
 
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
 
-    configure_file("include/${PROJECT_NAME}/version.h"
-                   "${CMAKE_CURRENT_BINARY_DIR}/version.h"
+    configure_file("include/${PROJECT_NAME}/config.h"
+                   "${CMAKE_CURRENT_BINARY_DIR}/config.h"
                     @ONLY)
 
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/version.h"
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/config.h"
             DESTINATION "include/${PROJECT_NAME}/")
 
     install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-targets)
