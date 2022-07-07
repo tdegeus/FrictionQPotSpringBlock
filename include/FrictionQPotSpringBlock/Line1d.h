@@ -9,6 +9,10 @@ Line in 1d.
 #ifndef FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 #define FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
 
+#include <string>
+
+#include <xtensor/xnorm.hpp>
+#include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
 
 #include "config.h"
@@ -16,14 +20,10 @@ Line in 1d.
 
 #include <GooseFEM/Iterate.h>
 #include <GooseFEM/version.h>
-#include <QPot.h>
-#include <string>
-#include <xtensor/xnorm.hpp>
-#include <xtensor/xshape.hpp>
 
-// clang-format off
+#include <QPot.h>
+
 #include <GMatTensor/version.h>
-// clang-format on
 
 namespace FrictionQPotSpringBlock {
 
