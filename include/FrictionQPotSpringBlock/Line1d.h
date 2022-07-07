@@ -16,11 +16,9 @@ Line in 1d.
 #include <xtensor/xtensor.hpp>
 
 #include "config.h"
-#include "version.h"
 
 #include <GooseFEM/Iterate.h>
 #include <GooseFEM/version.h>
-
 #include <QPot.h>
 
 #include <GMatTensor/version.h>

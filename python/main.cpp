@@ -16,7 +16,6 @@ Python API
 
 #define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
 #include <FrictionQPotSpringBlock/Line1d.h>
-#include <FrictionQPotSpringBlock/version.h>
 
 namespace py = pybind11;
 
