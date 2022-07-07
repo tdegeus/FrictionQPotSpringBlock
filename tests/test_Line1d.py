@@ -267,12 +267,9 @@ class Test_Line1d_System(unittest.TestCase):
 
             self.assertTrue(np.all(system.i + istart == j))
             self.assertTrue(np.allclose(system.y[r, system.i], yref[r, j]))
+            self.assertTrue(np.allclose(system.y[r, system.i], system.y_left))
             self.assertTrue(np.allclose(system.y[r, system.i + 1], yref[r, j + 1]))
-
-            xl = system.yieldDistanceLeft
-            xr = system.yieldDistanceRight
-            self.assertTrue(np.allclose(system.y[r, system.i + 1] - system.x, xr))
-            self.assertTrue(np.allclose(system.x - system.y[r, system.i], xl))
+            self.assertTrue(np.allclose(system.y[r, system.i + 1], system.y_right))
 
 
 if __name__ == "__main__":
