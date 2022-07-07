@@ -209,13 +209,6 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("direction") = 1)
 
             .def(
-                "triggerWeakest",
-                &SM::System::triggerWeakest,
-                "triggerWeakest",
-                py::arg("eps"),
-                py::arg("direction") = 1)
-
-            .def(
                 "advanceToFixedForce",
                 &SM::System::advanceToFixedForce,
                 "advanceToFixedForce",

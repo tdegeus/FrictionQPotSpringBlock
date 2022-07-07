@@ -170,32 +170,6 @@ class Test_Line1d_System(unittest.TestCase):
         x[0] = 0.5 + 0.1
         self.assertTrue(np.allclose(system.x, x))
 
-    def test_triggerWeakest(self):
-
-        N = 3
-        y = np.ones((N, 100))
-        y[:, 0] = -48.5
-        y = np.cumsum(y, axis=1)
-
-        system = FrictionQPotSpringBlock.Line1d.System(
-            m=1.0,
-            eta=1.0,
-            mu=1.0,
-            k_neighbours=1.0,
-            k_frame=0.1,
-            dt=1.0,
-            x_yield=y,
-        )
-
-        x = np.zeros(N)
-        x[0] = 0.5 - 0.1
-        system.x = x
-
-        system.triggerWeakest(0.2)
-
-        x[0] = 0.5 + 0.1
-        self.assertTrue(np.allclose(system.x, x))
-
     def test_advanceToFixedForce(self):
 
         N = 3
