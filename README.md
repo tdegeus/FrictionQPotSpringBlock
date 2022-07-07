@@ -1,7 +1,6 @@
 # FrictionQPotSpringBlock
 
-[![CI • Python](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-python.yml/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-python.yml)
-[![CI • C++](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-cpp.yml/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci-cpp.yml)
+[![CI](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci.yml/badge.svg)](https://github.com/tdegeus/FrictionQPotSpringBlock/actions/workflows/ci.yml)
 [![Doxygen -> gh-pages](https://github.com/tdegeus/FrictionQPotSpringBlock/workflows/gh-pages/badge.svg)](https://tdegeus.github.io/FrictionQPotSpringBlock)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/frictionqpotspringblock.svg)](https://anaconda.org/conda-forge/frictionqpotspringblock)
 
