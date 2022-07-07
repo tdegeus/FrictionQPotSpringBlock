@@ -12,7 +12,7 @@ Python API
 
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
-#include <xtensor-python/xtensor_python_config.hpp>
+#include <xtensor-python/xtensor_python_config.hpp> // todo: remove for xtensor-python >0.26.1
 
 #define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
 #include <FrictionQPotSpringBlock/Line1d.h>

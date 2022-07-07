@@ -15,6 +15,16 @@ class Test_Line1d_System(unittest.TestCase):
     Test Line1d.System
     """
 
+    def test_version_dependencies(self):
+
+        deps = FrictionQPotSpringBlock.Line1d.version_dependencies()
+        deps = [i.split("=")[0] for i in deps]
+
+        self.assertTrue("qpot" in deps)
+        self.assertTrue("xtensor" in deps)
+        self.assertTrue("xtensor-python" in deps)
+        self.assertTrue("xtl" in deps)
+
     def test_forces(self):
 
         N = 5
