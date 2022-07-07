@@ -846,30 +846,6 @@ public:
     }
 
     /**
-    Trigger the closest point to yielding right or left, see trigger().
-
-    \param eps Margin.
-    \param direction If ``+1``: move right. If ``-1`` move left.
-    \return The index of the triggered particle.
-    */
-    size_t triggerWeakest(double eps, int direction = 1)
-    {
-        size_t p;
-
-        if (direction > 0) {
-            auto v = this->yieldDistanceRight();
-            p = std::distance(v.begin(), std::min_element(v.begin(), v.end()));
-        }
-        else {
-            auto v = this->yieldDistanceLeft();
-            p = std::distance(v.begin(), std::min_element(v.begin(), v.end()));
-        }
-
-        this->trigger(p, eps, direction);
-        return p;
-    }
-
-    /**
     Change the position of the particles and of the loading frame such that
     the mean of f_frame() is equal to a target value, and mechanical equilibrium is maintained.
 
