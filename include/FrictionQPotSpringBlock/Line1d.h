@@ -1145,11 +1145,9 @@ public:
     }
 
 protected:
-    // clang-format off
     /**
     \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&)
     */
-    // clang-format on
     template <class T>
     void initSystemThermalRandomForcing(
         double m,
