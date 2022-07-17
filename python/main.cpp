@@ -95,12 +95,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def_property_readonly("N", &SM::System::N, "Number of particles")
             .def_property_readonly("i", &SM::System::i, "Index: y[:, i] < x <= y[:, i + 1]")
 
-            .def_property_readonly(
+            .def(
                 "y_right",
                 &SM::System::y_right,
                 "Convenience function: same as `system.y[arange(system.N), system.i + 1]`.")
 
-            .def_property_readonly(
+            .def(
                 "y_left",
                 &SM::System::y_left,
                 "Convenience function: same as `system.y[arange(system.N), system.i]`.")
@@ -137,8 +137,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def_property_readonly("f_frame", &SM::System::f_frame, "Frame forces")
             .def_property_readonly("f_neighbours", &SM::System::f_neighbours, "Interaction forces")
             .def_property_readonly("f_damping", &SM::System::f_damping, "Particle damping forces")
-            .def_property_readonly("temperature", &SM::System::temperature, "Temperature")
-            .def_property_readonly("residual", &SM::System::residual, "Residual")
+            .def("temperature", &SM::System::temperature, "Temperature")
+            .def("residual", &SM::System::residual, "Residual")
 
             .def("refresh", &SM::System::refresh, "refresh")
             .def("quench", &SM::System::quench, "quench")

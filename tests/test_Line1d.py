@@ -5,7 +5,7 @@ import unittest
 import FrictionQPotSpringBlock
 import numpy as np
 import prrng
-import QPot  # noqa:
+import QPot
 
 faulthandler.enable()
 
@@ -47,7 +47,7 @@ class Test_Line1d_System(unittest.TestCase):
             x_yield=y,
         )
 
-        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(system.residual() < 1e-5)
         self.assertTrue(np.allclose(system.f, 0.0))
         self.assertTrue(np.allclose(system.f_potential, 0.0))
         self.assertTrue(np.allclose(system.f_frame, 0.0))
@@ -120,11 +120,11 @@ class Test_Line1d_System(unittest.TestCase):
             x_yield=y,
         )
 
-        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(system.residual() < 1e-5)
 
         i_n = np.copy(system.i)
         system.eventDrivenStep(0.2, False)
-        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(system.residual() < 1e-5)
         self.assertTrue(np.allclose(system.x, (0.5 - 0.1) * np.ones(N)))
         self.assertTrue(np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
@@ -187,12 +187,12 @@ class Test_Line1d_System(unittest.TestCase):
             x_yield=y,
         )
 
-        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(system.residual() < 1e-5)
         system.advanceToFixedForce(0.1)
         self.assertTrue(np.isclose(np.mean(system.f_frame), 0.1))
-        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(system.residual() < 1e-5)
 
-        self.assertTrue(system.residual < 1e-5)
+        self.assertTrue(system.residual() < 1e-5)
         system.advanceToFixedForce(0.0)
         self.assertTrue(np.isclose(np.mean(system.f_frame), 0.0))
         self.assertTrue(np.allclose(system.x, 0.0))
@@ -267,9 +267,9 @@ class Test_Line1d_System(unittest.TestCase):
 
             self.assertTrue(np.all(system.i + istart == j))
             self.assertTrue(np.allclose(system.y[r, system.i], yref[r, j]))
-            self.assertTrue(np.allclose(system.y[r, system.i], system.y_left))
+            self.assertTrue(np.allclose(system.y[r, system.i], system.y_left()))
             self.assertTrue(np.allclose(system.y[r, system.i + 1], yref[r, j + 1]))
-            self.assertTrue(np.allclose(system.y[r, system.i + 1], system.y_right))
+            self.assertTrue(np.allclose(system.y[r, system.i + 1], system.y_right()))
 
 
 if __name__ == "__main__":
