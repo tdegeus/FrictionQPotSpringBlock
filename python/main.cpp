@@ -143,7 +143,13 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def("refresh", &SM::System::refresh, "refresh")
             .def("quench", &SM::System::quench, "quench")
             .def("timeStep", &SM::System::timeStep, "timeStep")
-            .def("timeSteps", &SM::System::timeSteps, "timeSteps", py::arg("n"))
+
+            .def(
+                "timeSteps",
+                &SM::System::timeSteps,
+                "timeSteps",
+                py::arg("n"),
+                py::arg("nmargin") = 1)
 
             .def(
                 "timeStepsUntilEvent",
