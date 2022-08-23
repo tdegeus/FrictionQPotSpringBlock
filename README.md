@@ -48,6 +48,30 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.16.0
+
+### API Changes
+
+*   [BREAKING CHANGE] `minimise_nopassing`: unifying return
+*   [BREAKING CHANGE] `minimise`: changing the return value
+*   [BREAKING CHANGE] `timeStepsUntilEvent`: no throw if convergence was not reached
+*   [BREAKING CHANGE] `timeSteps`: adding `nmargin` option (note that the default of 1 implies the breaking change)
+*   [BREAKING CHANGE] [Python] To guide the user: use functions instead of properties when a computation is involved
+*   [BREAKING CHANGE] Removing: `yieldDistanceRight` / `yieldDistanceLeft`. Adding: `y_right` / `y_left`
+*   [BREAKING CHANGE] Removing: `triggerWeakest`
+
+### Bug Fixes
+
+*   `set_t`: ensure proper round
+
+### Internal Changes
+
+*   Internal code-style updates
+*   Fixing typo in CMakeLists
+*   [docs] Readme: fixing minor typos
+*   Merging "version.h" in "config.h"
+*   Adding version test
+
 ## v0.13.0
 
 ### API Changes
