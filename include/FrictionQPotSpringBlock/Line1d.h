@@ -560,37 +560,38 @@ public:
 
     \param nmargin
         Number of potentials to leave as margin.
-        -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
-            from the beginning or the end.
-            If that is the case the function returns a negative number.
-        -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
-            is assumed infinitely elastic to the right (or left).
+        -   `nmargin > 0`: stop if the yield-index of any particle is `nmargin` from the start/end
+            and return a negative number.
+        -   `nmargin == 0`: no bounds-check is performed and the first (last) potential
+            is assumed infinitely elastic to the right (left).
 
     \return
         Number of time-steps made (negative if failure).
     */
     long flowSteps(size_t n, double v_frame, size_t nmargin = 1)
     {
-        auto nyield = m_y.shape(1);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(n + 1 < std::numeric_limits<long>::max());
+
+        size_t nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
+        long step;
 
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
-        for (long iiter = 1; iiter < static_cast<long>(n + 1); ++iiter) {
+        for (step = 1; step < static_cast<long>(n + 1); ++step) {
 
             m_x_frame += v_frame * m_dt;
-
             this->timeStep();
 
             if (nmargin > 0) {
                 if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
-                    return -iiter;
+                    return -step;
                 }
             }
         }
 
-        return static_cast<long>(n);
+        return step;
     }
 
     /**
