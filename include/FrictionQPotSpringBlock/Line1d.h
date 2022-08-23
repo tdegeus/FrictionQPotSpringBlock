@@ -783,7 +783,7 @@ public:
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
                 this->quench(); // no dynamics are run: make sure that the user is not confused
-                return step;
+                return 0;
             }
         }
 
