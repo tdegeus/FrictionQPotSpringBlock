@@ -35,36 +35,37 @@ system = model.System(
     x_yield=y,
 )
 
-ninc = 1000
-ret_x_frame = np.empty([ninc], dtype=float)
-ret_f_frame = np.empty([ninc], dtype=float)
-ret_S = np.empty([ninc], dtype=int)
+nstep = 1000
+ret_x_frame = np.empty([nstep], dtype=float)
+ret_f_frame = np.empty([nstep], dtype=float)
+ret_S = np.empty([nstep], dtype=int)
 
-pbar = tqdm.tqdm(total=ninc)
+pbar = tqdm.tqdm(total=nstep)
 
-for inc in range(ninc):
+for step in range(nstep):
 
     # Extract output data.
     i_n = np.copy(system.i)
 
     # Apply event-driven protocol.
-    if inc == 0:
+    if step == 0:
         system.x_frame = 0.0  # initial quench
     else:
-        system.eventDrivenStep(xdelta, inc % 2 == 0)  # normal event driven step
+        system.eventDrivenStep(xdelta, step % 2 == 0)  # normal event driven step
 
     # Minimise energy.
-    if inc % 2 == 0:
-        niter = system.minimise(nmargin=5)
-        assert niter > 0
-        pbar.n = inc
-        pbar.set_description(f"inc = {inc:4d}, niter = {niter:8d}")
+    if step % 2 == 0:
+        inc_n = system.inc
+        ret = system.minimise(nmargin=5)
+        assert ret == 0
+        pbar.n = step
+        pbar.set_description(f"step = {step:4d}, niter = {system.inc - inc_n:8d}")
         pbar.refresh()
 
     # Extract output data.
-    ret_x_frame[inc] = system.x_frame
-    ret_f_frame[inc] = np.mean(system.f_frame)
-    ret_S[inc] = np.sum(system.i - i_n)
+    ret_x_frame[step] = system.x_frame
+    ret_f_frame[step] = np.mean(system.f_frame)
+    ret_S[step] = np.sum(system.i - i_n)
 
 with h5py.File(os.path.join(os.path.dirname(__file__), "QuasiStatic.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])
