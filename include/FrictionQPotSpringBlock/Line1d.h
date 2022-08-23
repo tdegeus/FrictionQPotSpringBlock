@@ -461,13 +461,40 @@ public:
 
     /**
     Make a number of time steps, see timeStep().
+
     \param n Number of steps to make.
+
+    \param nmargin
+        Number of potentials to leave as margin.
+        -   `nmargin > 0`: stop if the yield-index of any particle is `nmargin` from the start/end
+            and return a negative number.
+        -   `nmargin == 0`: no bounds-check is performed and the first (last) potential
+            is assumed infinitely elastic to the right (left).
+
+    \return
+        -   Number of steps: `== n`.
+        -   Negative number: if stopped because of a yield-index margin.
     */
-    void timeSteps(size_t n)
+    long timeSteps(size_t n, size_t nmargin = 1)
     {
-        for (size_t i = 0; i < n; ++i) {
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(n + 1 < std::numeric_limits<long>::max());
+
+        size_t nyield = m_y.shape(1);
+        size_t nmax = nyield - nmargin;
+        long step;
+
+        for (step = 1; step < static_cast<long>(n + 1); ++step) {
+
             this->timeStep();
+
+            if (nmargin > 0) {
+                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
+                    return -step;
+                }
+            }
         }
+
+        return step;
     }
 
     /**
