@@ -723,8 +723,8 @@ public:
         size_t niter_tol = 10,
         size_t max_iter = 1e9)
     {
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter + 1 < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
@@ -734,13 +734,13 @@ public:
         double xmin;
         long i;
         long j;
-        auto nyield = m_y.shape(1);
+        size_t nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
 
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
-        for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
+        for (long step = 1; step < static_cast<long>(max_iter + 1); ++step) {
 
             // "misuse" unused variable
             xt::noalias(m_v_n) = m_x;
@@ -767,7 +767,7 @@ public:
                     j = QPot::iterator::lower_bound(y, y + nyield, x, i);
                     if ((j < nmargin) || (j > nmax)) {
                         xt::noalias(m_x) = m_v_n;
-                        return -iiter;
+                        return -step;
                     }
                     if (j == i) {
                         break;
@@ -783,7 +783,7 @@ public:
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
                 this->quench(); // no dynamics are run: make sure that the user is not confused
-                return iiter;
+                return step;
             }
         }
 
@@ -810,10 +810,10 @@ public:
         Margin to keep to the position to the closest yield position.
 
     \param kick
-        If ``false``, the increment is elastic (no minimisation has to be applied after).
-        If ``true``, the increment leads to a state out of mechanical equilibrium.
+        If `false`, the increment is elastic (no minimisation has to be applied after).
+        If `true`, the increment leads to a state out of mechanical equilibrium.
 
-    \param direction If ``+1``: move right. If ``-1`` move left.
+    \param direction If `+1`: move right. If `-1` move left.
     \return Position increment of the frame.
     */
     double eventDrivenStep(double eps, bool kick, int direction = 1)
@@ -850,7 +850,7 @@ public:
 
     \param p Particle index.
     \param eps Margin.
-    \param direction If ``+1``: move right. If ``-1`` move left.
+    \param direction If `+1`: move right. If `-1` move left.
     */
     void trigger(size_t p, double eps, int direction = 1)
     {
