@@ -500,21 +500,14 @@ public:
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
 
-    \param nmargin
-        Number of potentials to have as margin initially.
-
-    \param tol
-        Relative force tolerance for equilibrium. See residual() for definition.
-
-    \param niter_tol
-        Enforce the residual check for ``niter_tol`` consecutive increments.
-
-    \param max_iter
-        Maximum number of iterations. Throws ``std::runtime_error`` otherwise.
+    \param nmargin Number of potentials to have as margin **initially**.
+    \param tol Relative force tolerance for equilibrium. See residual() for definition.
+    \param niter_tol Enforce the residual check for `niter_tol` consecutive increments.
+    \param max_iter Maximum number of iterations. Throws `std::runtime_error` otherwise.
 
     \return
-        The number of iterations.
-        `0` is returned if there was no plastic activity and the residual was reached.
+        -   Number of steps.
+        -   `0` if there was no plastic activity and the residual was reached.
     */
     size_t timeStepsUntilEvent(
         size_t nmargin = 1,
@@ -522,23 +515,25 @@ public:
         size_t niter_tol = 10,
         size_t max_iter = 1e9)
     {
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
-        auto nyield = m_y.shape(1);
+        size_t nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
         auto i_n = m_i;
+        size_t step;
 
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
-        for (size_t iiter = 1; iiter < max_iter; ++iiter) {
+        for (step = 1; step < max_iter + 1; ++step) {
 
             this->timeStep();
 
             if (xt::any(xt::not_equal(m_i, i_n))) {
-                return iiter;
+                return step;
             }
 
             residuals.roll_insert(this->residual());
@@ -549,7 +544,7 @@ public:
             }
         }
 
-        throw std::runtime_error("No convergence found");
+        return step;
     }
 
     /**
