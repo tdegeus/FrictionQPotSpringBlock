@@ -599,20 +599,19 @@ public:
 
     \param nmargin
         Number of potentials to leave as margin.
-        -   If `nmargin > 0` this function stops if the yield-index of any particle is `nmargin`
-            from the beginning or the end.
-            If that is the case the function returns a negative number.
-        -   If `nmargin == 0` not bounds-check is performed and the first (or the last) potential
-            is assumed infinitely elastic to the right (or left).
+        -   `nmargin > 0`: stop if the yield-index of any particle is `nmargin` from the start/end
+            and return a negative number.
+        -   `nmargin == 0`: no bounds-check is performed and the first (last) potential
+            is assumed infinitely elastic to the right (left).
 
     \param tol
         Relative force tolerance for equilibrium. See residual() for definition.
 
     \param niter_tol
-        Enforce the residual check for ``niter_tol`` consecutive increments.
+        Enforce the residual check for `niter_tol` consecutive increments.
 
     \param max_iter
-        Maximum number of time-steps. Throws ``std::runtime_error`` otherwise.
+        Maximum number of time-steps. Throws `std::runtime_error` otherwise.
 
     \param time_activity
         If `true` plastic activity is timed. After this function you can find:
@@ -624,9 +623,12 @@ public:
 
     \param max_iter_is_error
         If `true` an error is thrown when the maximum number of time-steps is reached.
-        If `false` the function simply returns `0`.
+        If `false` the function simply returns `max_iter`.
 
-    \return Number of time-steps made (negative if failure).
+    \return
+        -   `0`: if stopped when the residual is reached (and number of steps `< max_iter`).
+        -   `max_iter`: if no residual was reached, and `max_iter_is_error = false`.
+        -   Negative number: if stopped because of a yield-index margin.
     */
     long minimise(
         size_t nmargin = 1,
@@ -636,30 +638,31 @@ public:
         bool time_activity = false,
         bool max_iter_is_error = true)
     {
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(tol < 1.0);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(max_iter + 1 < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
-        auto nyield = m_y.shape(1);
+
+        size_t nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
         auto i_n = m_i;
         long s = 0;
         long s_n = 0;
         bool init = true;
+        long step;
 
         FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
-        for (long iiter = 1; iiter < static_cast<long>(max_iter + 1); ++iiter) {
+        for (step = 1; step < static_cast<long>(max_iter + 1); ++step) {
 
             this->timeStep();
-
             residuals.roll_insert(this->residual());
 
             if (nmargin > 0) {
                 if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
-                    return -iiter;
+                    return -step;
                 }
             }
 
@@ -677,7 +680,7 @@ public:
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
                 this->quench();
-                return iiter;
+                return 0;
             }
         }
 
@@ -685,7 +688,7 @@ public:
             throw std::runtime_error("No convergence found");
         }
 
-        return 0;
+        return step;
     }
 
     /**
