@@ -71,7 +71,7 @@ for iout in tqdm.tqdm(range(nout)):
 
     ret_x_frame[iout] = system.x_frame
     ret_f_frame[iout] = np.mean(system.f_frame)
-    ret_t_insta[iout] = system.temperature
+    ret_t_insta[iout] = system.temperature()
 
 with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])
