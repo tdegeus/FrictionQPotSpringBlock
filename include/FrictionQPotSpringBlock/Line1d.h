@@ -416,6 +416,14 @@ public:
     }
 
     /**
+    Return the last list of residuals (use e.g. `system.risiduals.data`).
+    */
+    const GooseFEM::Iterate::StopList& residuals() const
+    {
+        return m_residuals;
+    }
+
+    /**
     Set #v and #a equal to zero.
     Call this function after an energy minimisation (taken care of in minimise()).
     */
@@ -519,7 +527,7 @@ public:
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
+        m_residuals.reset(niter_tol);
         size_t nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
         auto i_n = m_i;
@@ -536,9 +544,10 @@ public:
                 return step;
             }
 
-            residuals.roll_insert(this->residual());
+            m_residuals.roll_insert(this->residual());
 
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            if ((m_residuals.descending() && m_residuals.all_less(tol)) ||
+                m_residuals.all_less(tol2)) {
                 this->quench();
                 return 0;
             }
@@ -642,7 +651,7 @@ public:
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
+        m_residuals.reset(niter_tol);
 
         size_t nyield = m_y.shape(1);
         size_t nmax = nyield - nmargin;
@@ -658,7 +667,7 @@ public:
         for (step = 1; step < static_cast<long>(max_iter + 1); ++step) {
 
             this->timeStep();
-            residuals.roll_insert(this->residual());
+            m_residuals.roll_insert(this->residual());
 
             if (nmargin > 0) {
                 if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
@@ -678,7 +687,8 @@ public:
                 s_n = s;
             }
 
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            if ((m_residuals.descending() && m_residuals.all_less(tol)) ||
+                m_residuals.all_less(tol2)) {
                 this->quench();
                 return 0;
             }
@@ -727,7 +737,7 @@ public:
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
+        m_residuals.reset(niter_tol);
 
         double xneigh;
         double x;
@@ -779,9 +789,10 @@ public:
             }
 
             this->updated_x();
-            residuals.roll_insert(this->residual());
+            m_residuals.roll_insert(this->residual());
 
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+            if ((m_residuals.descending() && m_residuals.all_less(tol)) ||
+                m_residuals.all_less(tol2)) {
                 this->quench(); // no dynamics are run: make sure that the user is not confused
                 return 0;
             }
@@ -1063,6 +1074,7 @@ protected:
     double m_k_neighbours; ///< Stiffness of interactions (same for all particles).
     double m_k_frame; ///< Stiffness of the load fame (same for all particles).
     double m_x_frame = 0.0; ///< See #set_x_frame.
+    GooseFEM::Iterate::StopList m_residuals; ///< List of residuals of the last minimisation.
 };
 
 /**
