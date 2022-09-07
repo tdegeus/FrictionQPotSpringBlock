@@ -244,6 +244,7 @@ public:
         FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.dimension() == 2);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.shape(0) == m_N);
         xt::noalias(m_y) = arg;
+        this->updated_y();
         this->updated_x();
     }
 
@@ -914,6 +915,7 @@ protected:
         m_i = xt::zeros<long>({m_N}); // consistent with `lower_bound`
         m_y = x_yield;
 
+        this->updated_y();
         this->updated_x();
         this->updated_v();
     }
@@ -929,9 +931,10 @@ protected:
     /**
     Compute #f_potential based on the current #x.
     */
-    void computeForcePotential()
+    virtual void computeForcePotential()
     {
         QPot::inplace::lower_bound(m_y, m_x, m_i);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::all(m_i < m_y.shape(1) - 1));
 
         for (size_t p = 0; p < m_N; ++p) {
             auto* l = &m_y(p, m_i(p));
@@ -965,6 +968,13 @@ protected:
     void computeForceDamping()
     {
         xt::noalias(m_f_damping) = -m_eta * m_v;
+    }
+
+    /**
+    Update variables if #m_y has been updated.
+    */
+    virtual void updated_y()
+    {
     }
 
     /**
@@ -1212,6 +1222,128 @@ protected:
     array_type::tensor<size_t, 2> m_seq_s; ///< Start/end increment of each item in the sequence.
     array_type::tensor<size_t, 1> m_seq_i; ///< Current column in #m_seq_f for each particle.
     array_type::tensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
+};
+
+/**
+## Introduction
+
+Identical to System() but with piece-wise continuous forces.
+
+## Internal strategy
+
+To avoid code duplication this class derives from System().
+To ensure the correct physics computeForcePotential() is overridden.
+*/
+class SystemSemiSmooth : public System {
+public:
+    SystemSemiSmooth() = default;
+
+    /**
+    \copydoc System(double, double, double, double, double, double, const T&)
+    \param kappa Softening stiffness.
+    */
+    template <class T>
+    SystemSemiSmooth(
+        double m,
+        double eta,
+        double mu,
+        double kappa,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield)
+    {
+        m_kappa = kappa;
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+    }
+
+protected:
+    void updated_y() override
+    {
+        m_l = xt::empty_like(m_y);
+        m_u = xt::empty_like(m_y);
+
+        for (size_t p = 0; p < m_N; ++p) {
+            for (size_t j = 0; j < m_y.shape(1) - 1; ++j) {
+                auto* y = &m_y(p, j);
+                double xi = 0.5 * (*(y) + *(y + 1));
+                m_u(p, j) = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
+                m_l(p, j) = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
+            }
+        }
+    }
+
+    void computeForcePotential() override
+    {
+        QPot::inplace::lower_bound(m_y, m_x, m_i);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::all(m_i < m_y.shape(0) - 2));
+
+        for (size_t p = 0; p < m_N; ++p) {
+
+            auto* y = &m_y(p, m_i(p));
+            double x = m_x(p);
+            if (x < m_l(p, m_i(p))) {
+                m_f_potential(p) = m_kappa * (x - *(y));
+            }
+            else if (x <= m_u(p, m_i(p))) {
+                m_f_potential(p) = m_mu * (0.5 * (*(y) + *(y + 1)) - x);
+            }
+            else {
+                m_f_potential(p) = m_kappa * (x - *(y + 1));
+            }
+        }
+    }
+
+protected:
+    double m_kappa; ///< Softening stiffness.
+    array_type::tensor<double, 2> m_l; ///< Support variable for weakening.
+    array_type::tensor<double, 2> m_u; ///< Support variable for weakening.
+};
+
+/**
+## Introduction
+
+Identical to System() but with continuous and smooth forces.
+
+## Internal strategy
+
+To avoid code duplication this class derives from System().
+To ensure the correct physics computeForcePotential() is overridden.
+*/
+class SystemSmooth : public System {
+public:
+    SystemSmooth() = default;
+
+    /**
+    \copydoc System(double, double, double, double, double, double, const T&)
+    */
+    template <class T>
+    SystemSmooth(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        const T& x_yield)
+    {
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+    }
+
+protected:
+    void computeForcePotential() override
+    {
+        QPot::inplace::lower_bound(m_y, m_x, m_i);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::all(m_i < m_y.shape(1) - 1));
+
+        for (size_t p = 0; p < m_N; ++p) {
+            auto* y = &m_y(p, m_i(p));
+            double x = m_x(p);
+            double xmin = 0.5 * (*(y) + *(y + 1));
+            double dy = 0.5 * (*(y + 1) - *(y));
+            m_f_potential(p) = -m_mu * dy / M_PI * std::sin(M_PI * (x - xmin) / dy);
+        }
+    }
 };
 
 } // namespace Line1d
