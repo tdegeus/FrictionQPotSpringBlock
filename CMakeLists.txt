@@ -182,16 +182,12 @@ if(BUILD_DOCS OR BUILD_ALL)
     set(DOXYGEN_SOURCE_BROWSER YES)
     set(DOXYGEN_QUIET YES)
     set(DOXYGEN_WARN_IF_UNDOCUMENTED YES)
-    set(DOXYGEN_WARN_AS_ERROR YES)
+    set(DOXYGEN_WARN_AS_ERROR NO)
+    set(DOXYGEN_HTML_COLORSTYLE TOGGLE)
+    set(DOXYGEN_WARN_LOGFILE "${CMAKE_CURRENT_BINARY_DIR}/doxygen_warnings.log")
     set(DOXYGEN_ALIASES "license=@par License:")
-
-    set(DOXYGEN_HTML_EXTRA_STYLESHEET
-        "${CMAKE_CURRENT_SOURCE_DIR}/docs/doxystyle/doxygen-awesome.css"
-        "${CMAKE_CURRENT_SOURCE_DIR}/docs/doxystyle/custom.css")
-
     set(DOXYGEN_STRIP_FROM_INC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include")
     set(DOXYGEN_STRIP_FROM_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
     doxygen_add_docs(html "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 endif()
