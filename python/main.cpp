@@ -139,6 +139,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             .def_property_readonly("f_damping", &SM::System::f_damping, "Particle damping forces")
             .def("temperature", &SM::System::temperature, "Temperature")
             .def("residual", &SM::System::residual, "Residual")
+            .def_property_readonly("residuals", &SM::System::residuals, "Last residuals")
 
             .def("refresh", &SM::System::refresh, "refresh")
             .def("quench", &SM::System::quench, "quench")
