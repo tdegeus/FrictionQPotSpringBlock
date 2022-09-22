@@ -48,6 +48,11 @@ python -m pip install . -vv
 
 # Change-log
 
+## v0.17.0
+
+*   Adding smooth and semi-smooth potentials
+*   [docs] Using default doxygen theme
+
 ## v0.16.0
 
 ### API Changes
