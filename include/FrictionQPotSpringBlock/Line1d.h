@@ -212,6 +212,8 @@ public:
     void set_inc(size_t arg)
     {
         m_inc = arg;
+        m_qs_inc_first = arg;
+        m_qs_inc_last = arg;
     }
 
     /**
