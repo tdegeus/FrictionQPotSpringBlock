@@ -44,7 +44,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=k_neighbours,
             k_frame=k_frame,
             dt=1.0,
-            x_yield=y,
+            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -117,34 +117,34 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            x_yield=y,
+            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
         )
 
         self.assertTrue(system.residual() < 1e-5)
 
-        i_n = np.copy(system.i)
+        i_n = system.i()
         system.eventDrivenStep(0.2, False)
         self.assertTrue(system.residual() < 1e-5)
         self.assertTrue(np.allclose(system.x, (0.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(system.i == i_n))
+        self.assertTrue(np.all(system.i() == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = np.copy(system.i)
+        i_n = system.i()
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.x, (0.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(system.i == i_n))
+        self.assertTrue(not np.all(system.i() == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = np.copy(system.i)
+        i_n = system.i()
         system.eventDrivenStep(0.2, False)
         self.assertTrue(np.allclose(system.x, (1.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(system.i == i_n))
+        self.assertTrue(np.all(system.i() == i_n))
         self.assertTrue(np.isclose(system.x_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = np.copy(system.i)
+        i_n = system.i()
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.x, (1.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(system.i == i_n))
+        self.assertTrue(not np.all(system.i() == i_n))
         self.assertTrue(np.isclose(system.x_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
     def test_trigger(self):
@@ -161,7 +161,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            x_yield=y,
+            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
         )
 
         system.trigger(0, 0.2)
@@ -184,7 +184,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            x_yield=y,
+            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -208,27 +208,25 @@ class Test_Line1d_System(unittest.TestCase):
         initstate = seed + np.arange(N)
 
         nchunk = 100  # size of chunk of yield positions kept in memory
-        nbuffer = 50  # buffer when shifting chunks of yield positions
-        nmargin = 30  # boundary region to check of chunk-shifting is needed
+        buffer = 20  # redraw within this margin from the edges of the chunk
+        margin = 10  # position to place the particle after redraw
         init_offset = 50.0  # initial negative position shift
 
-        # generators
-        generators = prrng.pcg32_array(initstate)
-        state = generators.state()
-        istate = np.zeros(N, dtype=np.int64)
-        istart = np.zeros(N, dtype=np.int64)
-
         # draw reference yield positions
-        yref = 2.0 * generators.random([nchunk * 10])
-        yref = np.cumsum(yref, 1)
-        yref -= init_offset
-        generators.restore(state)
+        gen = prrng.pcg32_array(initstate, np.zeros_like(initstate))
+        yref = np.cumsum(gen.random([2000]), axis=1) - init_offset
 
-        # draw initial chunk from the generators and convert to yield positions
-        y = 2.0 * generators.random([nchunk])
-        y = np.cumsum(y, 1)
-        y -= init_offset
-        istate += nchunk
+        # chunked storage
+        align = prrng.alignment(margin=margin, buffer=buffer)
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[nchunk],
+            initstate=initstate,
+            initseq=np.zeros_like(initstate),
+            distribution=prrng.random,
+            parameters=[],
+            align=align,
+        )
+        chunk -= init_offset
 
         # initialise system
         system = FrictionQPotSpringBlock.Line1d.System(
@@ -238,7 +236,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            x_yield=y,
+            chunked=chunk,
         )
 
         x = 10.0 * np.ones(N)
@@ -249,27 +247,12 @@ class Test_Line1d_System(unittest.TestCase):
 
             system.x = i * x
 
-            if np.any(system.i > system.y.shape[1] - nmargin):
-
-                shift = system.i - nbuffer + 1
-                advance = np.where(shift < 0, shift + istart - istate, nchunk + istart - istate)
-                generators.advance(advance)
-                istate += advance
-                n = np.max(np.abs(shift)) + 1
-                dy = 2.0 * generators.random([n])
-                state = generators.state()
-                istart += shift
-                istate += n
-                system.y = QPot.cumsum_chunk(system.y, dy, shift)
-
-            j = QPot.lower_bound(yref, i * x)
+            j = QPot.lower_bound(yref, system.x)
             r = np.arange(N)
 
-            self.assertTrue(np.all(system.i + istart == j))
-            self.assertTrue(np.allclose(system.y[r, system.i], yref[r, j]))
-            self.assertTrue(np.allclose(system.y[r, system.i], system.y_left()))
-            self.assertTrue(np.allclose(system.y[r, system.i + 1], yref[r, j + 1]))
-            self.assertTrue(np.allclose(system.y[r, system.i + 1], system.y_right()))
+            self.assertTrue(np.all(system.i() == j))
+            self.assertTrue(np.allclose(yref[r, system.i()], system.y_left()))
+            self.assertTrue(np.allclose(yref[r, system.i() + 1], system.y_right()))
 
 
 if __name__ == "__main__":

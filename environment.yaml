@@ -9,9 +9,10 @@ dependencies:
 - numpy
 - pybind11
 - python
-- python-prrng
+- python-prrng >=1.6.1
 - python-qpot >=0.12.1
 - qpot >=0.12.1
+- prrng >=1.6.1
 - scikit-build
 - setuptools_scm
 - xtensor >=0.24.2
