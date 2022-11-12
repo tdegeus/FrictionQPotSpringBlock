@@ -20,6 +20,7 @@ Line in 1d.
 #include <GooseFEM/Iterate.h>
 #include <GooseFEM/version.h>
 #include <QPot.h>
+#include <prrng.h>
 
 #include <GMatTensor/version.h>
 
@@ -53,6 +54,24 @@ inline std::vector<std::string> version_compiler()
 {
     return GMatTensor::version_compiler();
 }
+
+using Generator = prrng::pcg32_tensor_cumsum<array_type::tensor<double, 2>, 1>;
+
+/**
+ * @brief Helper class to store sequence of yield positions.
+ */
+class YieldSequence : public Generator {
+public:
+    YieldSequence() = default;
+
+    YieldSequence(const array_type::tensor<double, 2>& data)
+    {
+        array_type::tensor<uint64_t, 1> state = xt::zeros<uint64_t>({data.shape(0)});
+        std::array<size_t, 1> shape = {data.shape(1)};
+        this->init(shape, state, state, prrng::custom, {});
+        m_data = data;
+    }
+};
 
 /**
 ## Introduction
@@ -121,9 +140,8 @@ public:
     \param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all particles).
     \param k_frame Stiffness of springs between particles and load frame (same for all particles).
     \param dt Time step.
-    \param x_yield Yield positions [#N, n_yield].
+    \param chunked Class in which chunks of the yield positions are stored (copy).
     */
-    template <class T>
     System(
         double m,
         double eta,
@@ -131,9 +149,9 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield)
+        const Generator& chunked)
     {
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
     }
 
     /**
@@ -146,19 +164,28 @@ public:
     }
 
     /**
-    Return yield positions.
-    \return Array of shape [#N, n_yield].
+    Class in which chunks of the yield positions are stored.
+    \return Chunked storage [#N, n_yield].
     */
-    const array_type::tensor<double, 2>& y()
+    const Generator& chunked() const
     {
-        return m_y;
+        return m_chunk;
     }
 
     /**
-    Current index (in the current chunk) of the potential energy landscape of each particle.
+    Current global index of the potential energy landscape of each particle.
     \return Array of shape [#N].
     */
-    const array_type::tensor<long, 1>& i() const
+    array_type::tensor<ptrdiff_t, 1> i() const
+    {
+        return m_chunk.template start<array_type::tensor<ptrdiff_t, 1>>() + m_i;
+    }
+
+    /**
+    Current index in the current chunk of the potential energy landscape of each particle.
+    \return Array of shape [#N].
+    */
+    const array_type::tensor<ptrdiff_t, 1>& ichunk() const
     {
         return m_i;
     }
@@ -173,7 +200,7 @@ public:
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_y(p, m_i(p) + 1);
+            ret(p) = m_chunk(p, m_i(p) + 1);
         }
 
         return ret;
@@ -189,7 +216,7 @@ public:
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_y(p, m_i(p));
+            ret(p) = m_chunk(p, m_i(p));
         }
 
         return ret;
@@ -234,20 +261,6 @@ public:
     double x_frame() const
     {
         return m_x_frame;
-    }
-
-    /**
-    Overwrite the chunk of yield positions changes #i.
-    \param arg Array [#N, n_yield].
-    */
-    template <class T>
-    void set_y(const T& arg)
-    {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.dimension() == 2);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(arg.shape(0) == m_N);
-        xt::noalias(m_y) = arg;
-        this->updated_y();
-        this->updated_x();
     }
 
     /**
@@ -466,70 +479,32 @@ public:
     Make a number of time steps, see timeStep().
 
     \param n Number of steps to make.
-
-    \param nmargin
-        Number of potentials to leave as margin.
-        -   `nmargin > 0`: stop if the yield-index of any particle is `nmargin` from the start/end
-            and return a negative number.
-        -   `nmargin == 0`: no bounds-check is performed and the first (last) potential
-            is assumed infinitely elastic to the right (left).
-
-    \return
-        -   Number of steps: `== n`.
-        -   Negative number: if stopped because of a yield-index margin.
     */
-    long timeSteps(size_t n, size_t nmargin = 1)
+    void timeSteps(size_t n)
     {
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(n + 1 < std::numeric_limits<long>::max());
-
-        size_t nyield = m_y.shape(1);
-        size_t nmax = nyield - nmargin;
-        long step;
-
-        for (step = 1; step < static_cast<long>(n + 1); ++step) {
-
+        for (size_t step = 0; step < n; ++step) {
             this->timeStep();
-
-            if (nmargin > 0) {
-                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
-                    return -step;
-                }
-            }
         }
-
-        return step;
     }
 
     /**
     Perform a series of time-steps until the next plastic event, or equilibrium.
 
-    \param nmargin Number of potentials to have as margin **initially**.
     \param tol Relative force tolerance for equilibrium. See residual() for definition.
     \param niter_tol Enforce the residual check for `niter_tol` consecutive increments.
     \param max_iter Maximum number of iterations. Throws `std::runtime_error` otherwise.
-
-    \return
-        -   Number of steps.
-        -   `0` if there was no plastic activity and the residual was reached.
+    \return Number of steps.
     */
-    size_t timeStepsUntilEvent(
-        size_t nmargin = 1,
-        double tol = 1e-5,
-        size_t niter_tol = 10,
-        size_t max_iter = 1e9)
+    size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
-        size_t nyield = m_y.shape(1);
-        size_t nmax = nyield - nmargin;
         auto i_n = m_i;
         size_t step;
-
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
 
         for (step = 1; step < max_iter + 1; ++step) {
 
@@ -560,52 +535,19 @@ public:
 
     \param v_frame
         Velocity of the frame.
-
-    \param nmargin
-        Number of potentials to leave as margin.
-        -   `nmargin > 0`: stop if the yield-index of any particle is `nmargin` from the start/end
-            and return a negative number.
-        -   `nmargin == 0`: no bounds-check is performed and the first (last) potential
-            is assumed infinitely elastic to the right (left).
-
-    \return
-        Number of time-steps made (negative if failure).
     */
-    long flowSteps(size_t n, double v_frame, size_t nmargin = 1)
+    void flowSteps(size_t n, double v_frame)
     {
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(n + 1 < std::numeric_limits<long>::max());
 
-        size_t nyield = m_y.shape(1);
-        size_t nmax = nyield - nmargin;
-        long step;
-
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
-
-        for (step = 1; step < static_cast<long>(n + 1); ++step) {
-
+        for (size_t step = 0; step < n; ++step) {
             m_x_frame += v_frame * m_dt;
             this->timeStep();
-
-            if (nmargin > 0) {
-                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
-                    return -step;
-                }
-            }
         }
-
-        return step;
     }
 
     /**
     Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
-
-    \param nmargin
-        Number of potentials to leave as margin.
-        -   `nmargin > 0`: stop if the yield-index of any particle is `nmargin` from the start/end
-            and return a negative number.
-        -   `nmargin == 0`: no bounds-check is performed and the first (last) potential
-            is assumed infinitely elastic to the right (left).
 
     \param tol
         Relative force tolerance for equilibrium. See residual() for definition.
@@ -631,10 +573,8 @@ public:
     \return
         -   `0`: if stopped when the residual is reached (and number of steps `< max_iter`).
         -   `max_iter`: if no residual was reached, and `max_iter_is_error = false`.
-        -   Negative number: if stopped because of a yield-index margin.
     */
-    long minimise(
-        size_t nmargin = 1,
+    size_t minimise(
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9,
@@ -647,30 +587,19 @@ public:
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
 
-        size_t nyield = m_y.shape(1);
-        size_t nmax = nyield - nmargin;
-        auto i_n = m_i;
+        auto i_n = this->i();
         long s = 0;
         long s_n = 0;
         bool init = true;
-        long step;
+        size_t step;
 
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
-
-        for (step = 1; step < static_cast<long>(max_iter + 1); ++step) {
+        for (step = 1; step < max_iter + 1; ++step) {
 
             this->timeStep();
             residuals.roll_insert(this->residual());
 
-            if (nmargin > 0) {
-                if (xt::any(m_i < nmargin) || xt::any(m_i > nmax)) {
-                    return -step;
-                }
-            }
-
             if (time_activity) {
-                s = xt::sum(xt::abs(m_i - i_n))();
+                s = xt::sum(xt::abs(this->i() - i_n))();
                 if (s != s_n) {
                     if (init) {
                         init = false;
@@ -720,11 +649,7 @@ public:
     \warning
         The increment is not updated as time is not physical. The mass and viscosity are ignored.
     */
-    long minimise_nopassing(
-        size_t nmargin = 1,
-        double tol = 1e-5,
-        size_t niter_tol = 10,
-        size_t max_iter = 1e9)
+    size_t minimise_nopassing(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
@@ -737,13 +662,9 @@ public:
         double xmin;
         long i;
         long j;
-        size_t nyield = m_y.shape(1);
-        size_t nmax = nyield - nmargin;
+        size_t nyield = m_chunk.data().shape(1);
 
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(nmargin < nyield);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::all(m_i >= nmargin) && xt::all(m_i <= nmax));
-
-        for (long step = 1; step < static_cast<long>(max_iter + 1); ++step) {
+        for (size_t step = 1; step < max_iter + 1; ++step) {
 
             // "misuse" unused variable
             xt::noalias(m_v_n) = m_x;
@@ -761,16 +682,17 @@ public:
                 }
 
                 i = m_i(p);
-                auto* y = &m_y(p, 0);
+                auto* y = &m_chunk(p, 0);
 
                 while (true) {
                     xmin = 0.5 * (*(y + i) + *(y + i + 1));
                     x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
                         (2 * m_k_neighbours + m_k_frame + m_mu);
                     j = QPot::iterator::lower_bound(y, y + nyield, x, i);
-                    if ((j < nmargin) || (j > nmax)) {
-                        xt::noalias(m_x) = m_v_n;
-                        return -step;
+                    if ((j == 0) || (j >= nyield - 1)) {
+                        m_x(p) = x;
+                        m_chunk.align(m_x);
+                        y = &m_chunk(p, 0);
                     }
                     if (j == i) {
                         break;
@@ -859,10 +781,10 @@ public:
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
         if (direction > 0) {
-            m_x(p) = m_y(p, m_i(p) + 1) + 0.5 * eps;
+            m_x(p) = m_chunk(p, m_i(p) + 1) + 0.5 * eps;
         }
         else {
-            m_x(p) = m_y(p, m_i(p)) - 0.5 * eps;
+            m_x(p) = m_chunk(p, m_i(p)) - 0.5 * eps;
         }
         this->updated_x();
     }
@@ -884,7 +806,6 @@ protected:
     /**
     \copydoc System(double, double, double, double, double, double, const T&)
     */
-    template <class T>
     void initSystem(
         double m,
         double eta,
@@ -892,11 +813,11 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield)
+        const Generator& chunked)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(x_yield.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(chunked.data().dimension() == 2);
 
-        m_N = x_yield.shape(0);
+        m_N = chunked.data().shape(0);
         m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
@@ -915,9 +836,8 @@ protected:
         m_v_n = xt::zeros<double>({m_N});
         m_a_n = xt::zeros<double>({m_N});
         m_i = xt::zeros<long>({m_N}); // consistent with `lower_bound`
-        m_y = x_yield;
+        m_chunk = chunked;
 
-        this->updated_y();
         this->updated_x();
         this->updated_v();
     }
@@ -935,11 +855,13 @@ protected:
     */
     virtual void computeForcePotential()
     {
-        QPot::inplace::lower_bound(m_y, m_x, m_i);
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::all(m_i < m_y.shape(1) - 1));
+        if (!m_chunk.contains(m_x)) {
+            m_chunk.align(m_x);
+        }
+        QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
 
         for (size_t p = 0; p < m_N; ++p) {
-            auto* l = &m_y(p, m_i(p));
+            auto* l = &m_chunk(p, m_i(p));
             m_f_potential(p) = m_mu * (0.5 * (*(l) + *(l + 1)) - m_x(p));
         }
     }
@@ -970,13 +892,6 @@ protected:
     void computeForceDamping()
     {
         xt::noalias(m_f_damping) = -m_eta * m_v;
-    }
-
-    /**
-    Update variables if #m_y has been updated.
-    */
-    virtual void updated_y()
-    {
     }
 
     /**
@@ -1061,8 +976,8 @@ protected:
     array_type::tensor<double, 1> m_a; ///< See #a.
     array_type::tensor<double, 1> m_v_n; ///< #v at last time-step.
     array_type::tensor<double, 1> m_a_n; ///< #a at last time-step.
-    array_type::tensor<double, 2> m_y; ///< Potential energy landscape.
-    array_type::tensor<long, 1> m_i; ///< Current index in the potential energy landscape.
+    Generator m_chunk; ///< Potential energy landscape.
+    array_type::tensor<ptrdiff_t, 1> m_i; ///< Current index in the potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
     size_t m_qs_inc_first = 0; ///< First increment with plastic activity during minimisation.
@@ -1110,7 +1025,6 @@ public:
     /**
     \copydoc System(double, double, double, double, double, double, const T&)
     */
-    template <class T>
     SystemThermalRandomForcing(
         double m,
         double eta,
@@ -1118,9 +1032,9 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield)
+        const Generator& chunked)
     {
-        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, chunked);
     }
 
     /**
@@ -1179,7 +1093,6 @@ protected:
     /**
     \copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&)
     */
-    template <class T>
     void initSystemThermalRandomForcing(
         double m,
         double eta,
@@ -1187,11 +1100,11 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield)
+        const Generator& chunked)
     {
         m_seq = false;
-        m_f_thermal = xt::zeros<double>({x_yield.shape(0)});
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
+        m_f_thermal = xt::zeros<double>({m_N});
     }
 
     /**
@@ -1241,10 +1154,9 @@ public:
     SystemSemiSmooth() = default;
 
     /**
-    \copydoc System(double, double, double, double, double, double, const T&)
+    \copydoc System(double, double, double, double, double, double, const Generator&)
     \param kappa Softening stiffness.
     */
-    template <class T>
     SystemSemiSmooth(
         double m,
         double eta,
@@ -1253,21 +1165,17 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield)
+        const Generator& chunked)
     {
         m_kappa = kappa;
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
-    }
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
 
-protected:
-    void updated_y() override
-    {
-        m_l = xt::empty_like(m_y);
-        m_u = xt::empty_like(m_y);
+        m_l = xt::empty_like(m_chunk.data());
+        m_u = xt::empty_like(m_chunk.data());
 
         for (size_t p = 0; p < m_N; ++p) {
-            for (size_t j = 0; j < m_y.shape(1) - 1; ++j) {
-                auto* y = &m_y(p, j);
+            for (size_t j = 0; j < m_chunk.data().shape(1) - 1; ++j) {
+                auto* y = &m_chunk(p, j);
                 double xi = 0.5 * (*(y) + *(y + 1));
                 m_u(p, j) = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
                 m_l(p, j) = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
@@ -1275,14 +1183,36 @@ protected:
         }
     }
 
+protected:
     void computeForcePotential() override
     {
-        QPot::inplace::lower_bound(m_y, m_x, m_i);
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::all(m_i < m_y.shape(0) - 2));
+        if (!m_chunk.contains(m_x)) {
+            using S = array_type::tensor<ptrdiff_t, 1>;
+            S hist = m_chunk.start<S>();
+            m_chunk.align(m_x);
+            S cur = m_chunk.start<S>();
+
+            m_l = xt::empty_like(m_chunk.data());
+            m_u = xt::empty_like(m_chunk.data());
+
+            for (size_t p = 0; p < m_N; ++p) {
+                if (hist(p) == cur(p)) {
+                    continue;
+                }
+                for (size_t j = 0; j < m_chunk.data().shape(1) - 1; ++j) {
+                    auto* y = &m_chunk(p, j);
+                    double xi = 0.5 * (*(y) + *(y + 1));
+                    m_u(p, j) = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
+                    m_l(p, j) = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
+                }
+            }
+        }
+
+        QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
 
         for (size_t p = 0; p < m_N; ++p) {
 
-            auto* y = &m_y(p, m_i(p));
+            auto* y = &m_chunk(p, m_i(p));
             double x = m_x(p);
             if (x < m_l(p, m_i(p))) {
                 m_f_potential(p) = m_kappa * (x - *(y));
@@ -1319,7 +1249,6 @@ public:
     /**
     \copydoc System(double, double, double, double, double, double, const T&)
     */
-    template <class T>
     SystemSmooth(
         double m,
         double eta,
@@ -1327,19 +1256,21 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const T& x_yield)
+        const Generator& chunked)
     {
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, x_yield);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
     }
 
 protected:
     void computeForcePotential() override
     {
-        QPot::inplace::lower_bound(m_y, m_x, m_i);
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::all(m_i < m_y.shape(1) - 1));
+        if (!m_chunk.contains(m_x)) {
+            m_chunk.align(m_x);
+        }
+        QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
 
         for (size_t p = 0; p < m_N; ++p) {
-            auto* y = &m_y(p, m_i(p));
+            auto* y = &m_chunk(p, m_i(p));
             double x = m_x(p);
             double xmin = 0.5 * (*(y) + *(y + 1));
             double dy = 0.5 * (*(y + 1) - *(y));
