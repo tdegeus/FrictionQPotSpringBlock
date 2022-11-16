@@ -14,12 +14,12 @@
 #define QUOTE(x) Q(x)
 
 #define FRICTIONQPOTSPRINGBLOCK_WARNING_IMPL(message, file, line) \
-    std::cout << std::string(file) + ':' + std::to_string(line) + ": " message ") \n\t";
+    std::cout << std::string(file) + ":" + std::to_string(line) + ": " message ") \n\t";
 
 #define FRICTIONQPOTSPRINGBLOCK_ASSERT_IMPL(expr, file, line) \
     if (!(expr)) { \
         throw std::runtime_error( \
-            std::string(file) + ':' + std::to_string(line) + \
+            std::string(file) + ":" + std::to_string(line) + \
             ": assertion failed (" #expr ") \n\t"); \
     }
 
