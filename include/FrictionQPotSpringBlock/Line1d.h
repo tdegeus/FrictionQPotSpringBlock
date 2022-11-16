@@ -64,11 +64,11 @@ class YieldSequence : public Generator {
 public:
     YieldSequence() = default;
 
-    YieldSequence(const array_type::tensor<double, 2>& data)
+    YieldSequence(const array_type::tensor<double, 2>& data, const std::vector<size_t>& align = prrng::alignment())
     {
         array_type::tensor<uint64_t, 1> state = xt::zeros<uint64_t>({data.shape(0)});
         std::array<size_t, 1> shape = {data.shape(1)};
-        this->init(shape, state, state, prrng::custom, {});
+        this->init(shape, state, state, prrng::custom, {}, align);
         m_data = data;
     }
 };
@@ -131,6 +131,8 @@ class System {
 public:
     System() = default;
 
+    virtual ~System() = default;
+
     /**
      * Constructor.
      *
@@ -180,16 +182,12 @@ public:
      */
     array_type::tensor<ptrdiff_t, 1> i() const
     {
-        return m_chunk.template start<array_type::tensor<ptrdiff_t, 1>>() + m_i;
-    }
-
-    /**
-     * Current index in the current chunk of the potential energy landscape of each particle.
-     * @return Array of shape [#N].
-     */
-    const array_type::tensor<ptrdiff_t, 1>& ichunk() const
-    {
-        return m_i;
+        if (m_chunk.is_extendible()) {
+            return m_chunk.template index<array_type::tensor<ptrdiff_t, 1>>();
+        }
+        else {
+            return m_i;
+        }
     }
 
     /**
@@ -496,7 +494,9 @@ public:
      * @param tol Relative force tolerance for equilibrium. See residual() for definition.
      * @param niter_tol Enforce the residual check for `niter_tol` consecutive increments.
      * @param max_iter Maximum number of iterations. Throws `std::runtime_error` otherwise.
-     * @return Number of steps.
+     * @return
+     *      -   Number of steps.
+     *      -   `0` if there was no plastic activity and the residual was reached.
      */
     size_t timeStepsUntilEvent(double tol = 1e-5, size_t niter_tol = 10, size_t max_iter = 1e9)
     {
@@ -589,11 +589,15 @@ public:
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
 
-        auto i_n = this->i();
+        array_type::tensor<ptrdiff_t, 1> i_n;
         long s = 0;
         long s_n = 0;
         bool init = true;
         size_t step;
+
+        if (time_activity) {
+            i_n = this->i();
+        }
 
         for (step = 1; step < max_iter + 1; ++step) {
 
@@ -664,8 +668,8 @@ public:
         double xneigh;
         double x;
         double xmin;
-        long i;
-        long j;
+        size_t i;
+        size_t j;
         size_t nyield = m_chunk.data().shape(1);
 
         for (size_t step = 1; step < max_iter + 1; ++step) {
@@ -693,12 +697,15 @@ public:
                     x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
                         (2 * m_k_neighbours + m_k_frame + m_mu);
                     j = QPot::iterator::lower_bound(y, y + nyield, x, i);
-                    if ((j == 0) || (j >= nyield - 1)) {
+                    if ((j == 0) || (j >= nyield - 2)) {
+                        if (!m_chunk.is_extendible()) {
+                            throw std::runtime_error("Out of bounds");
+                        }
                         m_x(p) = x;
                         m_chunk.align(m_x);
                         y = &m_chunk(p, 0);
                     }
-                    if (j == i) {
+                    else if (j == i) {
                         break;
                     }
                     i = j;
@@ -839,7 +846,7 @@ protected:
         m_a = xt::zeros<double>({m_N});
         m_v_n = xt::zeros<double>({m_N});
         m_a_n = xt::zeros<double>({m_N});
-        m_i = xt::zeros<long>({m_N}); // consistent with `lower_bound`
+        m_i = xt::zeros<size_t>({m_N}); // consistent with `lower_bound`
         m_chunk = chunked;
 
         this->updated_x();
@@ -859,10 +866,13 @@ protected:
      */
     virtual void computeForcePotential()
     {
-        if (!m_chunk.contains(m_x)) {
+        if (m_chunk.is_extendible()) {
             m_chunk.align(m_x);
+            m_chunk.chunk_index(m_i);
         }
-        QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+        else {
+            QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+        }
 
         for (size_t p = 0; p < m_N; ++p) {
             auto* l = &m_chunk(p, m_i(p));
@@ -981,7 +991,7 @@ protected:
     array_type::tensor<double, 1> m_v_n; ///< #v at last time-step.
     array_type::tensor<double, 1> m_a_n; ///< #a at last time-step.
     Generator m_chunk; ///< Potential energy landscape.
-    array_type::tensor<ptrdiff_t, 1> m_i; ///< Current index in the potential energy landscape.
+    array_type::tensor<size_t, 1> m_i; ///< Current index in the potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
     size_t m_qs_inc_first = 0; ///< First increment with plastic activity during minimisation.
@@ -1173,55 +1183,30 @@ public:
     {
         m_kappa = kappa;
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
-
-        m_l = xt::empty_like(m_chunk.data());
-        m_u = xt::empty_like(m_chunk.data());
-
-        for (size_t p = 0; p < m_N; ++p) {
-            for (size_t j = 0; j < m_chunk.data().shape(1) - 1; ++j) {
-                auto* y = &m_chunk(p, j);
-                double xi = 0.5 * (*(y) + *(y + 1));
-                m_u(p, j) = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
-                m_l(p, j) = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
-            }
-        }
     }
 
 protected:
     void computeForcePotential() override
     {
-        if (!m_chunk.contains(m_x)) {
-            using S = array_type::tensor<ptrdiff_t, 1>;
-            S hist = m_chunk.start<S>();
+        if (m_chunk.is_extendible()) {
             m_chunk.align(m_x);
-            S cur = m_chunk.start<S>();
-
-            m_l = xt::empty_like(m_chunk.data());
-            m_u = xt::empty_like(m_chunk.data());
-
-            for (size_t p = 0; p < m_N; ++p) {
-                if (hist(p) == cur(p)) {
-                    continue;
-                }
-                for (size_t j = 0; j < m_chunk.data().shape(1) - 1; ++j) {
-                    auto* y = &m_chunk(p, j);
-                    double xi = 0.5 * (*(y) + *(y + 1));
-                    m_u(p, j) = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
-                    m_l(p, j) = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
-                }
-            }
+            m_chunk.chunk_index(m_i);
         }
-
-        QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+        else {
+            QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+        }
 
         for (size_t p = 0; p < m_N; ++p) {
 
             auto* y = &m_chunk(p, m_i(p));
+            double xi = 0.5 * (*(y) + *(y + 1));
+            double u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
+            double l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
             double x = m_x(p);
-            if (x < m_l(p, m_i(p))) {
+            if (x < l) {
                 m_f_potential(p) = m_kappa * (x - *(y));
             }
-            else if (x <= m_u(p, m_i(p))) {
+            else if (x <= u) {
                 m_f_potential(p) = m_mu * (0.5 * (*(y) + *(y + 1)) - x);
             }
             else {
@@ -1232,8 +1217,6 @@ protected:
 
 protected:
     double m_kappa; ///< Softening stiffness.
-    array_type::tensor<double, 2> m_l; ///< Support variable for weakening.
-    array_type::tensor<double, 2> m_u; ///< Support variable for weakening.
 };
 
 /**
@@ -1268,10 +1251,13 @@ public:
 protected:
     void computeForcePotential() override
     {
-        if (!m_chunk.contains(m_x)) {
+        if (m_chunk.is_extendible()) {
             m_chunk.align(m_x);
+            m_chunk.chunk_index(m_i);
         }
-        QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+        else {
+            QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+        }
 
         for (size_t p = 0; p < m_N; ++p) {
             auto* y = &m_chunk(p, m_i(p));
