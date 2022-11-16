@@ -7,10 +7,10 @@ dependencies:
 - goosefem
 - ninja
 - numpy
-- prrng >=1.6.1
+- prrng >1.6.2
 - pybind11
 - python
-- python-prrng >=1.6.1
+- python-prrng >1.6.2
 - python-qpot >=0.12.1
 - qpot >=0.12.1
 - scikit-build

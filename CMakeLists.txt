@@ -127,6 +127,7 @@ if(BUILD_PYTHON OR BUILD_ALL)
 
     target_compile_definitions(${PYPROJECT_NAME} PUBLIC VERSION_INFO=${PROJECT_VERSION})
     target_link_libraries(${PYPROJECT_NAME} PUBLIC ${PROJECT_NAME} xtensor-python)
+    target_link_libraries(${PYPROJECT_NAME} PUBLIC ${PROJECT_NAME}::compiler_warnings)
 
     if (SKBUILD)
         target_include_directories(${PYPROJECT_NAME} PUBLIC ${NumPy_INCLUDE_DIRS})

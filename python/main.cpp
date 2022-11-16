@@ -175,9 +175,10 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         py::class_<SM::YieldSequence, SM::Generator>(sm, "YieldSequence")
 
             .def(
-                py::init<const xt::pytensor<double, 2>&>(),
+                py::init<const xt::pytensor<double, 2>&, const std::vector<size_t>&>(),
                 "Sequence of yield positions",
-                py::arg("data"))
+                py::arg("data"),
+                py::arg("align") = prrng::alignment())
 
             .def("__repr__", [](const SM::YieldSequence&) {
                 return "<FrictionQPotSpringBlock.Line1d.YieldSequence>";
