@@ -43,7 +43,6 @@ endif()
 find_package(GMatTensor REQUIRED)
 find_package(GooseFEM REQUIRED)
 find_package(prrng REQUIRED)
-find_package(QPot REQUIRED)
 find_package(xtensor REQUIRED)
 
 add_library(${PROJECT_NAME} INTERFACE)
@@ -52,7 +51,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-target_link_libraries(${PROJECT_NAME} INTERFACE xtensor GooseFEM QPot GMatTensor prrng)
+target_link_libraries(${PROJECT_NAME} INTERFACE xtensor GooseFEM GMatTensor prrng)
 
 target_compile_definitions(${PROJECT_NAME} INTERFACE
     ${PROJECT_NAME_UPPER}_VERSION="${PROJECT_VERSION}")

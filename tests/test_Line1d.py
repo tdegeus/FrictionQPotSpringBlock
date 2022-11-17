@@ -5,7 +5,6 @@ import unittest
 import FrictionQPotSpringBlock
 import numpy as np
 import prrng
-import QPot
 
 faulthandler.enable()
 
@@ -251,7 +250,7 @@ class Test_Line1d_System(unittest.TestCase):
 
             system.x = i * x
 
-            j = QPot.lower_bound(yref, system.x)
+            j = prrng.lower_bound(yref, system.x)
             r = np.arange(N)
 
             self.assertTrue(np.all(system.i() == j))

@@ -19,7 +19,6 @@
 
 #include <GooseFEM/Iterate.h>
 #include <GooseFEM/version.h>
-#include <QPot.h>
 #include <prrng.h>
 
 #include <GMatTensor/version.h>
