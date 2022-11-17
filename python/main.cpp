@@ -169,18 +169,6 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
         sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
 
-        py::class_<SM::YieldSequence, SM::Generator>(sm, "YieldSequence")
-
-            .def(
-                py::init<const xt::pytensor<double, 2>&, const prrng::alignment&>(),
-                "Sequence of yield positions",
-                py::arg("data"),
-                py::arg("align") = prrng::alignment())
-
-            .def("__repr__", [](const SM::YieldSequence&) {
-                return "<FrictionQPotSpringBlock.Line1d.YieldSequence>";
-            });
-
         {
             using S = SM::System;
 
@@ -245,15 +233,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "SystemSemiSmooth");
 
             cls.def(
-                py::init<
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    SM::Generator*>(),
+                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),

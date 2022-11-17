@@ -19,7 +19,7 @@ class Test_Line1d_System(unittest.TestCase):
         deps = FrictionQPotSpringBlock.Line1d.version_dependencies()
         deps = [i.split("=")[0] for i in deps]
 
-        self.assertTrue("qpot" in deps)
+        self.assertTrue("prrng" in deps)
         self.assertTrue("xtensor" in deps)
         self.assertTrue("xtensor-python" in deps)
         self.assertTrue("xtl" in deps)
@@ -27,16 +27,21 @@ class Test_Line1d_System(unittest.TestCase):
     def test_forces(self):
 
         N = 5
-        y = np.ones((N, 100))
-        y[:, 0] = -48.5
-        y = np.cumsum(y, axis=1)
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
 
         eta = float(np.random.random(1))
         mu = float(np.random.random(1))
         k_neighbours = float(np.random.random(1))
         k_frame = float(np.random.random(1))
 
-        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=eta,
@@ -106,11 +111,16 @@ class Test_Line1d_System(unittest.TestCase):
     def test_eventDrivenStep(self):
 
         N = 3
-        y = np.ones((N, 100))
-        y[:, 0] = -48.5
-        y = np.cumsum(y, axis=1)
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
 
-        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=1.0,
@@ -151,11 +161,16 @@ class Test_Line1d_System(unittest.TestCase):
     def test_trigger(self):
 
         N = 3
-        y = np.ones((N, 100))
-        y[:, 0] = -48.5
-        y = np.cumsum(y, axis=1)
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
 
-        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=1.0,
@@ -175,11 +190,16 @@ class Test_Line1d_System(unittest.TestCase):
     def test_advanceToFixedForce(self):
 
         N = 3
-        y = np.ones((N, 100))
-        y[:, 0] = -48.5
-        y = np.cumsum(y, axis=1)
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
 
-        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=1.0,
