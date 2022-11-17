@@ -37,6 +37,7 @@ class Test_Line1d_System(unittest.TestCase):
         k_neighbours = float(np.random.random(1))
         k_frame = float(np.random.random(1))
 
+        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=eta,
@@ -44,7 +45,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=k_neighbours,
             k_frame=k_frame,
             dt=1.0,
-            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
+            chunk=chunk,
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -110,6 +111,7 @@ class Test_Line1d_System(unittest.TestCase):
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
 
+        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=1.0,
@@ -117,7 +119,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
+            chunk=chunk,
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -154,6 +156,7 @@ class Test_Line1d_System(unittest.TestCase):
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
 
+        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=1.0,
@@ -161,7 +164,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
+            chunk=chunk,
         )
 
         system.trigger(0, 0.2)
@@ -177,6 +180,7 @@ class Test_Line1d_System(unittest.TestCase):
         y[:, 0] = -48.5
         y = np.cumsum(y, axis=1)
 
+        chunk = FrictionQPotSpringBlock.Line1d.YieldSequence(y)
         system = FrictionQPotSpringBlock.Line1d.System(
             m=1.0,
             eta=1.0,
@@ -184,7 +188,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunked=FrictionQPotSpringBlock.Line1d.YieldSequence(y),
+            chunk=chunk,
         )
 
         self.assertTrue(system.residual() < 1e-5)
@@ -236,7 +240,7 @@ class Test_Line1d_System(unittest.TestCase):
             k_neighbours=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunked=chunk,
+            chunk=chunk,
         )
 
         x = 10.0 * np.ones(N)
