@@ -55,7 +55,7 @@ inline std::vector<std::string> version_compiler()
     return GMatTensor::version_compiler();
 }
 
-using Generator = prrng::pcg32_tensor_cumsum<array_type::tensor<double, 2>, 1>;
+using Generator = prrng::pcg32_tensor_cumsum<array_type::tensor<double, 2>, array_type::tensor<ptrdiff_t, 1>, 1>;
 
 /**
  * @brief Helper class to store sequence of yield positions.
@@ -64,12 +64,12 @@ class YieldSequence : public Generator {
 public:
     YieldSequence() = default;
 
-    YieldSequence(const array_type::tensor<double, 2>& data, const std::vector<size_t>& align = prrng::alignment())
+    YieldSequence(const array_type::tensor<double, 2>& data, const prrng::alignment& align = prrng::alignment())
     {
         array_type::tensor<uint64_t, 1> state = xt::zeros<uint64_t>({data.shape(0)});
         std::array<size_t, 1> shape = {data.shape(1)};
         this->init(shape, state, state, prrng::custom, {}, align);
-        m_data = data;
+        xt::noalias(m_data) = data;
     }
 };
 
@@ -142,7 +142,7 @@ public:
      * @param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all).
      * @param k_frame Stiffness of springs between particles and load frame (same for all).
      * @param dt Time step.
-     * @param chunked Class in which chunks of the yield positions are stored (copy).
+     * @param chunk Class in which chunks of the yield positions are stored (copy).
      */
     System(
         double m,
@@ -151,9 +151,9 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        Generator* chunked)
+        Generator* chunk)
     {
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
     }
 
     /**
@@ -171,12 +171,7 @@ public:
      */
     array_type::tensor<ptrdiff_t, 1> i() const
     {
-        if (m_chunk->is_extendible()) {
-            return m_chunk->template index<array_type::tensor<ptrdiff_t, 1>>();
-        }
-        else {
-            return m_i;
-        }
+        return m_chunk->index();
     }
 
     /**
@@ -189,7 +184,7 @@ public:
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_chunk->data()(p, m_i(p) + 1);
+            ret(p) = m_chunk->data()(p, m_chunk->chunk_index()(p) + 1);
         }
 
         return ret;
@@ -205,7 +200,7 @@ public:
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_chunk->data()(p, m_i(p));
+            ret(p) = m_chunk->data()(p, m_chunk->chunk_index()(p));
         }
 
         return ret;
@@ -494,14 +489,14 @@ public:
 
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
-        auto i_n = m_i;
+        auto i_n = m_chunk->index();
         size_t step;
 
         for (step = 1; step < max_iter + 1; ++step) {
 
             this->timeStep();
 
-            if (xt::any(xt::not_equal(m_i, i_n))) {
+            if (xt::any(xt::not_equal(m_chunk->index(), i_n))) {
                 return step;
             }
 
@@ -657,9 +652,8 @@ public:
         double xneigh;
         double x;
         double xmin;
-        size_t i;
-        size_t j;
-        size_t nyield = m_chunk->data().shape(1);
+        ptrdiff_t i;
+        ptrdiff_t j;
 
         for (size_t step = 1; step < max_iter + 1; ++step) {
 
@@ -678,28 +672,20 @@ public:
                     xneigh = m_v_n(p - 1) + m_v_n(p + 1);
                 }
 
-                i = m_i(p);
+                i = m_chunk->chunk_index()(p);
                 auto* y = &m_chunk->data()(p, 0);
 
                 while (true) {
                     xmin = 0.5 * (*(y + i) + *(y + i + 1));
                     x = (m_k_neighbours * xneigh + m_k_frame * m_x_frame + m_mu * xmin) /
                         (2 * m_k_neighbours + m_k_frame + m_mu);
-                    j = QPot::iterator::lower_bound(y, y + nyield, x, i);
-                    if ((j == 0) || (j >= nyield - 2)) {
-                        if (!m_chunk->is_extendible()) {
-                            throw std::runtime_error("Out of bounds");
-                        }
-                        m_x(p) = x;
-                        m_chunk->align(m_x);
-                        y = &m_chunk->data()(p, 0);
-                    }
-                    else if (j == i) {
+                    m_chunk->align(p, x);
+                    j = m_chunk->chunk_index()(p);
+                    if (j == i) {
                         break;
                     }
                     i = j;
                 }
-                m_i(p) = j;
                 m_x(p) = x;
             }
 
@@ -781,10 +767,10 @@ public:
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
         if (direction > 0) {
-            m_x(p) = m_chunk->data()(p, m_i(p) + 1) + 0.5 * eps;
+            m_x(p) = m_chunk->data()(p, m_chunk->chunk_index()(p) + 1) + 0.5 * eps;
         }
         else {
-            m_x(p) = m_chunk->data()(p, m_i(p)) - 0.5 * eps;
+            m_x(p) = m_chunk->data()(p, m_chunk->chunk_index()(p)) - 0.5 * eps;
         }
         this->updated_x();
     }
@@ -813,11 +799,11 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        Generator* chunked)
+        Generator* chunk)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(chunked->data().dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(chunk->data().dimension() == 2);
 
-        m_N = chunked->data().shape(0);
+        m_N = chunk->data().shape(0);
         m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
@@ -835,8 +821,7 @@ protected:
         m_a = xt::zeros<double>({m_N});
         m_v_n = xt::zeros<double>({m_N});
         m_a_n = xt::zeros<double>({m_N});
-        m_i = xt::zeros<size_t>({m_N}); // consistent with `lower_bound`
-        m_chunk = chunked;
+        m_chunk = chunk;
 
         this->updated_x();
         this->updated_v();
@@ -855,16 +840,10 @@ protected:
      */
     virtual void computeForcePotential()
     {
-        if (m_chunk->is_extendible()) {
-            m_chunk->align(m_x);
-            m_chunk->chunk_index(m_i);
-        }
-        else {
-            QPot::inplace::lower_bound(m_chunk->data(), m_x, m_i);
-        }
+        m_chunk->align(m_x);
 
         for (size_t p = 0; p < m_N; ++p) {
-            auto* l = &m_chunk->data()(p, m_i(p));
+            auto* l = &m_chunk->data()(p, m_chunk->chunk_index()(p));
             m_f_potential(p) = m_mu * (0.5 * (*(l) + *(l + 1)) - m_x(p));
         }
     }
@@ -980,7 +959,6 @@ protected:
     array_type::tensor<double, 1> m_v_n; ///< #v at last time-step.
     array_type::tensor<double, 1> m_a_n; ///< #a at last time-step.
     Generator* m_chunk; ///< Potential energy landscape.
-    array_type::tensor<size_t, 1> m_i; ///< Current index in the potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
     size_t m_qs_inc_first = 0; ///< First increment with plastic activity during minimisation.
@@ -1035,9 +1013,9 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        Generator* chunked)
+        Generator* chunk)
     {
-        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, chunked);
+        this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, chunk);
     }
 
     /**
@@ -1103,10 +1081,10 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        Generator* chunked)
+        Generator* chunk)
     {
         m_seq = false;
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
         m_f_thermal = xt::zeros<double>({m_N});
     }
 
@@ -1168,26 +1146,20 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        Generator* chunked)
+        Generator* chunk)
     {
         m_kappa = kappa;
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
     }
 
 protected:
     void computeForcePotential() override
     {
-        if (m_chunk->is_extendible()) {
-            m_chunk->align(m_x);
-            m_chunk->chunk_index(m_i);
-        }
-        else {
-            QPot::inplace::lower_bound(m_chunk->data(), m_x, m_i);
-        }
+        m_chunk->align(m_x);
 
         for (size_t p = 0; p < m_N; ++p) {
 
-            auto* y = &m_chunk->data()(p, m_i(p));
+            auto* y = &m_chunk->data()(p, m_chunk->chunk_index()(p));
             double xi = 0.5 * (*(y) + *(y + 1));
             double u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
             double l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
@@ -1232,24 +1204,18 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        Generator* chunked)
+        Generator* chunk)
     {
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
     }
 
 protected:
     void computeForcePotential() override
     {
-        if (m_chunk->is_extendible()) {
-            m_chunk->align(m_x);
-            m_chunk->chunk_index(m_i);
-        }
-        else {
-            QPot::inplace::lower_bound(m_chunk->data(), m_x, m_i);
-        }
+        m_chunk->align(m_x);
 
         for (size_t p = 0; p < m_N; ++p) {
-            auto* y = &m_chunk->data()(p, m_i(p));
+            auto* y = &m_chunk->data()(p, m_chunk->chunk_index()(p));
             double x = m_x(p);
             double xmin = 0.5 * (*(y) + *(y + 1));
             double dy = 0.5 * (*(y + 1) - *(y));

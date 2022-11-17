@@ -172,7 +172,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         py::class_<SM::YieldSequence, SM::Generator>(sm, "YieldSequence")
 
             .def(
-                py::init<const xt::pytensor<double, 2>&, const std::vector<size_t>&>(),
+                py::init<const xt::pytensor<double, 2>&, const prrng::alignment&>(),
                 "Sequence of yield positions",
                 py::arg("data"),
                 py::arg("align") = prrng::alignment())
@@ -195,7 +195,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_neighbours"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunked"));
+                py::arg("chunk"));
 
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
@@ -216,7 +216,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_neighbours"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunked"));
+                py::arg("chunk"));
 
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
@@ -262,7 +262,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_neighbours"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunked"));
+                py::arg("chunk"));
 
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
@@ -285,7 +285,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_neighbours"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunked"));
+                py::arg("chunk"));
 
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
