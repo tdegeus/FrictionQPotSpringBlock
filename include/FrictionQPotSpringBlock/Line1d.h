@@ -54,23 +54,8 @@ inline std::vector<std::string> version_compiler()
     return GMatTensor::version_compiler();
 }
 
-using Generator = prrng::pcg32_tensor_cumsum<array_type::tensor<double, 2>, array_type::tensor<ptrdiff_t, 1>, 1>;
-
-/**
- * @brief Helper class to store sequence of yield positions.
- */
-class YieldSequence : public Generator {
-public:
-    YieldSequence() = default;
-
-    YieldSequence(const array_type::tensor<double, 2>& data, const prrng::alignment& align = prrng::alignment())
-    {
-        array_type::tensor<uint64_t, 1> state = xt::zeros<uint64_t>({data.shape(0)});
-        std::array<size_t, 1> shape = {data.shape(1)};
-        this->init(shape, state, state, prrng::custom, {}, align);
-        xt::noalias(m_data) = data;
-    }
-};
+using Generator =
+    prrng::pcg32_tensor_cumsum<array_type::tensor<double, 2>, array_type::tensor<ptrdiff_t, 1>, 1>;
 
 /**
  * ## Introduction
