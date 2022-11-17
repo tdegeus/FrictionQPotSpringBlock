@@ -56,9 +56,6 @@ void mysystem(C& cls)
         &S::y_left,
         "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i]`.");
 
-    cls.def_property_readonly(
-        "chunked", &S::chunked, "Yield positions (updating updates all relevant variables)");
-
     cls.def_property(
         "x",
         &S::x,
@@ -190,7 +187,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System");
 
             cls.def(
-                py::init<double, double, double, double, double, double, const SM::Generator&>(),
+                py::init<double, double, double, double, double, double, SM::Generator*>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -211,7 +208,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "SystemThermalRandomForcing");
 
             cls.def(
-                py::init<double, double, double, double, double, double, const SM::Generator&>(),
+                py::init<double, double, double, double, double, double, SM::Generator*>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -256,7 +253,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                     double,
                     double,
                     double,
-                    const SM::Generator&>(),
+                    SM::Generator*>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -280,7 +277,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "SystemSmooth");
 
             cls.def(
-                py::init<double, double, double, double, double, double, const SM::Generator&>(),
+                py::init<double, double, double, double, double, double, SM::Generator*>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),

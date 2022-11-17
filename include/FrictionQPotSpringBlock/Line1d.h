@@ -139,10 +139,8 @@ public:
      * @param m Particle mass (same for all particles).
      * @param eta Damping coefficient (same for all particles).
      * @param mu Elastic stiffness, i.e. the curvature of the potential (same for all particles).
-     * @param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all
-     * particles).
-     * @param k_frame Stiffness of springs between particles and load frame (same for all
-     * particles).
+     * @param k_neighbours Stiffness of the 'springs' connecting neighbours (same for all).
+     * @param k_frame Stiffness of springs between particles and load frame (same for all).
      * @param dt Time step.
      * @param chunked Class in which chunks of the yield positions are stored (copy).
      */
@@ -153,7 +151,7 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const Generator& chunked)
+        Generator* chunked)
     {
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
     }
@@ -168,22 +166,13 @@ public:
     }
 
     /**
-     * Class in which chunks of the yield positions are stored.
-     * @return Chunked storage [#N, n_yield].
-     */
-    const Generator& chunked() const
-    {
-        return m_chunk;
-    }
-
-    /**
      * Current global index of the potential energy landscape of each particle.
      * @return Array of shape [#N].
      */
     array_type::tensor<ptrdiff_t, 1> i() const
     {
-        if (m_chunk.is_extendible()) {
-            return m_chunk.template index<array_type::tensor<ptrdiff_t, 1>>();
+        if (m_chunk->is_extendible()) {
+            return m_chunk->template index<array_type::tensor<ptrdiff_t, 1>>();
         }
         else {
             return m_i;
@@ -200,7 +189,7 @@ public:
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_chunk(p, m_i(p) + 1);
+            ret(p) = m_chunk->data()(p, m_i(p) + 1);
         }
 
         return ret;
@@ -216,7 +205,7 @@ public:
         array_type::tensor<double, 1> ret = xt::empty<double>({m_N});
 
         for (size_t p = 0; p < m_N; ++p) {
-            ret(p) = m_chunk(p, m_i(p));
+            ret(p) = m_chunk->data()(p, m_i(p));
         }
 
         return ret;
@@ -670,7 +659,7 @@ public:
         double xmin;
         size_t i;
         size_t j;
-        size_t nyield = m_chunk.data().shape(1);
+        size_t nyield = m_chunk->data().shape(1);
 
         for (size_t step = 1; step < max_iter + 1; ++step) {
 
@@ -690,7 +679,7 @@ public:
                 }
 
                 i = m_i(p);
-                auto* y = &m_chunk(p, 0);
+                auto* y = &m_chunk->data()(p, 0);
 
                 while (true) {
                     xmin = 0.5 * (*(y + i) + *(y + i + 1));
@@ -698,12 +687,12 @@ public:
                         (2 * m_k_neighbours + m_k_frame + m_mu);
                     j = QPot::iterator::lower_bound(y, y + nyield, x, i);
                     if ((j == 0) || (j >= nyield - 2)) {
-                        if (!m_chunk.is_extendible()) {
+                        if (!m_chunk->is_extendible()) {
                             throw std::runtime_error("Out of bounds");
                         }
                         m_x(p) = x;
-                        m_chunk.align(m_x);
-                        y = &m_chunk(p, 0);
+                        m_chunk->align(m_x);
+                        y = &m_chunk->data()(p, 0);
                     }
                     else if (j == i) {
                         break;
@@ -792,10 +781,10 @@ public:
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
         if (direction > 0) {
-            m_x(p) = m_chunk(p, m_i(p) + 1) + 0.5 * eps;
+            m_x(p) = m_chunk->data()(p, m_i(p) + 1) + 0.5 * eps;
         }
         else {
-            m_x(p) = m_chunk(p, m_i(p)) - 0.5 * eps;
+            m_x(p) = m_chunk->data()(p, m_i(p)) - 0.5 * eps;
         }
         this->updated_x();
     }
@@ -824,11 +813,11 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const Generator& chunked)
+        Generator* chunked)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(chunked.data().dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(chunked->data().dimension() == 2);
 
-        m_N = chunked.data().shape(0);
+        m_N = chunked->data().shape(0);
         m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
@@ -866,16 +855,16 @@ protected:
      */
     virtual void computeForcePotential()
     {
-        if (m_chunk.is_extendible()) {
-            m_chunk.align(m_x);
-            m_chunk.chunk_index(m_i);
+        if (m_chunk->is_extendible()) {
+            m_chunk->align(m_x);
+            m_chunk->chunk_index(m_i);
         }
         else {
-            QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+            QPot::inplace::lower_bound(m_chunk->data(), m_x, m_i);
         }
 
         for (size_t p = 0; p < m_N; ++p) {
-            auto* l = &m_chunk(p, m_i(p));
+            auto* l = &m_chunk->data()(p, m_i(p));
             m_f_potential(p) = m_mu * (0.5 * (*(l) + *(l + 1)) - m_x(p));
         }
     }
@@ -990,7 +979,7 @@ protected:
     array_type::tensor<double, 1> m_a; ///< See #a.
     array_type::tensor<double, 1> m_v_n; ///< #v at last time-step.
     array_type::tensor<double, 1> m_a_n; ///< #a at last time-step.
-    Generator m_chunk; ///< Potential energy landscape.
+    Generator* m_chunk; ///< Potential energy landscape.
     array_type::tensor<size_t, 1> m_i; ///< Current index in the potential energy landscape.
     size_t m_N; ///< See #N.
     size_t m_inc = 0; ///< Increment number (`time == m_inc * m_dt`).
@@ -1046,7 +1035,7 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const Generator& chunked)
+        Generator* chunked)
     {
         this->initSystemThermalRandomForcing(m, eta, mu, k_neighbours, k_frame, dt, chunked);
     }
@@ -1114,7 +1103,7 @@ protected:
         double k_neighbours,
         double k_frame,
         double dt,
-        const Generator& chunked)
+        Generator* chunked)
     {
         m_seq = false;
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
@@ -1179,7 +1168,7 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const Generator& chunked)
+        Generator* chunked)
     {
         m_kappa = kappa;
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
@@ -1188,17 +1177,17 @@ public:
 protected:
     void computeForcePotential() override
     {
-        if (m_chunk.is_extendible()) {
-            m_chunk.align(m_x);
-            m_chunk.chunk_index(m_i);
+        if (m_chunk->is_extendible()) {
+            m_chunk->align(m_x);
+            m_chunk->chunk_index(m_i);
         }
         else {
-            QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+            QPot::inplace::lower_bound(m_chunk->data(), m_x, m_i);
         }
 
         for (size_t p = 0; p < m_N; ++p) {
 
-            auto* y = &m_chunk(p, m_i(p));
+            auto* y = &m_chunk->data()(p, m_i(p));
             double xi = 0.5 * (*(y) + *(y + 1));
             double u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
             double l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
@@ -1243,7 +1232,7 @@ public:
         double k_neighbours,
         double k_frame,
         double dt,
-        const Generator& chunked)
+        Generator* chunked)
     {
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunked);
     }
@@ -1251,16 +1240,16 @@ public:
 protected:
     void computeForcePotential() override
     {
-        if (m_chunk.is_extendible()) {
-            m_chunk.align(m_x);
-            m_chunk.chunk_index(m_i);
+        if (m_chunk->is_extendible()) {
+            m_chunk->align(m_x);
+            m_chunk->chunk_index(m_i);
         }
         else {
-            QPot::inplace::lower_bound(m_chunk.data(), m_x, m_i);
+            QPot::inplace::lower_bound(m_chunk->data(), m_x, m_i);
         }
 
         for (size_t p = 0; p < m_N; ++p) {
-            auto* y = &m_chunk(p, m_i(p));
+            auto* y = &m_chunk->data()(p, m_i(p));
             double x = m_x(p);
             double xmin = 0.5 * (*(y) + *(y + 1));
             double dy = 0.5 * (*(y + 1) - *(y));
