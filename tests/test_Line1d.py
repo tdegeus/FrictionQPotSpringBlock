@@ -133,29 +133,29 @@ class Test_Line1d_System(unittest.TestCase):
 
         self.assertTrue(system.residual() < 1e-5)
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, False)
         self.assertTrue(system.residual() < 1e-5)
         self.assertTrue(np.allclose(system.x, (0.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(system.i() == i_n))
+        self.assertTrue(np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.x, (0.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(system.i() == i_n))
+        self.assertTrue(not np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, False)
         self.assertTrue(np.allclose(system.x, (1.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(system.i() == i_n))
+        self.assertTrue(np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1))
 
-        i_n = system.i()
+        i_n = system.i
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.x, (1.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(system.i() == i_n))
+        self.assertTrue(not np.all(system.i == i_n))
         self.assertTrue(np.isclose(system.x_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1))
 
     def test_trigger(self):
@@ -273,9 +273,9 @@ class Test_Line1d_System(unittest.TestCase):
             j = prrng.lower_bound(yref, system.x)
             r = np.arange(N)
 
-            self.assertTrue(np.all(system.i() == j))
-            self.assertTrue(np.allclose(yref[r, system.i()], system.y_left()))
-            self.assertTrue(np.allclose(yref[r, system.i() + 1], system.y_right()))
+            self.assertTrue(np.all(system.i == j))
+            self.assertTrue(np.allclose(yref[r, system.i], system.y_left()))
+            self.assertTrue(np.allclose(yref[r, system.i + 1], system.y_right()))
 
 
 if __name__ == "__main__":

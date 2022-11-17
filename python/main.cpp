@@ -44,7 +44,7 @@ template <class C, class S, class G>
 void mysystem(C& cls)
 {
     cls.def_property_readonly("N", &S::N, "Number of particles");
-    cls.def("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
+    cls.def_property_readonly("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
 
     cls.def(
         "y_right",
