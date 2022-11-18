@@ -4,7 +4,6 @@ import FrictionQPotSpringBlock.Line1d as model
 import h5py
 import numpy as np
 import prrng
-import QPot
 import tqdm
 
 try:
@@ -15,24 +14,15 @@ except ImportError:
     plot = False
 
 N = 1000
-
-initstate = np.arange(N)
-initseq = np.zeros(N)
-generators = prrng.pcg32_array(initstate, initseq)
-
-nchunk = 1500
-nbuffer = 200
-state = generators.state()
-istart = np.zeros(N, dtype=np.int64)
-istate = np.zeros(N, dtype=np.int64)
-
-y = 2.0 * generators.random([nchunk])
-y = np.cumsum(y, 1)
-y -= 50.0
-
-istate += y.shape[1]
-state = generators.state()
-
+chunk = prrng.pcg32_tensor_cumsum_1_1(
+    shape=[1500],
+    initstate=np.arange(N),
+    initseq=np.zeros(N),
+    distribution=prrng.distribution.random,
+    parameters=[2.0],
+    align=prrng.alignment(buffer=5, margin=50, min_margin=25, strict=False),
+)
+chunk -= 50
 xdelta = 1e-3
 
 system = model.System(
@@ -42,7 +32,7 @@ system = model.System(
     k_neighbours=1.0,
     k_frame=1.0 / N,
     dt=0.1,
-    x_yield=y,
+    chunk=chunk,
 )
 
 nstep = 1000
@@ -53,19 +43,6 @@ ret_S = np.empty([nstep], dtype=int)
 pbar = tqdm.tqdm(total=nstep)
 
 for step in range(nstep):
-
-    # Update chunk.
-    if np.any(system.i > nchunk - nbuffer):
-        shift = system.i - nbuffer + 1
-        advance = np.where(shift < 0, shift + istart - istate, nchunk + istart - istate)
-        generators.advance(advance)
-        istate += advance
-        n = np.max(np.abs(shift)) + 1
-        dy = 2.0 * generators.random([n])
-        state = generators.state()
-        istart += shift
-        istate += n
-        system.y = QPot.cumsum_chunk(system.y, dy, shift)
 
     # Extract output data.
     i_n = np.copy(system.i)
@@ -79,7 +56,7 @@ for step in range(nstep):
     # Minimise energy.
     if step % 2 == 0:
         inc_n = system.inc
-        ret = system.minimise(nmargin=5)
+        ret = system.minimise()
         assert ret == 0
         pbar.n = step
         pbar.set_description(f"step = {step:4d}, niter = {system.inc - inc_n:8d}")

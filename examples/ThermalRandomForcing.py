@@ -14,19 +14,17 @@ except ImportError:
     plot = False
 
 N = 1000
-
 initstate = np.arange(N)
 initseq = np.zeros(N)
-
-# generate yield positions
-
-generators = prrng.pcg32_array(initstate, initseq)
-
-y = 2.0 * generators.random([20000])
-y = np.cumsum(y, 1)
-y -= 50.0
-
-istart = np.zeros([N], dtype=int)
+chunk = prrng.pcg32_tensor_cumsum_1_1(
+    shape=[1500],
+    initstate=initstate,
+    initseq=initseq,
+    distribution=prrng.distribution.random,
+    parameters=[2.0],
+    align=prrng.alignment(buffer=5, margin=50, min_margin=25, strict=False),
+)
+chunk -= 50
 
 # generate sequence of random forces and define start and end increment at which they are applied
 # (fixed internal "dinc" that is randomly shifted per particle by maximum "dinc")
@@ -49,7 +47,7 @@ system = model.SystemThermalRandomForcing(
     k_neighbours=1.0,
     k_frame=1.0 / N,
     dt=0.1,
-    x_yield=y,
+    chunk=chunk,
 )
 
 system.minimise()
