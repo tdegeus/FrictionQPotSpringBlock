@@ -3,8 +3,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import prrng
 
-generator = prrng.pcg32()
-y = np.cumsum(generator.random([15])) - 5
+N = 1
+chunk = prrng.pcg32_tensor_cumsum_1_1(
+    shape=[100],
+    initstate=np.arange(N),
+    initseq=np.zeros(N),
+    distribution=prrng.distribution.random,
+    parameters=[2.0],
+    align=prrng.alignment(buffer=5, margin=50, min_margin=25, strict=False),
+)
+chunk -= 5
 
 fig, ax = plt.subplots()
 
@@ -17,10 +25,10 @@ system = model.System(
     k_neighbours=1,
     k_frame=1,
     dt=1,
-    x_yield=y.reshape(1, -1),
+    chunk=chunk,
 )
 
-x = np.linspace(y[0], y[-1], 1000)
+x = np.linspace(0, 10, 1000)
 f = np.zeros(x.size)
 
 for i in range(x.size):
@@ -38,10 +46,10 @@ system = model.SystemSmooth(
     k_neighbours=1,
     k_frame=1,
     dt=1,
-    x_yield=y.reshape(1, -1),
+    chunk=chunk,
 )
 
-x = np.linspace(y[0], y[-1], 1000)
+x = np.linspace(0, 10, 1000)
 f = np.zeros(x.size)
 
 for i in range(x.size):
@@ -60,10 +68,10 @@ system = model.SystemSemiSmooth(
     k_neighbours=1,
     k_frame=1,
     dt=1,
-    x_yield=y.reshape(1, -1),
+    chunk=chunk,
 )
 
-x = np.linspace(y[0], y[-1], 1000)
+x = np.linspace(0, 10, 1000)
 f = np.zeros(x.size)
 
 for i in range(x.size):
@@ -74,7 +82,7 @@ ax.plot(x, f, c="r")
 
 # annotations
 
-x = np.linspace(y[0], y[-1], 2)
+x = np.linspace(0, 10, 1000)
 ax.plot(x, np.zeros_like(x), c="k", ls="--")
 
 plt.show()
