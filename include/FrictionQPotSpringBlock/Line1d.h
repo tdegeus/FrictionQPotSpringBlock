@@ -54,6 +54,9 @@ inline std::vector<std::string> version_compiler()
     return GMatTensor::version_compiler();
 }
 
+/**
+ * @brief Chunked storage of the cumulative sum of random numbers, used in all classes.
+ */
 using Generator =
     prrng::pcg32_tensor_cumsum<array_type::tensor<double, 2>, array_type::tensor<ptrdiff_t, 1>, 1>;
 
@@ -774,7 +777,7 @@ public:
 
 protected:
     /**
-     * @copydoc System(double, double, double, double, double, double, const T&)
+     * @copydoc System(double, double, double, double, double, double, Generator*)
      */
     void initSystem(
         double m,
@@ -988,7 +991,7 @@ public:
     SystemThermalRandomForcing() = default;
 
     /**
-     * @copydoc System(double, double, double, double, double, double, const T&)
+     * @copydoc System(double, double, double, double, double, double, Generator*)
      */
     SystemThermalRandomForcing(
         double m,
@@ -1056,7 +1059,8 @@ public:
 
 protected:
     /**
-     * @copydoc SystemThermalRandomForcing(double, double, double, double, double, double, const T&)
+     * @copydoc SystemThermalRandomForcing(
+     *      double, double, double, double, double, double, Generator*)
      */
     void initSystemThermalRandomForcing(
         double m,
@@ -1119,7 +1123,7 @@ public:
     SystemSemiSmooth() = default;
 
     /**
-     * @copydoc System(double, double, double, double, double, double, const Generator&)
+     * @copydoc System(double, double, double, double, double, double, Generator*)
      * @param kappa Softening stiffness.
      */
     SystemSemiSmooth(
@@ -1179,7 +1183,7 @@ public:
     SystemSmooth() = default;
 
     /**
-     * @copydoc System(double, double, double, double, double, double, const T&)
+     * @copydoc System(double, double, double, double, double, double, Generator*)
      */
     SystemSmooth(
         double m,
