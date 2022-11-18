@@ -136,7 +136,7 @@ void mysystem(C& cls)
 
     cls.def(
         "advanceToFixedForce", &S::advanceToFixedForce, "advanceToFixedForce", py::arg("f_frame"));
-};
+}
 
 PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 {
