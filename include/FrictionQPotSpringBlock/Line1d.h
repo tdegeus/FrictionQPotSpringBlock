@@ -691,18 +691,17 @@ public:
     /**
      * Make event driven step.
      *
-     * -   `kick = false`: Increment the position of the load-frame and that of the particles to a
-     *     new mechanical equilibrium just before yielding
-     *     (if `direction = 1`, the new position for the particle `p` closest to yielding right is
-     *     `x[p] = y[p] - eps / 2`).
-     *     This assumes incrementing the load-frame infinitely slowly such that,
-     *     in the absence of yielding, the equilibrium configuration for a new position of the load
-     *     frame is knows.
-     * -   `kick = true` : Advance the system uniformly
-     *     (the particles and the frame are moved proportionally depending on the relative
-     * stiffness) such that the particle closest to yielding if brought just past yielding (if
-     * `direction = 1`, the new position for the particle `p` closest to yielding right is `x[p] =
-     * y[p] + eps / 2`).
+     *  -   `kick = false`: Increment the position of the load-frame and that of the particles to a
+     *      new mechanical equilibrium just before yielding (if `direction = 1`, the new position
+     *      for particle `p` closest to yielding to the right is `x[p] = y[p] - eps / 2`).
+     *      This assumes incrementing the load-frame infinitely slowly such that,
+     *      because there is no yielding, the equilibrium configuration for a new position of the
+     *      load frame is known.
+     *
+     *  -   `kick = true` : Advance the system uniformly
+     *      (the particles and the frame are moved proportionally) such that the particle closest to
+     *      yielding is brought just past yielding (if `direction = 1`, the new position for
+     *      particle `p` closest to yielding right is `x[p] = y[p] + eps / 2`).
      *
      * @param eps
      *     Margin to keep to the position to the closest yield position.
@@ -712,6 +711,7 @@ public:
      *     If `true`, the increment leads to a state out of mechanical equilibrium.
      *
      * @param direction If `+1`: move right. If `-1` move left.
+     *
      * @return Position increment of the frame.
      */
     double eventDrivenStep(double eps, bool kick, int direction = 1)
