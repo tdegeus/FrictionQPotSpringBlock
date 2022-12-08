@@ -278,6 +278,77 @@ class Test_Line1d_System(unittest.TestCase):
             self.assertTrue(np.allclose(yref[r, system.i + 1], system.y_right()))
 
 
+class Test_Line1d_SystemSemiSmooth(unittest.TestCase):
+    """
+    Test Line1d.SystemSemiSmooth
+    """
+
+    def test_eventDrivenStep(self):
+
+        N = 3
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        mu = 1
+        kappa = 0.1
+
+        system = FrictionQPotSpringBlock.Line1d.SystemSemiSmooth(
+            m=1.0,
+            eta=1.0,
+            mu=mu,
+            kappa=kappa,
+            k_neighbours=1.0,
+            k_frame=0.1,
+            dt=1.0,
+            chunk=chunk,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+
+        x0 = system.x.copy()
+        xf0 = system.x_frame
+        left = system.y_left()
+        right = system.y_right()
+        mid = 0.5 * (left + right)
+        upper = (mu * mid + kappa * right) / (mu + kappa)
+        lower = (mu * mid + kappa * left) / (mu + kappa)
+        eps = 0.001
+
+        self.assertAlmostEqual(system.maxUniformDisplacement(), np.min(upper - system.x))
+        system.eventDrivenStep(eps=eps, kick=False)
+        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(np.allclose(system.x, upper - 0.5 * eps))
+        self.assertAlmostEqual(system.maxUniformDisplacement(), 0.5 * eps)
+
+        system.eventDrivenStep(eps=eps, kick=True)
+        self.assertFalse(system.residual() < 1e-5)
+        self.assertTrue(np.allclose(system.x, upper + 0.5 * eps))
+        self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
+
+        system.x = x0
+        system.x_frame = xf0
+
+        self.assertAlmostEqual(system.maxUniformDisplacement(-1), np.min(system.x - lower))
+        system.eventDrivenStep(eps=eps, kick=False, direction=-1)
+        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(np.allclose(system.x, lower + 0.5 * eps))
+        self.assertTrue(
+            np.isclose(system.maxUniformDisplacement(-1), -0.5 * eps, atol=1e-3, rtol=1e-3)
+        )
+
+        system.eventDrivenStep(eps=eps, kick=True, direction=-1)
+        self.assertFalse(system.residual() < 1e-5)
+        self.assertTrue(np.allclose(system.x, lower - 0.5 * eps))
+        self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
+
+
 if __name__ == "__main__":
 
     unittest.main(verbosity=2)

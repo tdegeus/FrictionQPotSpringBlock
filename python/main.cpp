@@ -124,6 +124,12 @@ void mysystem(C& cls)
         py::arg("max_iter") = size_t(1e9));
 
     cls.def(
+        "maxUniformDisplacement",
+        &S::maxUniformDisplacement,
+        "maxUniformDisplacement",
+        py::arg("direction") = 1);
+
+    cls.def(
         "eventDrivenStep",
         &S::eventDrivenStep,
         "eventDrivenStep",

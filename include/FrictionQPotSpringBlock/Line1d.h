@@ -689,6 +689,22 @@ public:
     }
 
     /**
+     * @brief Find maximum particle displacement during for which the system is linear and uniform.
+     * @param direction If `+1`: move right. If `-1` move left.
+     * @return Particle displacement.
+     */
+    virtual double maxUniformDisplacement(int direction = 1)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+
+        if (direction > 0) {
+            return xt::amin(this->y_right() - m_x)();
+        }
+
+        return xt::amin(m_x - this->y_left())();
+    }
+
+    /**
      * Make event driven step.
      *
      *  -   `kick = false`: Increment the position of the load-frame and that of the particles to a
@@ -716,8 +732,10 @@ public:
      */
     double eventDrivenStep(double eps, bool kick, int direction = 1)
     {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+
         if (direction > 0 && !kick) {
-            double dx = xt::amin(this->y_right() - m_x)();
+            double dx = this->maxUniformDisplacement(direction);
             if (dx < 0.5 * eps) {
                 return 0.0;
             }
@@ -731,7 +749,7 @@ public:
         // direction < 0
 
         if (!kick) {
-            double dx = xt::amin(m_x - this->y_left())();
+            double dx = this->maxUniformDisplacement(direction);
             if (dx < 0.5 * eps) {
                 return 0.0;
             }
@@ -1140,6 +1158,41 @@ public:
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
     }
 
+    double maxUniformDisplacement(int direction = 1) override
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+
+        bool positive = direction > 0;
+        std::vector<double> dx;
+        dx.reserve(m_N);
+
+        for (size_t p = 0; p < m_N; ++p) {
+
+            auto* y = &m_chunk->data()(p, m_chunk->chunk_index()(p));
+            double xi = 0.5 * (*(y) + *(y + 1));
+            double u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
+            double l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
+            double x = m_x(p);
+
+            if (x < l) {
+                return 0.0;
+            }
+            else if (x <= u) {
+                if (positive) {
+                    dx.push_back(u - x);
+                }
+                else {
+                    dx.push_back(x - l);
+                }
+            }
+            else {
+                return 0.0;
+            }
+        }
+
+        return *std::min_element(dx.begin(), dx.end());
+    }
+
 protected:
     void computeForcePotential() override
     {
@@ -1195,6 +1248,13 @@ public:
         Generator* chunk)
     {
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
+    }
+
+    double maxUniformDisplacement(int direction = 1) override
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+        (void)(direction);
+        return 0.0;
     }
 
 protected:
