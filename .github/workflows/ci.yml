@@ -26,7 +26,7 @@ jobs:
     steps:
 
     - name: Basic GitHub action setup
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set conda environment
       uses: mamba-org/provision-with-micromamba@main
@@ -37,7 +37,6 @@ jobs:
         extra-specs: |
           h5py
           tqdm
-          sel(linux): cxx-compiler
 
     - name: Set dummy version
       run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
@@ -59,6 +58,16 @@ jobs:
       run: if grep -q "not documented" doxygen_warnings.log ; then exit 1; fi
 
     - name: Build and install Python module (in debug mode)
+      if: runner.os == 'Linux'
+      env:
+        CC: gcc-11
+        CXX: g++-11
+      run: |
+        SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
+        rm -r _skbuild
+
+    - name: Build and install Python module (in debug mode)
+      if: runner.os != 'Linux'
       run: |
         SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
         rm -r _skbuild
@@ -67,6 +76,14 @@ jobs:
       run: python -m unittest discover tests
 
     - name: Build and install Python module
+      if: runner.os == 'Linux'
+      env:
+        CC: gcc-11
+        CXX: g++-11
+      run: python -m pip install . -v
+
+    - name: Build and install Python module
+      if: runner.os != 'Linux'
       run: python -m pip install . -v
 
     - name: Run one example
