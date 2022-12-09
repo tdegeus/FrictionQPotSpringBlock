@@ -982,6 +982,152 @@ protected:
  * ## Introduction
  *
  * System in which the effect of temperature in mimicked by random forcing.
+ * The random force drawn from a random distribution and is changed every `n` increments.
+ * As such, it is defined by:
+ *
+ *  -   The mean and standard deviation of the random distribution.
+ *  -   The first increment at which the random force is changed.
+ *  -   The number of increments between two changes of the random force.
+ *
+ * ## Physics & API
+ *
+ * The physics and API are the same as in System(), with the difference that the residual force now
+ * reads \f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
+ * f_\text{neighbours}^{(i)} + f_\text{frame}^{(i)} + f_\text{random}^{(i)} \f$.
+ *
+ * ## Apply fixed force instead of fixed displacement
+ *
+ * To apply a fixed force (athermal or thermal) use a non-zero mean *and* set `k_frame = 0`.
+ *
+ * ## Internal strategy
+ *
+ * To avoid code duplication this class derives from System().
+ * To ensure the correct physics computeForce() is overridden to add \f$ f_\text{random}^{(i)} \f$.
+ */
+class SystemThermalRandomForceNormal : public System {
+protected:
+    array_type::tensor<double, 1> m_f_thermal; ///< Current applied 'random' forces.
+    double m_mean; ///< Mean of the random distribution.
+    double m_stddev; ///< Standard deviation of the random distribution.
+    array_type::tensor<size_t, 1> m_next; ///< Next increment at which the random force is changed.
+    array_type::tensor<size_t, 1> m_dinc; ///< #increment between two changes of the random force.
+    prrng::pcg32 m_rng; ///< Random number generator.
+
+public:
+    SystemThermalRandomForceNormal() = default;
+
+    /**
+     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param mean Mean of the random distribution from which the random force is drawn.
+     * @param stddev Standard deviation of that distribution.
+     * @param seed Seed for the random number generator.
+     * @param dinc_init Number of increments to wait to draw the first random force.
+     * @param dinc Number of increments between two changes of the random force.
+     */
+    SystemThermalRandomForceNormal(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        Generator* chunk,
+        double mean,
+        double stddev,
+        uint64_t seed,
+        const array_type::tensor<size_t, 1>& dinc_init,
+        const array_type::tensor<size_t, 1>& dinc)
+    {
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
+        m_rng.seed(seed);
+        m_f_thermal = m_rng.normal<decltype(m_f_thermal)>({m_N}, mean, stddev);
+        m_mean = mean;
+        m_stddev = stddev;
+        m_next = dinc_init;
+        m_dinc = dinc;
+    }
+
+    /**
+     * @brief State of the random number generator.
+     * @return State.
+     */
+    uint64_t state() const
+    {
+        return m_rng.state();
+    }
+
+    /**
+     * @brief Change the state of the random number generator.
+     * @param state State.
+     */
+    void set_state(uint64_t state)
+    {
+        m_rng.restore(state);
+    }
+
+    /**
+     * @brief Current random force.
+     * @return Array.
+     */
+    const array_type::tensor<double, 1>& f_thermal() const
+    {
+        return m_f_thermal;
+    }
+
+    /**
+     * @brief Change the random force.
+     * @param f_thermal New random force.
+     */
+    void set_f_thermal(const array_type::tensor<double, 1>& f_thermal)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f_thermal, m_f_thermal.shape()));
+        m_f_thermal = f_thermal;
+    }
+
+    /**
+     * @brief Aext increment at which the random force is changed.
+     * @param next Array
+     */
+    const array_type::tensor<size_t, 1>& next()
+    {
+        return m_next;
+    }
+
+    /**
+     * @brief Set the next increment at which the random force is changed.
+     * @param next Next increment.
+     */
+    void set_next(const array_type::tensor<size_t, 1>& next)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(next, m_next.shape()));
+        m_next = next;
+    }
+
+protected:
+    /**
+     * Update 'thermal' force
+     */
+    void updateThermalForce()
+    {
+        for (size_t p = 0; p < m_N; ++p) {
+            if (m_inc >= m_next(p)) {
+                m_f_thermal(p) = m_rng.normal(m_mean, m_stddev);
+                m_next(p) += m_dinc(p);
+            }
+        }
+    }
+
+    void computeForce() override
+    {
+        this->updateThermalForce();
+        xt::noalias(m_f) = m_f_potential + m_f_neighbours + m_f_damping + m_f_frame + m_f_thermal;
+    }
+};
+
+/**
+ * ## Introduction
+ *
+ * System in which the effect of temperature in mimicked by random forcing.
  * The random forces can be set:
  * -   Instantaneously, using setRandomForce().
  * -   As a sequence depending on the current increment, using setRandomForceSequence().

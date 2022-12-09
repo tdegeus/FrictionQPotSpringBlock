@@ -197,6 +197,50 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         }
 
         {
+            using S = SM::SystemThermalRandomForceNormal;
+
+            py::class_<S> cls(sm, "SystemThermalRandomForceNormal");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    SM::Generator*,
+                    double,
+                    double,
+                    uint64_t,
+                    const xt::pytensor<size_t, 1>&,
+                    const xt::pytensor<size_t, 1>&>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_neighbours"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"),
+                py::arg("mean"),
+                py::arg("stddev"),
+                py::arg("seed"),
+                py::arg("dinc_init"),
+                py::arg("dinc"));
+
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def_property("state", &S::state, &S::set_state, "State of RNG");
+            cls.def_property("f_thermal", &S::f_thermal, &S::set_f_thermal, "Random force");
+            cls.def_property("next", &S::next, &S::set_next, "Next draw increment");
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.SystemThermalRandomForceNormal>";
+            });
+        }
+
+        {
             using S = SM::SystemThermalRandomForcing;
 
             py::class_<S> cls(sm, "SystemThermalRandomForcing");
