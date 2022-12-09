@@ -856,7 +856,7 @@ protected:
     /**
      * Compute #f_neighbours based on the current #x.
      */
-    void computeForceNeighbours()
+    virtual void computeForceNeighbours()
     {
         for (size_t p = 1; p < m_N - 1; ++p) {
             m_f_neighbours(p) = m_k_neighbours * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1));
@@ -1268,6 +1268,76 @@ protected:
             double xmin = 0.5 * (*(y) + *(y + 1));
             double dy = 0.5 * (*(y + 1) - *(y));
             m_f_potential(p) = -m_mu * dy / M_PI * std::sin(M_PI * (x - xmin) / dy);
+        }
+    }
+};
+
+/**
+ * ## Introduction
+ *
+ * Identical to System() but with long-range interactions.
+ * Here, the interactions decay as \f$ 1 / r^{d + \alpha} \f$.
+ * See e.g. https://doi.org/10.1103/PhysRevLett.126.025702
+ *
+ * ## Internal strategy
+ *
+ * To avoid code duplication this class derives from System().
+ * To ensure the correct physics computeForceNeighbours() is overridden.
+ */
+class SystemLongRange : public System {
+protected:
+    double m_alpha; ///< Range of interactions.
+    array_type::tensor<double, 1> m_prefactor; ///< Prefactor for long-range interactions.
+
+public:
+    SystemLongRange() = default;
+
+    /**
+     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param alpha Range of interactions.
+     */
+    SystemLongRange(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double alpha,
+        double k_frame,
+        double dt,
+        Generator* chunk)
+    {
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
+        m_alpha = alpha;
+
+        m_prefactor = xt::empty<double>({m_N});
+        ptrdiff_t n = static_cast<ptrdiff_t>(m_N);
+
+        for (ptrdiff_t p = 0; p < n; ++p) {
+            for (ptrdiff_t i = 0; i < n; ++i) {
+                if (i == p) {
+                    m_prefactor(0) = 0.0;
+                }
+                else {
+                    ptrdiff_t d = std::abs(i - p);
+                    m_prefactor(d) = m_k_neighbours / std::pow(std::abs(i - p), m_alpha + 1.0);
+                }
+            }
+        }
+    }
+
+protected:
+    void computeForceNeighbours() override
+    {
+        ptrdiff_t n = static_cast<ptrdiff_t>(m_N);
+
+        for (ptrdiff_t p = 0; p < n; ++p) {
+            double f = 0.0;
+            double x = m_x(p);
+            for (ptrdiff_t i = 0; i < n; ++i) {
+                ptrdiff_t d = std::abs(i - p);
+                f += (m_x(i) - x) * m_prefactor(d);
+            }
+            m_f_neighbours(p) = f;
         }
     }
 };
