@@ -849,8 +849,10 @@ protected:
 
         for (size_t p = 0; p < m_N; ++p) {
             auto* l = &m_chunk->data()(p, m_chunk->chunk_index()(p));
-            m_f_potential(p) = m_mu * (0.5 * (*(l) + *(l + 1)) - m_x(p));
+            m_f_potential(p) = 0.5 * (*(l) + *(l + 1)) - m_x(p);
         }
+
+        m_f_potential *= m_mu;
     }
 
     /**
@@ -859,10 +861,12 @@ protected:
     virtual void computeForceNeighbours()
     {
         for (size_t p = 1; p < m_N - 1; ++p) {
-            m_f_neighbours(p) = m_k_neighbours * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1));
+            m_f_neighbours(p) = m_x(p - 1) - 2 * m_x(p) + m_x(p + 1);
         }
-        m_f_neighbours.front() = m_k_neighbours * (m_x.back() - 2 * m_x.front() + m_x(1));
-        m_f_neighbours.back() = m_k_neighbours * (m_x(m_N - 2) - 2 * m_x.back() + m_x.front());
+        m_f_neighbours.front() = m_x.back() - 2 * m_x.front() + m_x(1);
+        m_f_neighbours.back() = m_x(m_N - 2) - 2 * m_x.back() + m_x.front();
+
+        m_f_neighbours *= m_k_neighbours;
     }
 
     /**
@@ -1485,6 +1489,249 @@ protected:
             }
             m_f_neighbours(p) = f;
         }
+    }
+};
+
+/**
+ * ## Introduction
+ *
+ * Identical to System() but with '2d' interactions.
+ *
+ * ## Internal strategy
+ *
+ * To avoid code duplication this class derives from System().
+ * To ensure the correct physics computeForceNeighbours() is overridden.
+ */
+class System2d : public System {
+protected:
+    size_t m_width; ///< Number of 'columns'
+    size_t m_height; ///< Number of 'rows'
+
+public:
+    System2d() = default;
+
+    /**
+     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param width Number of 'columns'
+     */
+    System2d(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_frame,
+        double dt,
+        Generator* chunk,
+        size_t width)
+    {
+        size_t N = chunk->data().shape(0);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(N % width == 0);
+
+        m_width = width;
+        m_height = N / m_width;
+
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_width >= 2);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_height >= 2);
+
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
+    }
+
+    array_type::tensor<size_t, 1> up()
+    {
+        array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            for (size_t j = 1; j < m_width - 1; ++j) {
+                ret(i * m_height + j) = (i - 1) * m_height + j;
+            }
+        }
+
+        for (size_t j = 1; j < m_width - 1; ++j) {
+            ret(j) = (m_height - 1) * m_height + j;
+            ret((m_height - 1) * m_height + j) = (m_height - 2) * m_height + j;
+        }
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            ret(i * m_height) = (i - 1) * m_height;
+            ret(i * m_height + m_width - 1) = (i - 1) * m_height + m_width - 1;
+        }
+
+        ret(0) = (m_height - 1) * m_height;
+        ret(m_width - 1) = (m_height - 1) * m_height + m_width - 1;
+        ret((m_height - 1) * m_height) = (m_height - 2) * m_height;
+        ret((m_height - 1) * m_height + m_width - 1) = (m_height - 2) * m_height + m_width - 1;
+
+        return ret;
+    }
+
+    array_type::tensor<size_t, 1> down()
+    {
+        array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            for (size_t j = 1; j < m_width - 1; ++j) {
+                ret(i * m_height + j) = (i + 1) * m_height + j;
+            }
+        }
+
+        for (size_t j = 1; j < m_width - 1; ++j) {
+            ret(j) = m_height + j;
+            ret((m_height - 1) * m_height + j) = j;
+        }
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            ret(i * m_height) = (i + 1) * m_height;
+            ret(i * m_height + m_width - 1) = (i + 1) * m_height + m_width - 1;
+        }
+
+        ret(0) = m_height;
+        ret(m_width - 1) = m_height + m_width - 1;
+        ret((m_height - 1) * m_height) = 0;
+        ret((m_height - 1) * m_height + m_width - 1) = m_width - 1;
+
+        return ret;
+    }
+
+    array_type::tensor<size_t, 1> left()
+    {
+        array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            for (size_t j = 1; j < m_width - 1; ++j) {
+                ret(i * m_height + j) = i * m_height + j - 1;
+            }
+        }
+
+        for (size_t j = 1; j < m_width - 1; ++j) {
+            ret(j) = j - 1;
+            ret((m_height - 1) * m_height + j) = (m_height - 1) * m_height + j - 1;
+        }
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            ret(i * m_height) = i * m_height + m_width - 1;
+            ret(i * m_height + m_width - 1) = i * m_height + m_width - 2;
+        }
+
+        ret(0) = m_width - 1;
+        ret(m_width - 1) = m_width - 2;
+        ret((m_height - 1) * m_height) = (m_height - 1) * m_height + m_width - 1;
+        ret((m_height - 1) * m_height + m_width - 1) = (m_height - 1) * m_height + m_width - 2;
+
+        return ret;
+    }
+
+    array_type::tensor<size_t, 1> right()
+    {
+        array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            for (size_t j = 1; j < m_width - 1; ++j) {
+                ret(i * m_height + j) = i * m_height + j + 1;
+            }
+        }
+
+        for (size_t j = 1; j < m_width - 1; ++j) {
+            ret(j) = j + 1;
+            ret((m_height - 1) * m_height + j) = (m_height - 1) * m_height + j + 1;
+        }
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            ret(i * m_height) = i * m_height + 1;
+            ret(i * m_height + m_width - 1) = i * m_height;
+        }
+
+        ret(0) = 1;
+        ret(m_width - 1) = 0;
+        ret((m_height - 1) * m_height) = (m_height - 1) * m_height + 1;
+        ret((m_height - 1) * m_height + m_width - 1) = (m_height - 1) * m_height;
+
+        return ret;
+    }
+
+protected:
+    void computeForceNeighbours() override
+    {
+        // interior
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            for (size_t j = 1; j < m_width - 1; ++j) {
+                m_f_neighbours(i * m_height + j) = // self
+                    m_x((i - 1) * m_height + j) + // up
+                    m_x((i + 1) * m_height + j) + // down
+                    m_x(i * m_height + j - 1) + // left
+                    m_x(i * m_height + j + 1) - // right
+                    4 * m_x(i * m_height + j); // self
+            }
+        }
+
+        for (size_t j = 1; j < m_width - 1; ++j) {
+            // top
+            m_f_neighbours(j) = // self
+                m_x((m_height - 1) * m_height + j) + // up -> bottom
+                m_x(m_height + j) + // down
+                m_x(j - 1) + // left
+                m_x(j + 1) - // right
+                4 * m_x(j); // self
+
+            // bottom
+            m_f_neighbours((m_height - 1) * m_height + j) = // self
+                m_x((m_height - 2) * m_height + j) + // up
+                m_x(j) + // down -> top
+                m_x((m_height - 1) * m_height + j - 1) + // left
+                m_x((m_height - 1) * m_height + j + 1) - // right
+                4 * m_x((m_height - 1) * m_height + j); // self
+        }
+
+        for (size_t i = 1; i < m_height - 1; ++i) {
+            // left-edge
+            m_f_neighbours(i * m_height) = // self
+                m_x((i - 1) * m_height) + // up
+                m_x((i + 1) * m_height) + // down
+                m_x(i * m_height + m_width - 1) + // left -> right-edge
+                m_x(i * m_height + 1) - // right
+                4 * m_x(i * m_height); // self
+
+            // right-edge
+            m_f_neighbours(i * m_height + m_width - 1) = // self
+                m_x((i - 1) * m_height + m_width - 1) + // up
+                m_x((i + 1) * m_height + m_width - 1) + // down
+                m_x(i * m_height + m_width - 2) + // left
+                m_x(i * m_height) - // right -> left-edge
+                4 * m_x(i * m_height + m_width - 1); // self
+        }
+
+        // corner: top-left
+        m_f_neighbours(0) = // self
+            m_x((m_height - 1) * m_height) + // up
+            m_x(m_height) + // down
+            m_x(m_width - 1) + // left
+            m_x(1) - // right
+            4 * m_x(0); // self
+
+        // corner: top-right
+        m_f_neighbours(m_width - 1) = // self
+            m_x((m_height - 1) * m_height + m_width - 1) + // up
+            m_x(m_height + m_width - 1) + // down
+            m_x(m_width - 2) + // left
+            m_x(0) - // right
+            4 * m_x(m_width - 1); // self
+
+        // corner: bottom-left
+        m_f_neighbours((m_height - 1) * m_height) = // self
+            m_x((m_height - 2) * m_height) + // up
+            m_x(0) + // down
+            m_x((m_height - 1) * m_height + m_width - 1) + // left
+            m_x((m_height - 1) * m_height + 1) - // right
+            4 * m_x((m_height - 1) * m_height); // self
+
+        // corner: bottom-right
+        m_f_neighbours((m_height - 1) * m_height + m_width - 1) = // self
+            m_x((m_height - 2) * m_height + m_width - 1) + // up
+            m_x(m_width - 1) + // down
+            m_x((m_height - 1) * m_height + m_width - 2) + // left
+            m_x((m_height - 1) * m_height) - // right
+            4 * m_x((m_height - 1) * m_height + m_width - 1); // self
+
+        m_f_neighbours *= m_k_neighbours;
     }
 };
 

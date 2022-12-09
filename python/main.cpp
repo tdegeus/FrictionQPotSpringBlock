@@ -347,5 +347,33 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 return "<FrictionQPotSpringBlock.Line1d.SystemLongRange>";
             });
         }
+
+        {
+            using S = SM::System2d;
+
+            py::class_<S> cls(sm, "System2d");
+
+            cls.def(
+                py::init<double, double, double, double, double, double, SM::Generator*, size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_neighbours"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"),
+                py::arg("width"));
+
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def_property_readonly("up", &S::up, "Particle index: up");
+            cls.def_property_readonly("down", &S::down, "Particle index: down");
+            cls.def_property_readonly("left", &S::left, "Particle index: left");
+            cls.def_property_readonly("right", &S::right, "Particle index: right");
+
+            cls.def(
+                "__repr__", [](const S&) { return "<FrictionQPotSpringBlock.Line1d.System2d>"; });
+        }
     }
 }
