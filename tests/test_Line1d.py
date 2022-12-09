@@ -349,6 +349,61 @@ class Test_Line1d_SystemSemiSmooth(unittest.TestCase):
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
 
 
+class Test_Line1d_System2d(unittest.TestCase):
+    """
+    Test Line1d.System2d
+    """
+
+    def test_eventDrivenStep(self):
+
+        height = 4
+        width = 4
+        N = height * width
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        system = FrictionQPotSpringBlock.Line1d.System2d(
+            m=1,
+            eta=1,
+            mu=1,
+            k_neighbours=0.1,
+            k_frame=0.1,
+            dt=1,
+            chunk=chunk,
+            width=width,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+
+        index = np.arange(N).reshape(height, width)
+        down = np.roll(index, -1, axis=0)
+        up = np.roll(index, 1, axis=0)
+        left = np.roll(index, 1, axis=1)
+        right = np.roll(index, -1, axis=1)
+
+        self.assertTrue(np.all(system.down == down.ravel()))
+        self.assertTrue(np.all(system.up == up.ravel()))
+        self.assertTrue(np.all(system.left == left.ravel()))
+        self.assertTrue(np.all(system.right == right.ravel()))
+
+        m = -4
+        f0 = np.array([[m, 1, 0, 1], [1, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]]) * 0.1
+        x0 = np.array([[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+
+        for i in range(height):
+            for j in range(width):
+                system.x = np.roll(np.roll(x0, i, axis=0), j, axis=1).ravel()
+                f = np.roll(np.roll(f0, i, axis=0), j, axis=1).ravel()
+                self.assertTrue(np.allclose(system.f_neighbours, f))
+
+
 if __name__ == "__main__":
 
     unittest.main(verbosity=2)
