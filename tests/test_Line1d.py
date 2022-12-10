@@ -354,11 +354,11 @@ class Test_Line1d_System2d(unittest.TestCase):
     Test Line1d.System2d
     """
 
-    def test_eventDrivenStep(self):
+    def test_interactions(self):
 
-        height = 4
-        width = 4
-        N = height * width
+        m = 4
+        n = 4
+        N = m * n
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
             initstate=np.zeros([N], dtype=int),
@@ -369,20 +369,21 @@ class Test_Line1d_System2d(unittest.TestCase):
         )
         chunk.data -= 49.5
 
+        k_neighbours = 0.12
         system = FrictionQPotSpringBlock.Line1d.System2d(
             m=1,
             eta=1,
             mu=1,
-            k_neighbours=0.1,
+            k_neighbours=k_neighbours,
             k_frame=0.1,
             dt=1,
             chunk=chunk,
-            width=width,
+            width=n,
         )
 
         self.assertTrue(system.residual() < 1e-5)
 
-        index = np.arange(N).reshape(height, width)
+        index = np.arange(N).reshape(m, n)
         down = np.roll(index, -1, axis=0)
         up = np.roll(index, 1, axis=0)
         left = np.roll(index, 1, axis=1)
@@ -393,12 +394,12 @@ class Test_Line1d_System2d(unittest.TestCase):
         self.assertTrue(np.all(system.left == left.ravel()))
         self.assertTrue(np.all(system.right == right.ravel()))
 
-        m = -4
-        f0 = np.array([[m, 1, 0, 1], [1, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]]) * 0.1
+        c = -4
+        f0 = np.array([[c, 1, 0, 1], [1, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]]) * k_neighbours
         x0 = np.array([[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
 
-        for i in range(height):
-            for j in range(width):
+        for i in range(m):
+            for j in range(n):
                 system.x = np.roll(np.roll(x0, i, axis=0), j, axis=1).ravel()
                 f = np.roll(np.roll(f0, i, axis=0), j, axis=1).ravel()
                 self.assertTrue(np.allclose(system.f_neighbours, f))

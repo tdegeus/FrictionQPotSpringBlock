@@ -1496,6 +1496,20 @@ protected:
  * ## Introduction
  *
  * Identical to System() but with '2d' interactions.
+ * Each particle has still one degree of freedom, but interacts with four neighbours in a '2d' grid.
+ * The particle numbering is assumed to be as follows:
+ *
+ *      0  1  2  3  4
+ *      5  6  7  8  9
+ *     10 11 12 13 14
+ *     15 16 17 18 19
+ *     20 21 22 23 24
+ *
+ * whereby the interaction kernal is:
+ *
+ *        +1
+ *     +1 -4 +1
+ *        +1
  *
  * ## Internal strategy
  *
@@ -1504,8 +1518,8 @@ protected:
  */
 class System2d : public System {
 protected:
-    size_t m_width; ///< Number of 'columns'
-    size_t m_height; ///< Number of 'rows'
+    size_t m_m; ///< Number of 'rows'
+    size_t m_n; ///< Number of 'columns'
 
 public:
     System2d() = default;
@@ -1527,123 +1541,147 @@ public:
         size_t N = chunk->data().shape(0);
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(N % width == 0);
 
-        m_width = width;
-        m_height = N / m_width;
+        m_n = width;
+        m_m = N / m_n;
 
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_width >= 2);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_height >= 2);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_n >= 2);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_m >= 2);
 
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
     }
 
+    /**
+     * @brief Get the 'upper' neighbour of each particle.
+     * For each particle `(i, j)` this function returns `(i - 1, j)`.
+     *
+     * @return 1d array.
+     */
     array_type::tensor<size_t, 1> up()
     {
         array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            for (size_t j = 1; j < m_width - 1; ++j) {
-                ret(i * m_height + j) = (i - 1) * m_height + j;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            for (size_t j = 1; j < m_n - 1; ++j) {
+                ret(i * m_m + j) = (i - 1) * m_m + j;
             }
         }
 
-        for (size_t j = 1; j < m_width - 1; ++j) {
-            ret(j) = (m_height - 1) * m_height + j;
-            ret((m_height - 1) * m_height + j) = (m_height - 2) * m_height + j;
+        for (size_t j = 1; j < m_n - 1; ++j) {
+            ret(j) = (m_m - 1) * m_m + j;
+            ret((m_m - 1) * m_m + j) = (m_m - 2) * m_m + j;
         }
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            ret(i * m_height) = (i - 1) * m_height;
-            ret(i * m_height + m_width - 1) = (i - 1) * m_height + m_width - 1;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            ret(i * m_m) = (i - 1) * m_m;
+            ret(i * m_m + m_n - 1) = (i - 1) * m_m + m_n - 1;
         }
 
-        ret(0) = (m_height - 1) * m_height;
-        ret(m_width - 1) = (m_height - 1) * m_height + m_width - 1;
-        ret((m_height - 1) * m_height) = (m_height - 2) * m_height;
-        ret((m_height - 1) * m_height + m_width - 1) = (m_height - 2) * m_height + m_width - 1;
+        ret(0) = (m_m - 1) * m_m;
+        ret(m_n - 1) = (m_m - 1) * m_m + m_n - 1;
+        ret((m_m - 1) * m_m) = (m_m - 2) * m_m;
+        ret((m_m - 1) * m_m + m_n - 1) = (m_m - 2) * m_m + m_n - 1;
 
         return ret;
     }
 
+    /**
+     * @brief Get the 'bottom' neighbour of each particle.
+     * For each particle `(i, j)` this function returns `(i + 1, j)` (accounting for periodicity).
+     *
+     * @return 1d array.
+     */
     array_type::tensor<size_t, 1> down()
     {
         array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            for (size_t j = 1; j < m_width - 1; ++j) {
-                ret(i * m_height + j) = (i + 1) * m_height + j;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            for (size_t j = 1; j < m_n - 1; ++j) {
+                ret(i * m_m + j) = (i + 1) * m_m + j;
             }
         }
 
-        for (size_t j = 1; j < m_width - 1; ++j) {
-            ret(j) = m_height + j;
-            ret((m_height - 1) * m_height + j) = j;
+        for (size_t j = 1; j < m_n - 1; ++j) {
+            ret(j) = m_m + j;
+            ret((m_m - 1) * m_m + j) = j;
         }
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            ret(i * m_height) = (i + 1) * m_height;
-            ret(i * m_height + m_width - 1) = (i + 1) * m_height + m_width - 1;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            ret(i * m_m) = (i + 1) * m_m;
+            ret(i * m_m + m_n - 1) = (i + 1) * m_m + m_n - 1;
         }
 
-        ret(0) = m_height;
-        ret(m_width - 1) = m_height + m_width - 1;
-        ret((m_height - 1) * m_height) = 0;
-        ret((m_height - 1) * m_height + m_width - 1) = m_width - 1;
+        ret(0) = m_m;
+        ret(m_n - 1) = m_m + m_n - 1;
+        ret((m_m - 1) * m_m) = 0;
+        ret((m_m - 1) * m_m + m_n - 1) = m_n - 1;
 
         return ret;
     }
 
+    /**
+     * @brief Get the 'left' neighbour of each particle.
+     * For each particle `(i, j)` this function returns `(i, j - 1)` (accounting for periodicity).
+     *
+     * @return 1d array.
+     */
     array_type::tensor<size_t, 1> left()
     {
         array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            for (size_t j = 1; j < m_width - 1; ++j) {
-                ret(i * m_height + j) = i * m_height + j - 1;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            for (size_t j = 1; j < m_n - 1; ++j) {
+                ret(i * m_m + j) = i * m_m + j - 1;
             }
         }
 
-        for (size_t j = 1; j < m_width - 1; ++j) {
+        for (size_t j = 1; j < m_n - 1; ++j) {
             ret(j) = j - 1;
-            ret((m_height - 1) * m_height + j) = (m_height - 1) * m_height + j - 1;
+            ret((m_m - 1) * m_m + j) = (m_m - 1) * m_m + j - 1;
         }
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            ret(i * m_height) = i * m_height + m_width - 1;
-            ret(i * m_height + m_width - 1) = i * m_height + m_width - 2;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            ret(i * m_m) = i * m_m + m_n - 1;
+            ret(i * m_m + m_n - 1) = i * m_m + m_n - 2;
         }
 
-        ret(0) = m_width - 1;
-        ret(m_width - 1) = m_width - 2;
-        ret((m_height - 1) * m_height) = (m_height - 1) * m_height + m_width - 1;
-        ret((m_height - 1) * m_height + m_width - 1) = (m_height - 1) * m_height + m_width - 2;
+        ret(0) = m_n - 1;
+        ret(m_n - 1) = m_n - 2;
+        ret((m_m - 1) * m_m) = (m_m - 1) * m_m + m_n - 1;
+        ret((m_m - 1) * m_m + m_n - 1) = (m_m - 1) * m_m + m_n - 2;
 
         return ret;
     }
 
+    /**
+     * @brief Get the 'right' neighbour of each particle.
+     * For each particle `(i, j)` this function returns `(i, j + 1)` (accounting for periodicity).
+     *
+     * @return 1d array.
+     */
     array_type::tensor<size_t, 1> right()
     {
         array_type::tensor<size_t, 1> ret = xt::empty<size_t>({m_N});
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            for (size_t j = 1; j < m_width - 1; ++j) {
-                ret(i * m_height + j) = i * m_height + j + 1;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            for (size_t j = 1; j < m_n - 1; ++j) {
+                ret(i * m_m + j) = i * m_m + j + 1;
             }
         }
 
-        for (size_t j = 1; j < m_width - 1; ++j) {
+        for (size_t j = 1; j < m_n - 1; ++j) {
             ret(j) = j + 1;
-            ret((m_height - 1) * m_height + j) = (m_height - 1) * m_height + j + 1;
+            ret((m_m - 1) * m_m + j) = (m_m - 1) * m_m + j + 1;
         }
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            ret(i * m_height) = i * m_height + 1;
-            ret(i * m_height + m_width - 1) = i * m_height;
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            ret(i * m_m) = i * m_m + 1;
+            ret(i * m_m + m_n - 1) = i * m_m;
         }
 
         ret(0) = 1;
-        ret(m_width - 1) = 0;
-        ret((m_height - 1) * m_height) = (m_height - 1) * m_height + 1;
-        ret((m_height - 1) * m_height + m_width - 1) = (m_height - 1) * m_height;
+        ret(m_n - 1) = 0;
+        ret((m_m - 1) * m_m) = (m_m - 1) * m_m + 1;
+        ret((m_m - 1) * m_m + m_n - 1) = (m_m - 1) * m_m;
 
         return ret;
     }
@@ -1652,84 +1690,84 @@ protected:
     void computeForceNeighbours() override
     {
         // interior
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            for (size_t j = 1; j < m_width - 1; ++j) {
-                m_f_neighbours(i * m_height + j) = // self
-                    m_x((i - 1) * m_height + j) + // up
-                    m_x((i + 1) * m_height + j) + // down
-                    m_x(i * m_height + j - 1) + // left
-                    m_x(i * m_height + j + 1) - // right
-                    4 * m_x(i * m_height + j); // self
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            for (size_t j = 1; j < m_n - 1; ++j) {
+                m_f_neighbours(i * m_m + j) = // (i, j)
+                    m_x((i - 1) * m_m + j) + // (i - 1, j)
+                    m_x((i + 1) * m_m + j) + // (i + 1, j)
+                    m_x(i * m_m + j - 1) + // (i, j - 1)
+                    m_x(i * m_m + j + 1) - // (i, j + 1)
+                    4 * m_x(i * m_m + j); // (i, j)
             }
         }
 
-        for (size_t j = 1; j < m_width - 1; ++j) {
+        for (size_t j = 1; j < m_n - 1; ++j) {
             // top
-            m_f_neighbours(j) = // self
-                m_x((m_height - 1) * m_height + j) + // up -> bottom
-                m_x(m_height + j) + // down
-                m_x(j - 1) + // left
-                m_x(j + 1) - // right
-                4 * m_x(j); // self
+            m_f_neighbours(j) = // (i, j)
+                m_x((m_m - 1) * m_m + j) + // (i - 1, j)  ->  (m - 1, j)
+                m_x(m_m + j) + // (i + 1, j)
+                m_x(j - 1) + // (i, j - 1)
+                m_x(j + 1) - // (i, j + 1)
+                4 * m_x(j); // (i, j)
 
             // bottom
-            m_f_neighbours((m_height - 1) * m_height + j) = // self
-                m_x((m_height - 2) * m_height + j) + // up
-                m_x(j) + // down -> top
-                m_x((m_height - 1) * m_height + j - 1) + // left
-                m_x((m_height - 1) * m_height + j + 1) - // right
-                4 * m_x((m_height - 1) * m_height + j); // self
+            m_f_neighbours((m_m - 1) * m_m + j) = // (i, j)
+                m_x((m_m - 2) * m_m + j) + // (i - 1, j)
+                m_x(j) + // (i + 1, j)  ->  (0, j)
+                m_x((m_m - 1) * m_m + j - 1) + // (i, j - 1)
+                m_x((m_m - 1) * m_m + j + 1) - // (i, j + 1)
+                4 * m_x((m_m - 1) * m_m + j); // (i, j)
         }
 
-        for (size_t i = 1; i < m_height - 1; ++i) {
-            // left-edge
-            m_f_neighbours(i * m_height) = // self
-                m_x((i - 1) * m_height) + // up
-                m_x((i + 1) * m_height) + // down
-                m_x(i * m_height + m_width - 1) + // left -> right-edge
-                m_x(i * m_height + 1) - // right
-                4 * m_x(i * m_height); // self
+        for (size_t i = 1; i < m_m - 1; ++i) {
+            // (i, j - 1)-edge
+            m_f_neighbours(i * m_m) = // (i, j)
+                m_x((i - 1) * m_m) + // (i - 1, j)
+                m_x((i + 1) * m_m) + // (i + 1, j)
+                m_x(i * m_m + m_n - 1) + // (i, j - 1)  ->  (i, n - 1)
+                m_x(i * m_m + 1) - // (i, j + 1)
+                4 * m_x(i * m_m); // (i, j)
 
-            // right-edge
-            m_f_neighbours(i * m_height + m_width - 1) = // self
-                m_x((i - 1) * m_height + m_width - 1) + // up
-                m_x((i + 1) * m_height + m_width - 1) + // down
-                m_x(i * m_height + m_width - 2) + // left
-                m_x(i * m_height) - // right -> left-edge
-                4 * m_x(i * m_height + m_width - 1); // self
+            // (i, j + 1)-edge
+            m_f_neighbours(i * m_m + m_n - 1) = // (i, j)
+                m_x((i - 1) * m_m + m_n - 1) + // (i - 1, j)
+                m_x((i + 1) * m_m + m_n - 1) + // (i + 1, j)
+                m_x(i * m_m + m_n - 2) + // (i, j - 1)
+                m_x(i * m_m) - // (i, j + 1)  ->  (i, 0)
+                4 * m_x(i * m_m + m_n - 1); // (i, j)
         }
 
         // corner: top-left
-        m_f_neighbours(0) = // self
-            m_x((m_height - 1) * m_height) + // up
-            m_x(m_height) + // down
-            m_x(m_width - 1) + // left
-            m_x(1) - // right
-            4 * m_x(0); // self
+        m_f_neighbours(0) = // (i, j)  ->  (0, 0)
+            m_x((m_m - 1) * m_m) + // (i - 1, j)  ->  (m - 1, 0)
+            m_x(m_m) + // (i + 1, j)  ->  (1, 0)
+            m_x(m_n - 1) + // (i, j - 1)  ->  (0, n - 1)
+            m_x(1) - // (i, j + 1)  ->  (0, 1)
+            4 * m_x(0); // (i, j)  ->  (0, 0)
 
         // corner: top-right
-        m_f_neighbours(m_width - 1) = // self
-            m_x((m_height - 1) * m_height + m_width - 1) + // up
-            m_x(m_height + m_width - 1) + // down
-            m_x(m_width - 2) + // left
-            m_x(0) - // right
-            4 * m_x(m_width - 1); // self
+        m_f_neighbours(m_n - 1) = // (i, j)  ->  (0, n - 1)
+            m_x((m_m - 1) * m_m + m_n - 1) + // (i - 1, j)  ->  (m - 1, n - 1)
+            m_x(m_m + m_n - 1) + // (i + 1, j)  ->  (1, n - 1)
+            m_x(m_n - 2) + // (i, j - 1)  ->  (0, n - 2)
+            m_x(0) - // (i, j + 1)  ->  (0, 0)
+            4 * m_x(m_n - 1); // (i, j)  ->  (0, n - 1)
 
         // corner: bottom-left
-        m_f_neighbours((m_height - 1) * m_height) = // self
-            m_x((m_height - 2) * m_height) + // up
-            m_x(0) + // down
-            m_x((m_height - 1) * m_height + m_width - 1) + // left
-            m_x((m_height - 1) * m_height + 1) - // right
-            4 * m_x((m_height - 1) * m_height); // self
+        m_f_neighbours((m_m - 1) * m_m) = // (i, j)  ->  (m - 1, 0)
+            m_x((m_m - 2) * m_m) + // (i - 1, j)  ->  (m - 2, 0)
+            m_x(0) + // (i + 1, j)  ->  (0, 0)
+            m_x((m_m - 1) * m_m + m_n - 1) + // (i, j - 1)  ->  (m - 1, n - 1)
+            m_x((m_m - 1) * m_m + 1) - // (i, j + 1)  ->  (m - 1, 1)
+            4 * m_x((m_m - 1) * m_m); // (i, j)  ->  (m - 1, 0)
 
         // corner: bottom-right
-        m_f_neighbours((m_height - 1) * m_height + m_width - 1) = // self
-            m_x((m_height - 2) * m_height + m_width - 1) + // up
-            m_x(m_width - 1) + // down
-            m_x((m_height - 1) * m_height + m_width - 2) + // left
-            m_x((m_height - 1) * m_height) - // right
-            4 * m_x((m_height - 1) * m_height + m_width - 1); // self
+        m_f_neighbours((m_m - 1) * m_m + m_n - 1) = // (i, j)  ->  (m - 1, n - 1)
+            m_x((m_m - 2) * m_m + m_n - 1) + // (i - 1, j)  ->  (m - 2, n - 1)
+            m_x(m_n - 1) + // (i + 1, j)  ->  (0, n - 1)
+            m_x((m_m - 1) * m_m + m_n - 2) + // (i, j - 1)  ->  (m - 1, n - 2)
+            m_x((m_m - 1) * m_m) - // (i, j + 1)  ->  (m - 1, 0)
+            4 * m_x((m_m - 1) * m_m + m_n - 1); // (i, j)  ->  (m - 1, n - 1)
 
         m_f_neighbours *= m_k_neighbours;
     }
