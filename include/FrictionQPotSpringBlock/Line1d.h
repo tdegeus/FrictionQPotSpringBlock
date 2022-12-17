@@ -153,6 +153,18 @@ public:
     }
 
     /**
+     * @brief Periodic index.
+     *
+     * @param index Index.
+     * @return Index after applying periodicity.
+     */
+    ptrdiff_t periodic(ptrdiff_t index) const
+    {
+        ptrdiff_t n = static_cast<ptrdiff_t>(m_N);
+        return (n + index % n) % n;
+    }
+
+    /**
      * Current global index of the potential energy landscape of each particle.
      * @return Array of shape [#N].
      */
@@ -1438,6 +1450,8 @@ class SystemLongRange : public System {
 protected:
     double m_alpha; ///< Range of interactions.
     array_type::tensor<double, 1> m_prefactor; ///< Prefactor for long-range interactions.
+    ptrdiff_t m_n; ///< Alias of m_N.
+    ptrdiff_t m_m; ///< Midpoint.
 
 public:
     SystemLongRange() = default;
@@ -1456,35 +1470,65 @@ public:
         double dt,
         Generator* chunk)
     {
+        m_n = static_cast<ptrdiff_t>(chunk->data().shape(0));
+        m_m = (m_n - m_n % 2) / 2;
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
         m_alpha = alpha;
 
         m_prefactor = xt::empty<double>({m_N});
-        ptrdiff_t n = static_cast<ptrdiff_t>(m_N);
 
-        for (ptrdiff_t p = 0; p < n; ++p) {
-            for (ptrdiff_t i = 0; i < n; ++i) {
-                if (i == p) {
-                    m_prefactor(0) = 0.0;
-                }
-                else {
-                    ptrdiff_t d = std::abs(i - p);
-                    m_prefactor(d) = m_k_neighbours / std::pow(std::abs(i - p), m_alpha + 1.0);
-                }
+        for (ptrdiff_t d = 0; d < m_n; ++d) {
+            if (d == 0) {
+                m_prefactor(0) = 0.0;
+            }
+            else {
+                m_prefactor(d) = m_k_neighbours / std::pow(d, m_alpha + 1.0);
             }
         }
+    }
+
+    double maxUniformDisplacement(int direction = 1) override
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+        (void)(direction);
+        return 0.0;
+    }
+
+    /**
+     * @brief Distance from a particle `p` to all the other particles.
+     *
+     * @param p Particle index.
+     * @return Distance to `p` for each particle.
+     */
+    array_type::tensor<ptrdiff_t, 1> distance(ptrdiff_t p) const
+    {
+        array_type::tensor<ptrdiff_t, 1> ret = xt::empty<ptrdiff_t>({m_N});
+
+        for (ptrdiff_t i = 0; i < m_n; ++i) {
+            ptrdiff_t d = std::abs(i - p);
+            if (d > m_m) {
+                d = m_n - d;
+            }
+            ret(i) = d;
+        }
+
+        return ret;
     }
 
 protected:
     void computeForceNeighbours() override
     {
-        ptrdiff_t n = static_cast<ptrdiff_t>(m_N);
-
-        for (ptrdiff_t p = 0; p < n; ++p) {
+        for (ptrdiff_t p = 0; p < m_n; ++p) {
             double f = 0.0;
             double x = m_x(p);
-            for (ptrdiff_t i = 0; i < n; ++i) {
+            for (ptrdiff_t i = 0; i < m_n; ++i) {
+                if (i == p) {
+                    continue;
+                }
                 ptrdiff_t d = std::abs(i - p);
+                if (d > m_m) {
+                    d = m_n - d;
+                }
                 f += (m_x(i) - x) * m_prefactor(d);
             }
             m_f_neighbours(p) = f;

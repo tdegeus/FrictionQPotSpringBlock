@@ -46,6 +46,8 @@ void mysystem(C& cls)
     cls.def_property_readonly("N", &S::N, "Number of particles");
     cls.def_property_readonly("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
 
+    cls.def("periodic", &S::periodic, "Periodic index", py::arg("index"));
+
     cls.def(
         "y_right",
         &S::y_right,
@@ -342,6 +344,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("chunk"));
 
             mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def("distance", &S::distance, "Distance", py::arg("p"));
 
             cls.def("__repr__", [](const S&) {
                 return "<FrictionQPotSpringBlock.Line1d.SystemLongRange>";

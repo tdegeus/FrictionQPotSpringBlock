@@ -349,6 +349,77 @@ class Test_Line1d_SystemSemiSmooth(unittest.TestCase):
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
 
 
+class Test_Line1d_SystemLongRange(unittest.TestCase):
+    """
+    Test Line1d.SystemLongRange
+    """
+
+    @classmethod
+    def setUpClass(self):
+
+        N = 10
+        self.N = N
+        self.chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        self.chunk.data -= 49.5
+
+        self.k_neighbours = 0.12
+        self.system = FrictionQPotSpringBlock.Line1d.SystemLongRange(
+            m=1,
+            eta=1,
+            mu=1,
+            k_neighbours=self.k_neighbours,
+            k_frame=0.1,
+            dt=1,
+            chunk=self.chunk,
+            alpha=1,
+        )
+
+    def test_periodic(self):
+
+        N = self.N
+        index = np.tile(np.arange(N).reshape(1, -1), [N, 1]).ravel()
+        for i in range(N):
+            for j in range(N):
+                self.assertEqual(self.system.periodic(i + j), index[i + j])
+
+    def test_distance(self):
+
+        N = self.N
+        dp = np.arange(N)
+        dn = np.arange(N)[::-1] + 1
+        d = np.where(dp < dn, dp, dn)
+
+        for p in range(N):
+            self.assertTrue(np.all(self.system.distance(p) == np.roll(d, p)))
+
+    def test_interactions(self):
+
+        N = self.N
+        dp = np.arange(N)
+        dn = np.arange(N)[::-1] + 1
+        d = np.where(dp < dn, dp, dn)
+
+        x = np.zeros_like(self.system.x)
+        x[0] = 1
+        self.system.x = x
+
+        f = np.zeros_like(x)
+        for j in range(1, N):
+            f[j] = self.k_neighbours * (x[0] - x[j]) / (d[j] ** 2)
+        f[0] = -np.sum(f)
+
+        for i in range(N):
+            self.system.x = np.roll(x, i)
+            self.assertTrue(np.allclose(np.roll(f, i), self.system.f_neighbours))
+
+
 class Test_Line1d_System2d(unittest.TestCase):
     """
     Test Line1d.System2d
