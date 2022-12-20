@@ -153,6 +153,17 @@ public:
     }
 
     /**
+     * @brief Organisation of the grid. To get e.g. the positions in the shape of the grid use:
+     *
+     *      idx = system.organisation
+     *      x = system.x[idx]
+     */
+    virtual array_type::array<size_t> organisation() const
+    {
+        return array_type::array<size_t>({m_N});
+    }
+
+    /**
      * @brief Periodic index.
      *
      * @param index Index.
@@ -1592,6 +1603,19 @@ public:
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_m >= 2);
 
         this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
+    }
+
+    array_type::array<size_t> organisation() const override
+    {
+        array_type::array<size_t> ret = xt::empty<size_t>({m_m, m_n});
+
+        for (size_t i = 0; i < m_m; ++i) {
+            for (size_t j = 0; j < m_n; ++j) {
+                ret(i, j) = i * m_m + j;
+            }
+        }
+
+        return ret;
     }
 
     /**

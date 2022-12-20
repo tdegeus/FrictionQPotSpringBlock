@@ -10,6 +10,7 @@
 
 #define FORCE_IMPORT_ARRAY
 #include <xtensor-python/pytensor.hpp>
+#include <xtensor-python/pyarray.hpp>
 #include <xtensor-python/xtensor_python_config.hpp> // todo: remove for xtensor-python >0.26.1
 
 #define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
@@ -44,6 +45,7 @@ template <class C, class S, class G>
 void mysystem(C& cls)
 {
     cls.def_property_readonly("N", &S::N, "Number of particles");
+    cls.def_property_readonly("organisation", &S::organisation, "Organisation of the grid");
     cls.def_property_readonly("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
 
     cls.def("periodic", &S::periodic, "Periodic index", py::arg("index"));

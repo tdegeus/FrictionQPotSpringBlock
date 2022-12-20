@@ -460,6 +460,7 @@ class Test_Line1d_System2d(unittest.TestCase):
         left = np.roll(index, 1, axis=1)
         right = np.roll(index, -1, axis=1)
 
+        self.assertTrue(np.all(system.organisation == index))
         self.assertTrue(np.all(system.down == down.ravel()))
         self.assertTrue(np.all(system.up == up.ravel()))
         self.assertTrue(np.all(system.left == left.ravel()))
@@ -471,9 +472,11 @@ class Test_Line1d_System2d(unittest.TestCase):
 
         for i in range(m):
             for j in range(n):
-                system.x = np.roll(np.roll(x0, i, axis=0), j, axis=1).ravel()
+                x = np.roll(np.roll(x0, i, axis=0), j, axis=1)
+                system.x = x.ravel()
                 f = np.roll(np.roll(f0, i, axis=0), j, axis=1).ravel()
                 self.assertTrue(np.allclose(system.f_neighbours, f))
+                self.assertTrue(np.allclose(system.x[index], x))
 
 
 if __name__ == "__main__":

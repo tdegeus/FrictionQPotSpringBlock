@@ -158,6 +158,12 @@ namespace array_type {
 template <typename T, size_t N>
 using tensor = xt::pytensor<T, N>;
 
+/**
+ * Arbitrary rank array.
+ */
+template <typename T>
+using array = xt::pyarray<T>;
+
 #else
 
 /**
@@ -165,6 +171,12 @@ using tensor = xt::pytensor<T, N>;
  */
 template <typename T, size_t N>
 using tensor = xt::xtensor<T, N>;
+
+/**
+ * Arbitrary rank array.
+ */
+template <typename T>
+using array = xt::xarray<T>;
 
 #endif
 
