@@ -160,7 +160,7 @@ public:
      */
     virtual array_type::array<size_t> organisation() const
     {
-        return array_type::array<size_t>({m_N});
+        return xt::arange<size_t>({m_N});
     }
 
     /**
