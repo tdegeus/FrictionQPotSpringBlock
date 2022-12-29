@@ -419,6 +419,57 @@ class Test_Line1d_SystemLongRange(unittest.TestCase):
             self.system.x = np.roll(x, i)
             self.assertTrue(np.allclose(np.roll(f, i), self.system.f_neighbours))
 
+    def test_eventDrivenStep(self):
+
+        N = 3
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        system = FrictionQPotSpringBlock.Line1d.SystemLongRange(
+            m=1.0,
+            eta=1.0,
+            mu=1.0,
+            k_neighbours=1.0,
+            k_frame=0.1,
+            dt=1.0,
+            chunk=chunk,
+            alpha=1,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+
+        i_n = system.i
+        system.eventDrivenStep(0.2, False)
+        self.assertTrue(system.residual() < 1e-5)
+        self.assertTrue(np.allclose(system.x, (0.5 - 0.1) * np.ones(N)))
+        self.assertTrue(np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1))
+
+        i_n = system.i
+        system.eventDrivenStep(0.2, True)
+        self.assertTrue(np.allclose(system.x, (0.5 + 0.1) * np.ones(N)))
+        self.assertTrue(not np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1))
+
+        i_n = system.i
+        system.eventDrivenStep(0.2, False)
+        self.assertTrue(np.allclose(system.x, (1.5 - 0.1) * np.ones(N)))
+        self.assertTrue(np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1))
+
+        i_n = system.i
+        system.eventDrivenStep(0.2, True)
+        self.assertTrue(np.allclose(system.x, (1.5 + 0.1) * np.ones(N)))
+        self.assertTrue(not np.all(system.i == i_n))
+        self.assertTrue(np.isclose(system.x_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1))
+
 
 class Test_Line1d_System2d(unittest.TestCase):
     """

@@ -1498,13 +1498,6 @@ public:
         }
     }
 
-    double maxUniformDisplacement(int direction = 1) override
-    {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
-        (void)(direction);
-        return 0.0;
-    }
-
     /**
      * @brief Distance from a particle `p` to all the other particles.
      *
