@@ -349,6 +349,52 @@ class Test_Line1d_SystemSemiSmooth(unittest.TestCase):
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
 
 
+class Test_Line1d_SystemQuartic(unittest.TestCase):
+    """
+    Test Line1d.SystemQuartic
+    """
+
+    def test_interactions(self):
+
+        N = 10
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        k_neighbours = 0.12
+        k_neighbours2 = 0.34
+        system = FrictionQPotSpringBlock.Line1d.SystemQuartic(
+            m=1,
+            eta=1,
+            mu=1,
+            k_neighbours=k_neighbours,
+            k_neighbours2=k_neighbours2,
+            k_frame=0.1,
+            dt=1,
+            chunk=chunk,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+
+        laplace = np.array([-2, 1, 0, 0, 0, 0, 0, 0, 0, 1])
+        gradient = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+        x0 = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        f0 = k_neighbours * laplace + 6 * k_neighbours2 * laplace * gradient**2
+
+        for i in range(N):
+            x = np.roll(x0, i)
+            system.x = x.ravel()
+            f = np.roll(f0, i)
+            self.assertTrue(np.allclose(system.f_neighbours, f))
+            self.assertTrue(np.allclose(system.x, x))
+
+
 class Test_Line1d_SystemLongRange(unittest.TestCase):
     """
     Test Line1d.SystemLongRange

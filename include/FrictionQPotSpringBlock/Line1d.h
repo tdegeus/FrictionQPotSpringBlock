@@ -1448,6 +1448,62 @@ protected:
 /**
  * ## Introduction
  *
+ * Identical to System() but with interactions with a quartic term.
+ * See e.g. https://doi.org/10.1103/PhysRevLett.87.187002
+ *
+ * ## Internal strategy
+ *
+ * To avoid code duplication this class derives from System().
+ * To ensure the correct physics computeForceNeighbours() is overridden.
+ */
+class SystemQuartic : public System {
+protected:
+    double m_k1; ///< Interaction: proportional to the Laplacian.
+    double m_k2; ///< Interaction: proportional to the Laplacian times the square of the gradient.
+
+public:
+    SystemQuartic() = default;
+
+    /**
+     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param k_neighbours2 Second stiffness (`2 * a1 = k_neighbours`, `2 * a2 = k_neighbours2`).
+     */
+    SystemQuartic(
+        double m,
+        double eta,
+        double mu,
+        double k_neighbours,
+        double k_neighbours2,
+        double k_frame,
+        double dt,
+        Generator* chunk)
+    {
+        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
+        m_k1 = k_neighbours;
+        m_k2 = 6.0 * k_neighbours2;
+    }
+
+protected:
+    void computeForceNeighbours() override
+    {
+        for (size_t p = 1; p < m_N - 1; ++p) {
+            double dx = m_x(p + 1) - m_x(p);
+            m_f_neighbours(p) = (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1)) * (m_k1 + m_k2 * (dx * dx));
+        }
+
+        double dxf = m_x(1) - m_x.front();
+        m_f_neighbours.front() =
+            (m_x.back() - 2 * m_x.front() + m_x(1)) * (m_k1 + m_k2 * (dxf * dxf));
+
+        double dxb = m_x.front() - m_x.back();
+        m_f_neighbours.back() =
+            (m_x(m_N - 2) - 2 * m_x.back() + m_x.front()) * (m_k1 + m_k2 * (dxb * dxb));
+    }
+};
+
+/**
+ * ## Introduction
+ *
  * Identical to System() but with long-range interactions.
  * Here, the interactions decay as \f$ 1 / r^{d + \alpha} \f$.
  * See e.g. https://doi.org/10.1103/PhysRevLett.126.025702
