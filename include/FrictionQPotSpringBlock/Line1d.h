@@ -1483,6 +1483,13 @@ public:
         m_k2 = 6.0 * k_neighbours2;
     }
 
+    double maxUniformDisplacement(int direction = 1) override
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+        (void)(direction);
+        return 0.0;
+    }
+
 protected:
     void computeForceNeighbours() override
     {
