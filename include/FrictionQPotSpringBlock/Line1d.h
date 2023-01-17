@@ -1451,6 +1451,32 @@ protected:
  * Identical to System() but with interactions with a quartic term.
  * See e.g. https://doi.org/10.1103/PhysRevLett.87.187002
  *
+ * The idea is to have a potential
+ *
+ * \f$ E(r) = \frac{1}{2} k_2 (\varepsilon(r))^2 + \frac{1}{12} k_4 (\varepsilon(r))^4 \f$
+ *
+ * with
+ *
+ * \f$ \varepsilon(r) = \frac{\partial x}{\partial r} \f$
+ *
+ * such that
+ *
+ * \f$ f(r) = \frac{\partial E}{\partial \varepsilon} =
+ * k_2 \varepsilon(r) + \frac{k_4}{3} \varepsilon(r)^3 \f$
+ *
+ * such that
+ *
+ * \f$ \frac{\partial f}{\partial r} =
+ * \frac{\partial \varepsilon}{\partial r}(k_2 + k_4 \varepsilon(r)^2) \f$
+ *
+ * or
+ *
+ * \f$ f_i = \left( x_{i + 1} + x_{i - 1} - 2 x_i \right)
+ * \left( k_2 + k_4 (x_{i + 1} - x_{i})^2 \right)\f$
+ *
+ * Thereby, \f$ k_2 \f$ = `k_neighbours` and \f$ k_4 \f$ = `k_neighbours2`.
+ * Please note that \f$ k_4 \f$ does not have the same units as \f$ k_2 \f$.
+ *
  * ## Internal strategy
  *
  * To avoid code duplication this class derives from System().
@@ -1458,53 +1484,47 @@ protected:
  */
 class SystemQuartic : public System {
 protected:
-    double m_k1; ///< Interaction: proportional to the Laplacian.
-    double m_k2; ///< Interaction: proportional to the Laplacian times the square of the gradient.
+    double m_k2; ///< Interaction: proportional to the Laplacian.
+    double m_k4; ///< Interaction: proportional to the Laplacian times the square of the gradient.
 
 public:
     SystemQuartic() = default;
 
     /**
      * @copydoc System(double, double, double, double, double, double, Generator*)
-     * @param k_neighbours2 Second stiffness (`2 * a1 = k_neighbours`, `2 * a2 = k_neighbours2`).
+     * @param k2 Interaction stiffness (same for all), see class description.
+     * @param k4 Interaction strength quartic term s (same for all), see class description.
      */
     SystemQuartic(
         double m,
         double eta,
         double mu,
-        double k_neighbours,
-        double k_neighbours2,
+        double k2,
+        double k4,
         double k_frame,
         double dt,
         Generator* chunk)
     {
-        this->initSystem(m, eta, mu, k_neighbours, k_frame, dt, chunk);
-        m_k1 = k_neighbours;
-        m_k2 = 6.0 * k_neighbours2;
-    }
-
-    double maxUniformDisplacement(int direction = 1) override
-    {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
-        (void)(direction);
-        return 0.0;
+        this->initSystem(m, eta, mu, 0.0, k_frame, dt, chunk);
+        m_k2 = k2;
+        m_k4 = k4;
     }
 
 protected:
     void computeForceNeighbours() override
     {
         for (size_t p = 1; p < m_N - 1; ++p) {
-            double dx = m_x(p + 1) - m_x(p);
-            m_f_neighbours(p) = (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1)) * (m_k1 + m_k2 * (dx * dx));
+            double dx = 0.5 * (m_x(p + 1) - m_x(p - 1));
+            m_f_neighbours(p) = (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1)) * (m_k2 + m_k4 * (dx * dx));
         }
 
-        double dxf = m_x(1) - m_x.front();
+        double dxf = 0.5 * (m_x(1) - m_x.back());
         m_f_neighbours.front() =
-            (m_x.back() - 2 * m_x.front() + m_x(1)) * (m_k1 + m_k2 * (dxf * dxf));
+            (m_x.back() - 2 * m_x.front() + m_x(1)) * (m_k2 + m_k4 * (dxf * dxf));
 
-        double dxb = m_x.front() - m_x.back();
+        double dxb = 0.5 * (m_x.front() - m_x(m_N - 2));
         m_f_neighbours.back() =
-            (m_x(m_N - 2) - 2 * m_x.back() + m_x.front()) * (m_k1 + m_k2 * (dxb * dxb));
+            (m_x(m_N - 2) - 2 * m_x.back() + m_x.front()) * (m_k2 + m_k4 * (dxb * dxb));
     }
 };
 
