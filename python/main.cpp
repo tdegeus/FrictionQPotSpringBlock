@@ -339,8 +339,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("m"),
                 py::arg("eta"),
                 py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("k_neighbours2"),
+                py::arg("k2"),
+                py::arg("k4"),
                 py::arg("k_frame"),
                 py::arg("dt"),
                 py::arg("chunk"));
