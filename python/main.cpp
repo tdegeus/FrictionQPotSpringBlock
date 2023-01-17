@@ -405,5 +405,44 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             cls.def(
                 "__repr__", [](const S&) { return "<FrictionQPotSpringBlock.Line1d.System2d>"; });
         }
+
+        {
+            using S = SM::System2dQuartic;
+
+            py::class_<S> cls(sm, "System2dQuartic");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    SM::Generator*,
+                    size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k2"),
+                py::arg("k4"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"),
+                py::arg("width"));
+
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def_property_readonly("up", &S::up, "Particle index: up");
+            cls.def_property_readonly("down", &S::down, "Particle index: down");
+            cls.def_property_readonly("left", &S::left, "Particle index: left");
+            cls.def_property_readonly("right", &S::right, "Particle index: right");
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.System2dQuartic>";
+            });
+        }
     }
 }
