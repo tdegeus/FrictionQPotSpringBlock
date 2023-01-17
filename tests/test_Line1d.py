@@ -577,6 +577,159 @@ class Test_Line1d_System2d(unittest.TestCase):
                 self.assertTrue(np.allclose(system.x[index], x))
 
 
+class Test_Line1d_System2dQuartic(unittest.TestCase):
+    """
+    Test Line1d.System2dQuartic
+    """
+
+    def test_interactions_basic(self):
+
+        m = 4
+        n = 4
+        N = m * n
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        k2 = 0.12
+        k4 = 0.0
+        system = FrictionQPotSpringBlock.Line1d.System2dQuartic(
+            m=1,
+            eta=1,
+            mu=1,
+            k2=k2,
+            k4=k4,
+            k_frame=0.1,
+            dt=1,
+            chunk=chunk,
+            width=n,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+
+        index = np.arange(N).reshape(m, n)
+        down = np.roll(index, -1, axis=0)
+        up = np.roll(index, 1, axis=0)
+        left = np.roll(index, 1, axis=1)
+        right = np.roll(index, -1, axis=1)
+
+        self.assertTrue(np.all(system.organisation == index))
+        self.assertTrue(np.all(system.down == down.ravel()))
+        self.assertTrue(np.all(system.up == up.ravel()))
+        self.assertTrue(np.all(system.left == left.ravel()))
+        self.assertTrue(np.all(system.right == right.ravel()))
+
+        c = -4
+        f0 = np.array([[c, 1, 0, 1], [1, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]]) * k2
+        x0 = np.array([[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+
+        for i in range(m):
+            for j in range(n):
+                x = np.roll(np.roll(x0, i, axis=0), j, axis=1)
+                system.x = x.ravel()
+                f = np.roll(np.roll(f0, i, axis=0), j, axis=1).ravel()
+                self.assertTrue(np.allclose(system.f_neighbours, f))
+                self.assertTrue(np.allclose(system.x[index], x))
+
+    def test_interactions(self):
+
+        m = 5
+        n = 5
+        N = m * n
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        k2 = 0.12
+        k4 = 0.34
+        system = FrictionQPotSpringBlock.Line1d.System2dQuartic(
+            m=1,
+            eta=1,
+            mu=1,
+            k2=k2,
+            k4=k4,
+            k_frame=0.1,
+            dt=1,
+            chunk=chunk,
+            width=n,
+        )
+
+        self.assertTrue(system.residual() < 1e-5)
+
+        x0 = np.array(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ]
+        )
+
+        c = -2
+        d2udx2 = np.array(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 1, c, 1, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ]
+        )
+        d2udy2 = d2udx2.T
+
+        p = 0.5
+        c = -0.5
+        dudx = np.array(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, p, 0, c, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ]
+        )
+        dudy = dudx.T
+
+        c = -0.25
+        d2udxdy = np.array(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ]
+        )
+
+        f0 = (d2udx2 + d2udy2) * (k2 + k4 * (dudx**2 + dudy**2)) + 2 * k4 * (
+            dudx**2 * d2udx2 + dudy**2 * d2udy2 + 2 * dudx * dudy * d2udxdy
+        )
+
+        for i in range(m):
+            for j in range(n):
+                x = np.roll(np.roll(x0, i, axis=0), j, axis=1)
+                system.x = x.ravel()
+                f = np.roll(np.roll(f0, i, axis=0), j, axis=1).ravel()
+                print("f = ")
+                print(f.reshape(m, n))
+                print("f_neighbours =")
+                print(system.f_neighbours.reshape(m, n))
+                self.assertTrue(np.allclose(system.f_neighbours, f))
+
+
 if __name__ == "__main__":
 
     unittest.main(verbosity=2)

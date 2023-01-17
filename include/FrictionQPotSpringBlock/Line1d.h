@@ -1920,6 +1920,105 @@ protected:
     }
 };
 
+class System2dQuartic : public System2d {
+protected:
+    double m_k2; ///< Interaction: proportional to the Laplacian.
+    double m_k4; ///< Interaction: proportional to the Laplacian times the square of the gradient.
+    array_type::tensor<size_t, 2> m_indices; ///< Indices.
+
+public:
+    System2dQuartic() = default;
+
+    /**
+     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param k2 Interaction stiffness (same for all), see class description.
+     * @param k4 Interaction strength quartic term s (same for all), see class description.
+     * @param width Number of 'columns'
+     */
+    System2dQuartic(
+        double m,
+        double eta,
+        double mu,
+        double k2,
+        double k4,
+        double k_frame,
+        double dt,
+        Generator* chunk,
+        size_t width)
+    {
+        size_t N = chunk->data().shape(0);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(N % width == 0);
+
+        m_n = width;
+        m_m = N / m_n;
+
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_n >= 2);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_m >= 2);
+
+        this->initSystem(m, eta, mu, 0.0, k_frame, dt, chunk);
+        m_k2 = k2;
+        m_k4 = k4;
+
+        auto indices = this->organisation();
+        m_indices = xt::empty<size_t>({m_m + 2, m_n + 2});
+
+        // corners
+        m_indices(0, 0) = indices(m_m - 1, m_n - 1);
+        m_indices(0, m_n + 1) = indices(m_m - 1, 0);
+        m_indices(m_m + 1, 0) = indices(0, m_n - 1);
+        m_indices(m_m + 1, m_n + 1) = indices(0, 0);
+
+        // edges
+        for (size_t i = 0; i < m_m; ++i) {
+            m_indices(i + 1, 0) = indices(i, m_n - 1);
+            m_indices(i + 1, m_n + 1) = indices(i, 0);
+        }
+
+        for (size_t j = 0; j < m_n; ++j) {
+            m_indices(0, j + 1) = indices(m_m - 1, j);
+            m_indices(m_m + 1, j + 1) = indices(0, j);
+        }
+
+        // interior
+        for (size_t i = 0; i < m_m; ++i) {
+            for (size_t j = 0; j < m_n; ++j) {
+                m_indices(i + 1, j + 1) = indices(i, j);
+            }
+        }
+    }
+
+protected:
+    void computeForceNeighbours() override
+    {
+        for (size_t m = 0; m < m_m; ++m) {
+            for (size_t n = 0; n < m_n; ++n) {
+
+                size_t i_j = m_indices(m + 1, n + 1);
+                size_t im_j = m_indices(m, n + 1);
+                size_t ip_j = m_indices(m + 2, n + 1);
+                size_t i_jm = m_indices(m + 1, n);
+                size_t i_jp = m_indices(m + 1, n + 2);
+                size_t im_jm = m_indices(m, n);
+                size_t ip_jm = m_indices(m + 2, n);
+                size_t im_jp = m_indices(m, n + 2);
+                size_t ip_jp = m_indices(m + 2, n + 2);
+
+                double l = m_x(ip_j) + m_x(im_j) + m_x(i_jp) + m_x(i_jm) - 4 * m_x(i_j);
+                double dudx = 0.5 * (m_x(ip_j) - m_x(im_j));
+                double dudy = 0.5 * (m_x(i_jp) - m_x(i_jm));
+                double d2udxdy = 0.25 * (m_x(ip_jp) - m_x(ip_jm) - m_x(im_jp) + m_x(im_jm));
+                double d2udx2 = m_x(ip_j) - 2 * m_x(i_j) + m_x(im_j);
+                double d2udy2 = m_x(i_jp) - 2 * m_x(i_j) + m_x(i_jm);
+
+                m_f_neighbours(i_j) =
+                    l * (m_k2 + m_k4 * (dudx * dudx + dudy * dudy)) +
+                    2.0 * m_k4 *
+                        (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 + 0.0 * dudx * dudy * d2udxdy);
+            }
+        }
+    }
+};
+
 } // namespace Line1d
 } // namespace FrictionQPotSpringBlock
 
