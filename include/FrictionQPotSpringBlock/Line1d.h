@@ -1037,7 +1037,7 @@ protected:
     double m_mean; ///< Mean of the random distribution.
     double m_stddev; ///< Standard deviation of the random distribution.
     array_type::tensor<size_t, 1> m_next; ///< Next increment at which the random force is changed.
-    array_type::tensor<size_t, 1> m_dinc; ///< #increment between two changes of the random force.
+    array_type::tensor<size_t, 1> m_dinc; ///< \#increment between two changes of the random force.
     prrng::pcg32 m_rng; ///< Random number generator.
 
 public:
@@ -1113,7 +1113,7 @@ public:
 
     /**
      * @brief Aext increment at which the random force is changed.
-     * @param next Array
+     * @return Array
      */
     const array_type::tensor<size_t, 1>& next()
     {
@@ -1494,7 +1494,12 @@ public:
     SystemQuartic() = default;
 
     /**
-     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param m Particle mass (same for all particles).
+     * @param eta Damping coefficient (same for all particles).
+     * @param mu Elastic stiffness, i.e. the curvature of the potential (same for all particles).
+     * @param k_frame Stiffness of springs between particles and load frame (same for all).
+     * @param dt Time step.
+     * @param chunk Class in which chunks of the yield positions are stored (copy).
      * @param k2 Interaction stiffness (same for all), see class description.
      * @param k4 Interaction strength quartic term s (same for all), see class description.
      */
@@ -1920,6 +1925,11 @@ protected:
     }
 };
 
+/**
+ * ## Introduction
+ *
+ * A 2d system with a quartic interaction.
+ */
 class System2dQuartic : public System2d {
 protected:
     double m_k2; ///< Interaction: proportional to the Laplacian.
@@ -1930,7 +1940,12 @@ public:
     System2dQuartic() = default;
 
     /**
-     * @copydoc System(double, double, double, double, double, double, Generator*)
+     * @param m Particle mass (same for all particles).
+     * @param eta Damping coefficient (same for all particles).
+     * @param mu Elastic stiffness, i.e. the curvature of the potential (same for all particles).
+     * @param k_frame Stiffness of springs between particles and load frame (same for all).
+     * @param dt Time step.
+     * @param chunk Class in which chunks of the yield positions are stored (copy).
      * @param k2 Interaction stiffness (same for all), see class description.
      * @param k4 Interaction strength quartic term s (same for all), see class description.
      * @param width Number of 'columns'
@@ -2013,7 +2028,7 @@ protected:
                 m_f_neighbours(i_j) =
                     l * (m_k2 + m_k4 * (dudx * dudx + dudy * dudy)) +
                     2.0 * m_k4 *
-                        (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 + 0.0 * dudx * dudy * d2udxdy);
+                        (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 + 2.0 * dudx * dudy * d2udxdy);
             }
         }
     }
