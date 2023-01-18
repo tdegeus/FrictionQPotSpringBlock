@@ -367,14 +367,14 @@ class Test_Line1d_SystemQuartic(unittest.TestCase):
         )
         chunk.data -= 49.5
 
-        k_neighbours = 0.12
-        k_neighbours2 = 0.34
+        k2 = 0.12
+        k4 = 0.34
         system = FrictionQPotSpringBlock.Line1d.SystemQuartic(
             m=1,
             eta=1,
             mu=1,
-            k_neighbours=k_neighbours,
-            k_neighbours2=k_neighbours2,
+            k2=k2,
+            k4=k4,
             k_frame=0.1,
             dt=1,
             chunk=chunk,
@@ -382,10 +382,11 @@ class Test_Line1d_SystemQuartic(unittest.TestCase):
 
         self.assertTrue(system.residual() < 1e-5)
 
-        laplace = np.array([-2, 1, 0, 0, 0, 0, 0, 0, 0, 1])
-        gradient = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
         x0 = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        f0 = k_neighbours * laplace + 6 * k_neighbours2 * laplace * gradient**2
+        laplace = np.array([-2, 1, 0, 0, 0, 0, 0, 0, 0, 1])
+        gradient = np.array([0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.5])
+
+        f0 = k2 * laplace + k4 * laplace * gradient**2
 
         for i in range(N):
             x = np.roll(x0, i)
