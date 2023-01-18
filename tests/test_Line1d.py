@@ -714,7 +714,7 @@ class Test_Line1d_System2dQuartic(unittest.TestCase):
             ]
         )
 
-        f0 = (d2udx2 + d2udy2) * (k2 + k4 * (dudx**2 + dudy**2)) + 2 * k4 * (
+        f0 = (d2udx2 + d2udy2) * (k2 + k4 / 3) + 2 / 3 * k4 * (
             dudx**2 * d2udx2 + dudy**2 * d2udy2 + 2 * dudx * dudy * d2udxdy
         )
 
@@ -723,10 +723,6 @@ class Test_Line1d_System2dQuartic(unittest.TestCase):
                 x = np.roll(np.roll(x0, i, axis=0), j, axis=1)
                 system.x = x.ravel()
                 f = np.roll(np.roll(f0, i, axis=0), j, axis=1).ravel()
-                print("f = ")
-                print(f.reshape(m, n))
-                print("f_neighbours =")
-                print(system.f_neighbours.reshape(m, n))
                 self.assertTrue(np.allclose(system.f_neighbours, f))
 
 

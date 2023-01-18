@@ -2005,6 +2005,9 @@ public:
 protected:
     void computeForceNeighbours() override
     {
+        double mk4_3 = m_k4 / 3.0;
+        double mk4_23 = 2.0 * mk4_3;
+
         for (size_t m = 0; m < m_m; ++m) {
             for (size_t n = 0; n < m_n; ++n) {
 
@@ -2026,9 +2029,8 @@ protected:
                 double d2udy2 = m_x(i_jp) - 2 * m_x(i_j) + m_x(i_jm);
 
                 m_f_neighbours(i_j) =
-                    l * (m_k2 + m_k4 * (dudx * dudx + dudy * dudy)) +
-                    2.0 * m_k4 *
-                        (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 + 2.0 * dudx * dudy * d2udxdy);
+                    l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
+                                                   2.0 * dudx * dudy * d2udxdy);
             }
         }
     }
