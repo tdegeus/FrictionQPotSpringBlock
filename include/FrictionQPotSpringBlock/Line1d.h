@@ -1461,26 +1461,29 @@ protected:
  *
  * such that
  *
- * \f$ f(r) = \frac{\partial E}{\partial \varepsilon} =
+ * \f$ \sigma(r) = \frac{\partial E}{\partial \varepsilon} =
  * k_2 \varepsilon(r) + \frac{k_4}{3} \varepsilon(r)^3 \f$
  *
  * such that
  *
- * \f$ \frac{\partial f}{\partial r} =
+ * \f$ f(r) = \frac{\partial \sigma}{\partial r} =
  * \frac{\partial \varepsilon}{\partial r}(k_2 + k_4 \varepsilon(r)^2) \f$
  *
- * or
+ * which is discretised as
  *
  * \f$ f_i = \left( x_{i + 1} + x_{i - 1} - 2 x_i \right)
- * \left( k_2 + k_4 (x_{i + 1} - x_{i})^2 \right)\f$
+ * \left( k_2 + k_4 / 4 (x_{i + 1} - x_{i - 1})^2 \right)\f$
  *
- * Thereby, \f$ k_2 \f$ = `k_neighbours` and \f$ k_4 \f$ = `k_neighbours2`.
+ * where the gradient term is approximated by central difference
+ * (which leads to \f$ 1/4 \f$ factor).
+ *
  * Please note that \f$ k_4 \f$ does not have the same units as \f$ k_2 \f$.
  *
  * ## Internal strategy
  *
  * To avoid code duplication this class derives from System().
  * To ensure the correct physics computeForceNeighbours() is overridden.
+ * All methods and functionality of System() are available.
  */
 class SystemQuartic : public System {
 protected:
