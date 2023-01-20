@@ -1539,6 +1539,71 @@ protected:
 /**
  * ## Introduction
  *
+ * Identical to System() but with interactions with a quartic term.
+ * See e.g. https://doi.org/10.1103/PhysRevLett.87.187002
+ *
+ */
+class SystemQuarticFD : public System {
+protected:
+    double m_a1; ///< Interaction: proportional to the Laplacian.
+    double m_a2; ///< Interaction: proportional to the fourth order term
+
+public:
+    SystemQuarticFD() = default;
+
+    /**
+     * @param m Particle mass (same for all particles).
+     * @param eta Damping coefficient (same for all particles).
+     * @param mu Elastic stiffness, i.e. the curvature of the potential (same for all particles).
+     * @param k_frame Stiffness of springs between particles and load frame (same for all).
+     * @param dt Time step.
+     * @param chunk Class in which chunks of the yield positions are stored (copy).
+     * @param a1 Interaction stiffness (same for all), see class description.
+     * @param a2 Interaction strength quartic term s (same for all), see class description.
+     */
+    SystemQuarticFD(
+        double m,
+        double eta,
+        double mu,
+        double a1,
+        double a2,
+        double k_frame,
+        double dt,
+        Generator* chunk)
+    {
+        this->initSystem(m, eta, mu, 0.0, k_frame, dt, chunk);
+        m_a1 = a1;
+        m_a2 = a2;
+    }
+
+protected:
+    void computeForceNeighbours() override
+    {
+        for (size_t p = 1; p < m_N - 1; ++p) {
+            double dxp = std::pow(m_x(p + 1) - m_x(p), 3.0);
+            double dxn = std::pow(m_x(p - 1) - m_x(p), 3.0);
+            m_f_neighbours(p) = m_a1 * (m_x(p - 1) - 2 * m_x(p) + m_x(p + 1)) + m_a2 * (dxp + dxn);
+        }
+
+        {
+            double dxp = std::pow(m_x(1) - m_x.front(), 3.0);
+            double dxn = std::pow(m_x.back() - m_x.front(), 3.0);
+            m_f_neighbours.front() =
+                m_a1 * (m_x.back() - 2 * m_x.front() + m_x(1)) + m_a2 * (dxp + dxn);
+        }
+
+        {
+            double dxp = std::pow(m_x.front() - m_x.back(), 3.0);
+            double dxn = std::pow(m_x(m_N - 2) - m_x.back(), 3.0);
+            m_f_neighbours.back() =
+                m_a1 * (m_x(m_N - 2) - 2 * m_x.back() + m_x.front()) + m_a2 * (dxp + dxn);
+        }
+    }
+};
+
+/**
+ * ## Introduction
+ *
  * Identical to System() but with long-range interactions.
  * Here, the interactions decay as \f$ 1 / r^{d + \alpha} \f$.
  * See e.g. https://doi.org/10.1103/PhysRevLett.126.025702

@@ -353,6 +353,30 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         }
 
         {
+            using S = SM::SystemQuarticFD;
+
+            py::class_<S> cls(sm, "SystemQuarticFD");
+
+            cls.def(
+                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("a1"),
+                py::arg("a2"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.SystemQuarticFD>";
+            });
+        }
+
+        {
             using S = SM::SystemLongRange;
 
             py::class_<S> cls(sm, "SystemLongRange");
