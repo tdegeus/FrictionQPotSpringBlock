@@ -14,6 +14,7 @@
 #include <xtensor/xnorm.hpp>
 #include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
+#include <xtensor/xpad.hpp>
 
 #include "config.h"
 
@@ -2039,32 +2040,10 @@ public:
         m_k2 = k2;
         m_k4 = k4;
 
-        auto indices = this->organisation();
-        m_indices = xt::empty<size_t>({m_m + 2, m_n + 2});
-
-        // corners
-        m_indices(0, 0) = indices(m_m - 1, m_n - 1);
-        m_indices(0, m_n + 1) = indices(m_m - 1, 0);
-        m_indices(m_m + 1, 0) = indices(0, m_n - 1);
-        m_indices(m_m + 1, m_n + 1) = indices(0, 0);
-
-        // edges
-        for (size_t i = 0; i < m_m; ++i) {
-            m_indices(i + 1, 0) = indices(i, m_n - 1);
-            m_indices(i + 1, m_n + 1) = indices(i, 0);
-        }
-
-        for (size_t j = 0; j < m_n; ++j) {
-            m_indices(0, j + 1) = indices(m_m - 1, j);
-            m_indices(m_m + 1, j + 1) = indices(0, j);
-        }
-
-        // interior
-        for (size_t i = 0; i < m_m; ++i) {
-            for (size_t j = 0; j < m_n; ++j) {
-                m_indices(i + 1, j + 1) = indices(i, j);
-            }
-        }
+        xt::xtensor<size_t, 2> indices = this->organisation();
+        m_indices = xt::pad(indices, 1, xt::pad_mode::periodic);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(m_indices.shape(0) == m_m + 2);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(m_indices.shape(1) == m_n + 2);
     }
 
 protected:

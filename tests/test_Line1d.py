@@ -666,7 +666,7 @@ class Test_Line1d_System2dQuartic(unittest.TestCase):
             width=n,
         )
 
-        self.assertTrue(system.residual() < 1e-5)
+        self.assertLess(system.residual(), 1e-5)
 
         x0 = np.array(
             [
