@@ -10,9 +10,9 @@
 #include <string>
 
 #include <xtensor/xnorm.hpp>
+#include <xtensor/xpad.hpp>
 #include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
-#include <xtensor/xpad.hpp>
 
 #include "config.h"
 
