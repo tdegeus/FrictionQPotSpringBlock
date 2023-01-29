@@ -15,6 +15,7 @@
 
 #define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
 #include <FrictionQPotSpringBlock/Line1d.h>
+#include <FrictionQPotSpringBlock/Particle.h>
 #include <prrng.h>
 
 namespace py = pybind11;
@@ -41,24 +42,28 @@ private:
     py::object original_name_;
 };
 
-template <class C, class S, class G>
-void mysystem(C& cls)
+template <class C, class S>
+void myparticle(C& cls)
+{
+    cls.def_property(
+        "x", &S::x, &S::set_x, "Particle positions (updating updates all relevant variables)");
+
+    cls.def_property(
+        "v", &S::v, &S::set_v, "Particle velocities (updating updates all relevant variables)");
+
+    cls.def_property(
+        "a", &S::a, &S::set_a, "Particle accelerations (updating updates all relevant variables)");
+
+    cls.def("trigger", &S::trigger, "trigger", py::arg("eps"), py::arg("direction") = 1);
+}
+
+template <class C, class S>
+void myline(C& cls)
 {
     cls.def_property_readonly("N", &S::N, "Number of particles");
     cls.def_property_readonly("organisation", &S::organisation, "Organisation of the grid");
-    cls.def_property_readonly("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
 
     cls.def("periodic", &S::periodic, "Periodic index", py::arg("index"));
-
-    cls.def(
-        "y_right",
-        &S::y_right,
-        "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i + 1]`.");
-
-    cls.def(
-        "y_left",
-        &S::y_left,
-        "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i]`.");
 
     cls.def_property(
         "x",
@@ -78,13 +83,40 @@ void mysystem(C& cls)
         &S::template set_a<xt::pytensor<double, 1>>,
         "Particle accelerations (updating updates all relevant variables)");
 
+    cls.def_property_readonly("f_neighbours", &S::f_neighbours, "Interaction forces");
+
+    cls.def(
+        "minimise_nopassing",
+        &S::minimise_nopassing,
+        "minimise_nopassing",
+        py::arg("tol") = 1e-5,
+        py::arg("niter_tol") = 10,
+        py::arg("max_iter") = size_t(1e9));
+
+    cls.def(
+        "trigger", &S::trigger, "trigger", py::arg("p"), py::arg("eps"), py::arg("direction") = 1);
+}
+
+template <class C, class S, class G>
+void mysystem(C& cls)
+{
+    cls.def(
+        "y_right",
+        &S::y_right,
+        "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i + 1]`.");
+
+    cls.def(
+        "y_left",
+        &S::y_left,
+        "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i]`.");
+
+    cls.def_property_readonly("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
     cls.def_property("inc", &S::inc, &S::set_inc, "Increment");
     cls.def_property("t", &S::t, &S::set_t, "Time");
     cls.def_property("x_frame", &S::x_frame, &S::set_x_frame, "Frame pos.");
     cls.def_property_readonly("f", &S::f, "Residual forces");
     cls.def_property_readonly("f_potential", &S::f_potential, "Elastic forces");
     cls.def_property_readonly("f_frame", &S::f_frame, "Frame forces");
-    cls.def_property_readonly("f_neighbours", &S::f_neighbours, "Interaction forces");
     cls.def_property_readonly("f_damping", &S::f_damping, "Particle damping forces");
     cls.def("temperature", &S::temperature, "Temperature");
     cls.def("residual", &S::residual, "Residual");
@@ -116,16 +148,7 @@ void mysystem(C& cls)
         py::arg("max_iter_is_error") = true);
 
     cls.def("quasistaticActivityFirst", &S::quasistaticActivityFirst, "quasistaticActivityFirst");
-
     cls.def("quasistaticActivityLast", &S::quasistaticActivityLast, "quasistaticActivityLast");
-
-    cls.def(
-        "minimise_nopassing",
-        &S::minimise_nopassing,
-        "minimise_nopassing",
-        py::arg("tol") = 1e-5,
-        py::arg("niter_tol") = 10,
-        py::arg("max_iter") = size_t(1e9));
 
     cls.def(
         "maxUniformDisplacement",
@@ -140,9 +163,6 @@ void mysystem(C& cls)
         py::arg("eps"),
         py::arg("kick"),
         py::arg("direction") = 1);
-
-    cls.def(
-        "trigger", &S::trigger, "trigger", py::arg("p"), py::arg("eps"), py::arg("direction") = 1);
 
     cls.def(
         "advanceToFixedForce", &S::advanceToFixedForce, "advanceToFixedForce", py::arg("f_frame"));
@@ -161,6 +181,93 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
     namespace M = FrictionQPotSpringBlock;
 
     m.def("version", &M::version, "Return version string.");
+
+    // --------------------------------
+    // FrictionQPotSpringBlock.Particle
+    // --------------------------------
+
+    {
+
+        py::module sm = m.def_submodule("Particle", "Particle");
+
+        namespace SM = FrictionQPotSpringBlock::Particle;
+
+        sm.def(
+            "version_dependencies",
+            &SM::version_dependencies,
+            "Return version information of library and its dependencies.");
+
+        sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
+
+        {
+            using S = SM::System;
+
+            py::class_<S> cls(sm, "System");
+
+            cls.def(
+                py::init<double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            myparticle<py::class_<S>, S>(cls);
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def(
+                "__repr__", [](const S&) { return "<FrictionQPotSpringBlock.Particle.System>"; });
+        }
+
+        {
+            using S = SM::SystemSemiSmooth;
+
+            py::class_<S> cls(sm, "SystemSemiSmooth");
+
+            cls.def(
+                py::init<double, double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("kappa"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            myparticle<py::class_<S>, S>(cls);
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Particle.SystemSemiSmooth>";
+            });
+        }
+
+        {
+            using S = SM::SystemSmooth;
+
+            py::class_<S> cls(sm, "SystemSmooth");
+
+            cls.def(
+                py::init<double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            myparticle<py::class_<S>, S>(cls);
+            mysystem<py::class_<S>, S, SM::Generator>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Particle.SystemSmooth>";
+            });
+        }
+    }
 
     // ------------------------------
     // FrictionQPotSpringBlock.Line1d
@@ -195,6 +302,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def("__repr__", [](const S&) { return "<FrictionQPotSpringBlock.Line1d.System>"; });
@@ -233,6 +341,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dinc_init"),
                 py::arg("dinc"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def_property("state", &S::state, &S::set_state, "State of RNG");
@@ -260,6 +369,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def(
@@ -298,6 +408,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def("__repr__", [](const S&) {
@@ -321,6 +432,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def("__repr__", [](const S&) {
@@ -345,6 +457,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def("__repr__", [](const S&) {
@@ -369,6 +482,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def("__repr__", [](const S&) {
@@ -393,6 +507,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def("distance", &S::distance, "Distance", py::arg("p"));
@@ -419,6 +534,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("chunk"),
                 py::arg("width"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def_property_readonly("up", &S::up, "Particle index: up");
@@ -457,6 +573,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("chunk"),
                 py::arg("width"));
 
+            myline<py::class_<S>, S>(cls);
             mysystem<py::class_<S>, S, SM::Generator>(cls);
 
             cls.def_property_readonly("up", &S::up, "Particle index: up");
