@@ -1,13 +1,11 @@
 /**
- * Line in 1d.
- *
- * @file Line1d.h
+ * @file
  * @copyright Copyright 2020. Tom de Geus. All rights reserved.
  * @license This project is released under the GNU Public License (MIT).
  */
 
-#ifndef FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
-#define FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
+#ifndef FRICTIONQPOTSPRINGBLOCK_LINE1D_H
+#define FRICTIONQPOTSPRINGBLOCK_LINE1D_H
 
 #include <string>
 
