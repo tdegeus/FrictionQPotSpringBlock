@@ -1,20 +1,18 @@
 /**
- * Line in 1d.
- *
- * @file Line1d.h
+ * @file
  * @copyright Copyright 2020. Tom de Geus. All rights reserved.
  * @license This project is released under the GNU Public License (MIT).
  */
 
-#ifndef FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
-#define FRICTIONQPOTSPRINGBLOCK_UNIFORMSINGLELAYER2D_H
+#ifndef FRICTIONQPOTSPRINGBLOCK_LINE1D_H
+#define FRICTIONQPOTSPRINGBLOCK_LINE1D_H
 
 #include <string>
 
 #include <xtensor/xnorm.hpp>
+#include <xtensor/xpad.hpp>
 #include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
-#include <xtensor/xpad.hpp>
 
 #include "config.h"
 
@@ -447,7 +445,7 @@ public:
         xt::noalias(m_v_n) = m_v;
         xt::noalias(m_a_n) = m_a;
 
-        xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
+        xt::noalias(m_x) = m_x + m_dt * m_v + 0.5 * m_dt * m_dt * m_a;
         this->updated_x();
 
         xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
