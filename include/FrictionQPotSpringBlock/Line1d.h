@@ -403,13 +403,13 @@ public:
 
     /**
      * The instantaneous temperature, defined as
-     * \f$ T \equiv (m / N) \sum\limits_{i = 1}^N v_i^2 \f$
+     * \f$ T \equiv m / 2 \sum\limits_{i = 1}^N v_i^2 / N \f$
      * Note that by definition Boltzmann's constant is taken equal to 1.
      * @return double.
      */
     double temperature() const
     {
-        return xt::norm_sq(m_v)() * m_m / m_N;
+        return 0.5 * m_m * xt::norm_sq(m_v)() / static_cast<double>(m_N);
     }
 
     /**
