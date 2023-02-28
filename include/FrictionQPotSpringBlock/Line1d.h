@@ -2030,20 +2030,20 @@ public:
         size_t N = chunk->data().shape(0);
         FRICTIONQPOTSPRINGBLOCK_REQUIRE(N % width == 0);
 
-        m_n = width;
-        m_m = N / m_n;
-
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_n >= 2);
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_m >= 2);
-
-        this->initSystem(m, eta, mu, 0.0, k_frame, dt, chunk);
         m_k2 = k2;
         m_k4 = k4;
+
+        m_n = width;
+        m_m = N / m_n;
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_n >= 2);
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(m_m >= 2);
 
         xt::xtensor<size_t, 2> indices = this->organisation();
         m_indices = xt::pad(indices, 1, xt::pad_mode::periodic);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(m_indices.shape(0) == m_m + 2);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(m_indices.shape(1) == m_n + 2);
+
+        this->initSystem(m, eta, mu, 0.0, k_frame, dt, chunk);
     }
 
 protected:
