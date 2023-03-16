@@ -2,16 +2,16 @@ channels:
 - conda-forge
 dependencies:
 - cmake
-- doxygen
+- doxygen >=1.9.6
 - gmattensor >0.10.1
 - goosefem
 - ninja
 - numpy
-- prrng >1.7.0
+- prrng >=1.10.0
 - pybind11
 - python
-- python-prrng >1.7.0
+- python-prrng >=1.10.0
 - scikit-build
 - setuptools_scm
-- xtensor >=0.24.2
+- xtensor >=0.24.6
 - xtensor-python

@@ -15,6 +15,7 @@
 
 #define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
 #include <FrictionQPotSpringBlock/Line1d.h>
+#include <FrictionQPotSpringBlock/Line2d.h>
 #include <prrng.h>
 
 namespace py = pybind11;
@@ -41,73 +42,54 @@ private:
     py::object original_name_;
 };
 
-template <class C, class S, class G>
-void mysystem(C& cls)
+template <class Binder, class System>
+void mySystemNd(Binder& cls)
 {
-    cls.def_property_readonly("N", &S::N, "Number of particles");
-    cls.def_property_readonly("organisation", &S::organisation, "Organisation of the grid");
-    cls.def_property_readonly("i", &S::i, "Index: y[:, i] < x <= y[:, i + 1]");
-
-    cls.def("periodic", &S::periodic, "Periodic index", py::arg("index"));
-
-    cls.def(
-        "y_right",
-        &S::y_right,
-        "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i + 1]`.");
-
-    cls.def(
-        "y_left",
-        &S::y_left,
-        "Convenience function: same as `system.chunked.chunk[arange(system.N), system.i]`.");
-
-    cls.def_property(
-        "x",
-        &S::x,
-        &S::template set_x<xt::pytensor<double, 1>>,
-        "Particle positions (updating updates all relevant variables)");
-
-    cls.def_property(
-        "v",
-        &S::v,
-        &S::template set_v<xt::pytensor<double, 1>>,
-        "Particle velocities (updating updates all relevant variables)");
-
-    cls.def_property(
-        "a",
-        &S::a,
-        &S::template set_a<xt::pytensor<double, 1>>,
-        "Particle accelerations (updating updates all relevant variables)");
-
-    cls.def_property("inc", &S::inc, &S::set_inc, "Increment");
-    cls.def_property("t", &S::t, &S::set_t, "Time");
-    cls.def_property("x_frame", &S::x_frame, &S::set_x_frame, "Frame pos.");
-    cls.def_property_readonly("f", &S::f, "Residual forces");
-    cls.def_property_readonly("f_potential", &S::f_potential, "Elastic forces");
-    cls.def_property_readonly("f_frame", &S::f_frame, "Frame forces");
-    cls.def_property_readonly("f_neighbours", &S::f_neighbours, "Interaction forces");
-    cls.def_property_readonly("f_damping", &S::f_damping, "Particle damping forces");
-    cls.def("temperature", &S::temperature, "Temperature");
-    cls.def("residual", &S::residual, "Residual");
-
-    cls.def("refresh", &S::refresh, "refresh");
-    cls.def("quench", &S::quench, "quench");
-    cls.def("timeStep", &S::timeStep, "timeStep");
-
-    cls.def("timeSteps", &S::timeSteps, "timeSteps", py::arg("n"));
+    cls.def_property_readonly("N", &System::N, "Number of particles");
+    cls.def_property_readonly("shape", &System::shape, "Shape of the system");
+    cls.def_property("u", &System::u, &System::set_u, "Particle slip ('positions').");
+    cls.def_property("v", &System::v, &System::set_v, "Particle velocities.");
+    cls.def_property("a", &System::a, &System::set_a, "Particle accelerations.");
+    cls.def_property("inc", &System::inc, &System::set_inc, "Increment");
+    cls.def_property("t", &System::t, &System::set_t, "Time");
+    cls.def_property("u_frame", &System::u_frame, &System::set_u_frame, "Frame position");
+    cls.def_property_readonly("f", &System::f, "Residual forces");
+    cls.def_property_readonly("f_potential", &System::f_potential, "Elastic forces");
+    cls.def_property_readonly("f_frame", &System::f_frame, "Frame forces");
+    cls.def_property_readonly("f_interactions", &System::f_interactions, "Interaction forces");
+    cls.def_property_readonly("f_damping", &System::f_damping, "Particle damping forces");
+    cls.def("temperature", &System::temperature, "Temperature");
+    cls.def("residual", &System::residual, "Residual");
+    cls.def("refresh", &System::refresh, "refresh");
+    cls.def("quench", &System::quench, "quench");
 
     cls.def(
-        "timeStepsUntilEvent",
-        &S::timeStepsUntilEvent,
-        "timeStepsUntilEvent",
-        py::arg("tol") = 1e-5,
-        py::arg("niter_tol") = 10,
-        py::arg("max_iter") = size_t(1e9));
+        "maxUniformDisplacement",
+        &System::maxUniformDisplacement,
+        "maxUniformDisplacement",
+        py::arg("direction") = 1);
 
-    cls.def("flowSteps", &S::flowSteps, "flowSteps", py::arg("n"), py::arg("v_frame"));
+    cls.def(
+        "trigger",
+        &System::trigger,
+        "trigger",
+        py::arg("p"),
+        py::arg("eps"),
+        py::arg("direction") = 1);
 
+    cls.def(
+        "advanceToFixedForce",
+        &System::advanceToFixedForce,
+        "advanceToFixedForce",
+        py::arg("f_frame"));
+}
+
+template <class Binder, class System>
+void mySystemNdAthermal(Binder& cls)
+{
     cls.def(
         "minimise",
-        &S::minimise,
+        &System::minimise,
         "minimise",
         py::arg("tol") = 1e-5,
         py::arg("niter_tol") = 10,
@@ -115,37 +97,35 @@ void mysystem(C& cls)
         py::arg("time_activity") = false,
         py::arg("max_iter_is_error") = true);
 
-    cls.def("quasistaticActivityFirst", &S::quasistaticActivityFirst, "quasistaticActivityFirst");
-
-    cls.def("quasistaticActivityLast", &S::quasistaticActivityLast, "quasistaticActivityLast");
-
-    cls.def(
-        "minimise_nopassing",
-        &S::minimise_nopassing,
-        "minimise_nopassing",
-        py::arg("tol") = 1e-5,
-        py::arg("niter_tol") = 10,
-        py::arg("max_iter") = size_t(1e9));
-
-    cls.def(
-        "maxUniformDisplacement",
-        &S::maxUniformDisplacement,
-        "maxUniformDisplacement",
-        py::arg("direction") = 1);
-
     cls.def(
         "eventDrivenStep",
-        &S::eventDrivenStep,
+        &System::eventDrivenStep,
         "eventDrivenStep",
         py::arg("eps"),
         py::arg("kick"),
         py::arg("direction") = 1);
 
     cls.def(
-        "trigger", &S::trigger, "trigger", py::arg("p"), py::arg("eps"), py::arg("direction") = 1);
+        "quasistaticActivityFirst", &System::quasistaticActivityFirst, "quasistaticActivityFirst");
+
+    cls.def("quasistaticActivityLast", &System::quasistaticActivityLast, "quasistaticActivityLast");
+}
+
+template <class Binder, class System>
+void mySystemNdDynamics(Binder& cls)
+{
+    cls.def("timeStep", &System::timeStep, "timeStep");
+    cls.def("timeSteps", &System::timeSteps, "timeSteps", py::arg("n"));
 
     cls.def(
-        "advanceToFixedForce", &S::advanceToFixedForce, "advanceToFixedForce", py::arg("f_frame"));
+        "timeStepsUntilEvent",
+        &System::timeStepsUntilEvent,
+        "timeStepsUntilEvent",
+        py::arg("tol") = 1e-5,
+        py::arg("niter_tol") = 10,
+        py::arg("max_iter") = size_t(1e9));
+
+    cls.def("flowSteps", &System::flowSteps, "flowSteps", py::arg("n"), py::arg("v_frame"));
 }
 
 PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
@@ -163,13 +143,45 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
     m.def("version", &M::version, "Return version string.");
 
     // ------------------------------
+    // FrictionQPotSpringBlock.detail
+    // ------------------------------
+
+    {
+        py::module sm = m.def_submodule("detail", "detail");
+        namespace SM = FrictionQPotSpringBlock::detail;
+
+        {
+            using S = SM::RandomNormalForcing<1>;
+
+            py::class_<S> cls(sm, "RandomNormalForcing_1");
+
+            cls.def_property("state", &S::state, &S::set_state, "State of RNG");
+            cls.def_property("f_thermal", &S::f_thermal, &S::set_f_thermal, "Random force");
+            cls.def_property("next", &S::next, &S::set_next, "Next draw increment");
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.detail.RandomNormalForcing_1>";
+            });
+        }
+
+        {
+            using S = SM::Athermal;
+
+            py::class_<S> cls(sm, "Athermal");
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.detail.Athermal>";
+            });
+        }
+    }
+
+    // ------------------------------
     // FrictionQPotSpringBlock.Line1d
     // ------------------------------
 
     {
 
         py::module sm = m.def_submodule("Line1d", "Line1d");
-
         namespace SM = FrictionQPotSpringBlock::Line1d;
 
         sm.def(
@@ -180,9 +192,9 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
 
         {
-            using S = SM::System;
+            using S = SM::System_Cuspy_Laplace;
 
-            py::class_<S> cls(sm, "System");
+            py::class_<S> cls(sm, "System_Cuspy_Laplace");
 
             cls.def(
                 py::init<double, double, double, double, double, double, SM::Generator*>(),
@@ -190,20 +202,46 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("m"),
                 py::arg("eta"),
                 py::arg("mu"),
-                py::arg("k_neighbours"),
+                py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
                 py::arg("chunk"));
 
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
 
-            cls.def("__repr__", [](const S&) { return "<FrictionQPotSpringBlock.Line1d.System>"; });
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace>";
+            });
         }
 
         {
-            using S = SM::SystemThermalRandomForceNormal;
+            using S = SM::System_Cuspy_Laplace_Nopassing;
 
-            py::class_<S> cls(sm, "SystemThermalRandomForceNormal");
+            py::class_<S> cls(sm, "System_Cuspy_Laplace_Nopassing");
+
+            cls.def(
+                py::init<double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("mu"),
+                py::arg("k_interactions"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_Nopassing>";
+            });
+        }
+
+        {
+            using S = SM::System_Cuspy_Laplace_RandomNormalForcing;
+
+            py::class_<S> cls(sm, "System_Cuspy_Laplace_RandomNormalForcing");
 
             cls.def(
                 py::init<
@@ -217,13 +255,13 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                     double,
                     double,
                     uint64_t,
-                    const xt::pytensor<size_t, 1>&,
-                    const xt::pytensor<size_t, 1>&>(),
+                    const xt::pytensor<ptrdiff_t, 1>&,
+                    const xt::pytensor<ptrdiff_t, 1>&>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
                 py::arg("mu"),
-                py::arg("k_neighbours"),
+                py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
                 py::arg("chunk"),
@@ -233,58 +271,18 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dinc_init"),
                 py::arg("dinc"));
 
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
-
-            cls.def_property("state", &S::state, &S::set_state, "State of RNG");
-            cls.def_property("f_thermal", &S::f_thermal, &S::set_f_thermal, "Random force");
-            cls.def_property("next", &S::next, &S::set_next, "Next draw increment");
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemThermalRandomForceNormal>";
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_RandomNormalForcing>";
             });
         }
 
         {
-            using S = SM::SystemThermalRandomForcing;
+            using S = SM::System_SemiSmooth_Laplace;
 
-            py::class_<S> cls(sm, "SystemThermalRandomForcing");
-
-            cls.def(
-                py::init<double, double, double, double, double, double, SM::Generator*>(),
-                "Constructor.",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("chunk"));
-
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
-
-            cls.def(
-                "setRandomForce",
-                &SM::SystemThermalRandomForcing::setRandomForce<xt::pytensor<double, 1>>,
-                "setRandomForce",
-                py::arg("f"));
-
-            cls.def(
-                "setRandomForceSequence",
-                &SM::SystemThermalRandomForcing::
-                    setRandomForceSequence<xt::pytensor<double, 2>, xt::pytensor<size_t, 2>>,
-                "setRandomForceSequence",
-                py::arg("f"),
-                py::arg("start_inc"));
-
-            cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemThermalRandomForcing>";
-            });
-        }
-
-        {
-            using S = SM::SystemSemiSmooth;
-
-            py::class_<S> cls(sm, "SystemSemiSmooth");
+            py::class_<S> cls(sm, "System_SemiSmooth_Laplace");
 
             cls.def(
                 py::init<double, double, double, double, double, double, double, SM::Generator*>(),
@@ -293,22 +291,24 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("eta"),
                 py::arg("mu"),
                 py::arg("kappa"),
-                py::arg("k_neighbours"),
+                py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
                 py::arg("chunk"));
 
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemSemiSmooth>";
+                return "<FrictionQPotSpringBlock.Line1d.System_SemiSmooth_Laplace>";
             });
         }
 
         {
-            using S = SM::SystemSmooth;
+            using S = SM::System_Smooth_Laplace;
 
-            py::class_<S> cls(sm, "SystemSmooth");
+            py::class_<S> cls(sm, "System_Smooth_Laplace");
 
             cls.def(
                 py::init<double, double, double, double, double, double, SM::Generator*>(),
@@ -316,46 +316,24 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("m"),
                 py::arg("eta"),
                 py::arg("mu"),
-                py::arg("k_neighbours"),
+                py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
                 py::arg("chunk"));
 
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemSmooth>";
+                return "<FrictionQPotSpringBlock.Line1d.System_Smooth_Laplace>";
             });
         }
 
         {
-            using S = SM::SystemQuartic;
+            using S = SM::System_Cuspy_Quartic;
 
-            py::class_<S> cls(sm, "SystemQuartic");
-
-            cls.def(
-                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
-                "Constructor.",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k2"),
-                py::arg("k4"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("chunk"));
-
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
-
-            cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemQuartic>";
-            });
-        }
-
-        {
-            using S = SM::SystemQuarticFD;
-
-            py::class_<S> cls(sm, "SystemQuarticFD");
+            py::class_<S> cls(sm, "System_Cuspy_Quartic");
 
             cls.def(
                 py::init<double, double, double, double, double, double, double, SM::Generator*>(),
@@ -369,83 +347,22 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("dt"),
                 py::arg("chunk"));
 
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemQuarticFD>";
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Quartic>";
             });
         }
 
         {
-            using S = SM::SystemLongRange;
+            using S = SM::System_Cuspy_QuarticGradient;
 
-            py::class_<S> cls(sm, "SystemLongRange");
+            py::class_<S> cls(sm, "System_Cuspy_QuarticGradient");
 
             cls.def(
                 py::init<double, double, double, double, double, double, double, SM::Generator*>(),
-                "Constructor.",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("alpha"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("chunk"));
-
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
-
-            cls.def("distance", &S::distance, "Distance", py::arg("p"));
-
-            cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.SystemLongRange>";
-            });
-        }
-
-        {
-            using S = SM::System2d;
-
-            py::class_<S> cls(sm, "System2d");
-
-            cls.def(
-                py::init<double, double, double, double, double, double, SM::Generator*, size_t>(),
-                "Constructor.",
-                py::arg("m"),
-                py::arg("eta"),
-                py::arg("mu"),
-                py::arg("k_neighbours"),
-                py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("chunk"),
-                py::arg("width"));
-
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
-
-            cls.def_property_readonly("up", &S::up, "Particle index: up");
-            cls.def_property_readonly("down", &S::down, "Particle index: down");
-            cls.def_property_readonly("left", &S::left, "Particle index: left");
-            cls.def_property_readonly("right", &S::right, "Particle index: right");
-
-            cls.def(
-                "__repr__", [](const S&) { return "<FrictionQPotSpringBlock.Line1d.System2d>"; });
-        }
-
-        {
-            using S = SM::System2dQuartic;
-
-            py::class_<S> cls(sm, "System2dQuartic");
-
-            cls.def(
-                py::init<
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    double,
-                    SM::Generator*,
-                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -454,18 +371,81 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k4"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"),
-                py::arg("width"));
+                py::arg("chunk"));
 
-            mysystem<py::class_<S>, S, SM::Generator>(cls);
-
-            cls.def_property_readonly("up", &S::up, "Particle index: up");
-            cls.def_property_readonly("down", &S::down, "Particle index: down");
-            cls.def_property_readonly("left", &S::left, "Particle index: left");
-            cls.def_property_readonly("right", &S::right, "Particle index: right");
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.System2dQuartic>";
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_QuarticGradient>";
+            });
+        }
+
+        {
+            using S = SM::System_Cuspy_LongRange;
+
+            py::class_<S> cls(sm, "System_Cuspy_LongRange");
+
+            cls.def(
+                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_interactions"),
+                py::arg("alpha"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_LongRange>";
+            });
+        }
+    }
+
+    // ------------------------------
+    // FrictionQPotSpringBlock.Line2d
+    // ------------------------------
+
+    {
+        py::module sm = m.def_submodule("Line2d", "Line2d");
+        namespace SM = FrictionQPotSpringBlock::Line2d;
+
+        sm.def(
+            "version_dependencies",
+            &SM::version_dependencies,
+            "Return version information of library and its dependencies.");
+
+        sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
+
+        {
+            using S = SM::System_Cuspy_Laplace;
+
+            py::class_<S> cls(sm, "System_Cuspy_Laplace");
+
+            cls.def(
+                py::init<double, double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_interactions"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line2d.System_Cuspy_Laplace>";
             });
         }
     }

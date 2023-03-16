@@ -182,8 +182,18 @@ using array = xt::xarray<T>;
 
 } // namespace array_type
 
+/**
+ * @brief Type using for size and shapes of arrays.
+ */
+using size_type = array_type::tensor<double, 1>::size_type;
+
 namespace detail {
 
+/**
+ * @brief Remove quotes from a string.
+ * @param arg String.
+ * @return String.
+ */
 inline std::string unquote(const std::string& arg)
 {
     std::string ret = arg;
