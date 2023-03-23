@@ -22,7 +22,7 @@ namespace FrictionQPotSpringBlock {
 namespace Line2d {
 
 /**
- * Return versions of this library and of all of its dependencies.
+ * @brief Return versions of this library and of all of its dependencies.
  * The output is a list of strings, e.g.::
  *
  *     "frictionqpotspringblock=0.1.0",
@@ -37,7 +37,7 @@ inline std::vector<std::string> version_dependencies()
 }
 
 /**
- * Return information on the compiler, the platform, the C++ standard, and the compilation data.
+ * @brief Return information on the compiler, platform, C++ standard, and the compilation data.
  * @return List of strings.
  */
 inline std::vector<std::string> version_compiler()
@@ -52,22 +52,14 @@ using Generator =
     prrng::pcg32_tensor_cumsum<array_type::tensor<double, 3>, array_type::tensor<ptrdiff_t, 2>, 1>;
 
 /**
- * ## Introduction
- *
- * Identical to Line1d::System_Cuspy_Laplace() but with '2d' interactions.
+ * @brief Identical to Line1d::System_Cuspy_Laplace() but with '2d' interactions.
  * @copybrief detail::Laplace2d
  */
-class System_Cuspy_Laplace : public detail::SystemNd_FrameDamping<
-                                 2,
-                                 detail::Cuspy<Generator>,
-                                 Generator,
-                                 detail::Laplace2d,
-                                 detail::Athermal> {
+class System_Cuspy_Laplace
+    : public detail::System<2, detail::Cuspy<Generator>, Generator, detail::Laplace2d> {
 protected:
-    detail::Cuspy<Generator> m_potential; ///< @copybrief Line1d::System_Cuspy_Laplace::m_potential
-    detail::Laplace2d m_interactions; ///< @copybrief Line1d::System_Cuspy_Laplace::m_interactions
-    Generator* m_chunk; ///< @copybrief Line1d::System_Cuspy_Laplace::m_chunk
-    detail::Athermal m_fluctuations; ///< ??
+    detail::Cuspy<Generator> m_pot; ///< copybrief detail::System::m_potential
+    detail::Laplace2d m_int; ///< copybrief detail::System::m_interactions
 
 public:
     /**
@@ -84,22 +76,10 @@ public:
     {
         size_type rows = chunk->data().shape(0);
         size_type cols = chunk->data().shape(1);
-        m_potential = detail::Cuspy<Generator>(mu, chunk);
-        m_interactions = detail::Laplace2d(k_interactions, rows, cols);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 2>{rows, cols},
-            &m_potential,
-            m_chunk,
-            &m_interactions,
-            &m_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::Laplace2d(k_interactions, rows, cols);
+        std::array<size_type, 2> shape = {rows, cols};
+        this->initSystem(m, eta, k_frame, mu, dt, shape, &m_pot, chunk, &m_int);
     }
 };
 

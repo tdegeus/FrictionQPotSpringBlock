@@ -89,7 +89,7 @@ public:
     }
 
     /**
-     * @copydoc SystemNd_FrameDamping::maxUniformDisplacement
+     * @copydoc System::maxUniformDisplacement
      * @param u_array Slip per particle.
      */
     template <class T>
@@ -106,7 +106,7 @@ public:
     }
 
     /**
-     * @copydoc SystemNd_FrameDamping::trigger
+     * @copydoc System::trigger
      * @param u_array Slip per particle.
      */
     template <class T>
@@ -150,25 +150,25 @@ public:
  *  -   The first increment at which the random force is changed.
  *  -   The number of increments between two changes of the random force.
  *
- * @tparam dimension rank of the system
+ * @tparam rank rank of the system
  */
-template <size_t dimension>
+template <size_t rank>
 class RandomNormalForcing {
 protected:
-    std::array<size_type, dimension> m_shape; ///< copybrief SystemNd_FrameDamping::shape
+    std::array<size_type, rank> m_shape; ///< copybrief System::shape
     size_type m_N; ///< Number of particles.
-    array_type::tensor<double, dimension> m_f_thermal; ///< Current applied 'random' forces.
+    array_type::tensor<double, rank> m_f_thermal; ///< Current applied 'random' forces.
     double m_mean; ///< Mean of the random distribution.
     double m_stddev; ///< Standard deviation of the random distribution.
-    array_type::tensor<ptrdiff_t, dimension> m_next; ///< Next increment at which random force is drawn
-    array_type::tensor<ptrdiff_t, dimension> m_dinc; ///< \#increments between two draws of random force
+    array_type::tensor<ptrdiff_t, rank> m_next; ///< Next increment at to draw.
+    array_type::tensor<ptrdiff_t, rank> m_dinc; ///< \#increments between two draws.
     prrng::pcg32 m_rng; ///< Random number generator.
 
 public:
     RandomNormalForcing() = default;
 
     /**
-     * @param shape copybrief SystemNd_FrameDamping::shape
+     * @param shape copybrief System::shape
      * @param mean @copybrief RandomNormalForcing::m_mean
      * @param stddev @copybrief RandomNormalForcing::m_stddev
      * @param seed Seed for the random number generator.
@@ -177,7 +177,7 @@ public:
      */
     template <class T>
     RandomNormalForcing(
-        std::array<size_type, dimension> shape,
+        std::array<size_type, rank> shape,
         double mean,
         double stddev,
         uint64_t seed,
@@ -246,7 +246,7 @@ public:
      * @brief Change the random force.
      * @param f_thermal New random force.
      */
-    void set_f_thermal(const array_type::tensor<double, dimension>& f_thermal)
+    void set_f_thermal(const array_type::tensor<double, rank>& f_thermal)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f_thermal, m_f_thermal.shape()));
         m_f_thermal = f_thermal;
@@ -265,7 +265,7 @@ public:
      * @brief Overwrite the next increment at which the random force is changed.
      * @param next Next increment.
      */
-    void set_next(const array_type::tensor<ptrdiff_t, dimension>& next)
+    void set_next(const array_type::tensor<ptrdiff_t, rank>& next)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(next, m_next.shape()));
         m_next = next;
@@ -768,7 +768,7 @@ public:
 class LongRange1d {
 protected:
     size_type m_N; ///< Number of particles.
-    double m_k; ///< @copybrief Laplace1d::m_k
+    double m_k; ///< copybrief Laplace1d::m_k
     double m_alpha; ///< Range of interactions.
     ptrdiff_t m_n; ///< Alias of m_N.
     ptrdiff_t m_m; ///< Midpoint.
@@ -840,15 +840,10 @@ public:
  * -    do the same
  * -    only use set_u() and set_v() to update #m_u and #m_v
  */
-template <
-    size_t dimension,
-    class Potential,
-    class Generator,
-    class Interactions,
-    class Fluctuations>
-class SystemNd_FrameDamping {
+template <size_t rank, class Potential, class Generator, class Interactions, class External = void>
+class System {
 public:
-    virtual ~SystemNd_FrameDamping() = default;
+    virtual ~System() = default;
 
     /**
      * @brief Number of particles.
@@ -872,9 +867,9 @@ public:
      * @brief Random force generator.
      * @return Reference.
      */
-    const auto& fluctuations() const
+    const auto& external() const
     {
-        return m_fluctuations;
+        return m_external;
     }
 
     /**
@@ -929,7 +924,7 @@ public:
      *
      * @param arg The particles' slips.
      */
-    void set_u(const array_type::tensor<double, dimension>& arg)
+    void set_u(const array_type::tensor<double, rank>& arg)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_shape));
         xt::noalias(m_u) = arg;
@@ -943,7 +938,7 @@ public:
      *
      * @param arg The particles' velocities.
      */
-    void set_v(const array_type::tensor<double, dimension>& arg)
+    void set_v(const array_type::tensor<double, rank>& arg)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_shape));
         xt::noalias(m_v) = arg;
@@ -954,7 +949,7 @@ public:
      * @brief Set the acceleration of each particle (the second time derivative of the slip).
      * @param arg The particles' accelerations.
      */
-    void set_a(const array_type::tensor<double, dimension>& arg)
+    void set_a(const array_type::tensor<double, rank>& arg)
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_shape));
         xt::noalias(m_a) = arg;
@@ -1076,7 +1071,7 @@ public:
      */
     double temperature() const
     {
-        return 0.5 * m_rows * xt::norm_sq(m_v)() / static_cast<double>(m_N);
+        return 0.5 * m_m * xt::norm_sq(m_v)() / static_cast<double>(m_N);
     }
 
     /**
@@ -1433,23 +1428,23 @@ protected:
      * @param potential Potential energy.
      * @param chunk Chunk of yield positions.
      * @param interactions Particle interactions.
+     * @param external @copybrief System::m_external
      */
-    void init_SystemNd_FrameDamping(
+    void initSystem(
         double m,
         double eta,
         double k_frame,
         double mu,
         double dt,
-        std::array<size_type, dimension> shape,
+        std::array<size_type, rank> shape,
         Potential* potential,
         Generator* chunk,
         Interactions* interactions,
-        Fluctuations* fluctuations)
+        External* external = nullptr)
     {
         m_shape = shape;
-        m_rank = m_shape.size();
         m_N = std::accumulate(m_shape.cbegin(), m_shape.cend(), 1, std::multiplies<size_type>{});
-        m_rows = m;
+        m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
         m_mu = mu;
@@ -1469,7 +1464,8 @@ protected:
         m_potential = potential;
         m_chunk = chunk;
         m_interactions = interactions;
-        m_fluctuations = fluctuations;
+        m_external = external;
+        this->refresh();
     }
 
 protected:
@@ -1479,7 +1475,9 @@ protected:
     void computeForce()
     {
         xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_damping + m_f_frame;
-        m_fluctuations->force(m_u, m_f, m_inc);
+        if constexpr (!std::is_same<External, void>::value) {
+            m_external->force(m_u, m_f, m_inc);
+        }
     }
 
     /**
@@ -1589,33 +1587,32 @@ protected:
     }
 
 protected:
-    std::array<size_type, dimension> m_shape; ///< copybrief SystemNd_FrameDamping::shape
-    size_type m_N; ///< copybrief SystemNd_FrameDamping::N
-    size_type m_rank; ///< Rank of the system ``== m_shape.size()``.
-    array_type::tensor<double, dimension> m_f; ///< copybrief SystemNd_FrameDamping::f
-    array_type::tensor<double, dimension> m_f_potential; ///< copybrief SystemNd_FrameDamping::f_potential
-    array_type::tensor<double, dimension> m_f_interactions; ///< copybrief SystemNd_FrameDamping::f_interactions
-    array_type::tensor<double, dimension> m_f_frame; ///< copybrief SystemNd_FrameDamping::f_frame
-    array_type::tensor<double, dimension> m_f_damping; ///< copybrief SystemNd_FrameDamping::f_damping
-    array_type::tensor<double, dimension> m_u; ///< copybrief SystemNd_FrameDamping::u
-    array_type::tensor<double, dimension> m_v; ///< copybrief SystemNd_FrameDamping::v
-    array_type::tensor<double, dimension> m_a; ///< copybrief SystemNd_FrameDamping::a
-    array_type::tensor<double, dimension> m_v_n; ///< Temporary for integration.
-    array_type::tensor<double, dimension> m_a_n; ///< Temporary for integration.
-    ptrdiff_t m_inc = 0; ///< copybrief SystemNd_FrameDamping::inc
-    ptrdiff_t m_qs_inc_first = 0; ///< copybrief SystemNd_FrameDamping::quasistaticActivityFirst
-    ptrdiff_t m_qs_inc_last = 0; ///< copybrief SystemNd_FrameDamping::quasistaticActivityLast
+    std::array<size_type, rank> m_shape; ///< copybrief System::shape
+    size_type m_N; ///< copybrief System::N
+    array_type::tensor<double, rank> m_f; ///< copybrief System::f
+    array_type::tensor<double, rank> m_f_potential; ///< copybrief System::f_potential
+    array_type::tensor<double, rank> m_f_interactions; ///< copybrief System::f_interactions
+    array_type::tensor<double, rank> m_f_frame; ///< copybrief System::f_frame
+    array_type::tensor<double, rank> m_f_damping; ///< copybrief System::f_damping
+    array_type::tensor<double, rank> m_u; ///< copybrief System::u
+    array_type::tensor<double, rank> m_v; ///< copybrief System::v
+    array_type::tensor<double, rank> m_a; ///< copybrief System::a
+    array_type::tensor<double, rank> m_v_n; ///< Temporary for integration.
+    array_type::tensor<double, rank> m_a_n; ///< Temporary for integration.
+    ptrdiff_t m_inc = 0; ///< copybrief System::inc
+    ptrdiff_t m_qs_inc_first = 0; ///< copybrief System::quasistaticActivityFirst
+    ptrdiff_t m_qs_inc_last = 0; ///< copybrief System::quasistaticActivityLast
     double m_dt; ///< Time step.
     double m_eta; ///< Damping constant (same for all particles).
-    double m_rows; ///< Mass (same for all particles).
-    double m_inv_m; ///< `== 1 / m_rows`
+    double m_m; ///< Mass (same for all particles).
+    double m_inv_m; ///< `== 1 / m_m`
     double m_mu; ///< Curvature of the potentials.
     double m_k_frame; ///< Stiffness of the load fame (same for all particles).
-    double m_u_frame = 0.0; ///< copybrief SystemNd_FrameDamping::u_frame
+    double m_u_frame = 0.0; ///< copybrief System::u_frame
     Potential* m_potential; ///< Class to get the forces from the local potential energy landscape.
     Generator* m_chunk; ///< copybrief Cuspy::chunk
     Interactions* m_interactions; ///< Class to get the forces from particle interaction.
-    Fluctuations* m_fluctuations; ///< Class to get random forces per increment.
+    External* m_external; ///< Add an (time dependent) externally defined force to the residual.
 };
 
 } // namespace detail

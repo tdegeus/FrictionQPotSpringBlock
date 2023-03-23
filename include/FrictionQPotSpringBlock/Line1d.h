@@ -22,7 +22,7 @@ namespace FrictionQPotSpringBlock {
 namespace Line1d {
 
 /**
- * Return versions of this library and of all of its dependencies.
+ * @brief Return versions of this library and of all of its dependencies.
  * The output is a list of strings, e.g.::
  *
  *     "frictionqpotspringblock=0.1.0",
@@ -37,7 +37,7 @@ inline std::vector<std::string> version_dependencies()
 }
 
 /**
- * Return information on the compiler, the platform, the C++ standard, and the compilation data.
+ * @brief Return information on the compiler, platform, C++ standard, and the compilation data.
  * @return List of strings.
  */
 inline std::vector<std::string> version_compiler()
@@ -107,26 +107,20 @@ using Generator =
  * In absolute need refresh() can be called to force re-computation of forces,
  * but this should normally not be needed.
  */
-class System_Cuspy_Laplace : public detail::SystemNd_FrameDamping<
-                                 1,
-                                 detail::Cuspy<Generator>,
-                                 Generator,
-                                 detail::Laplace1d,
-                                 detail::Athermal> {
+class System_Cuspy_Laplace
+    : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::Laplace1d> {
 protected:
-    detail::Cuspy<Generator> m_my_potential; ///< Potential energy.
-    detail::Laplace1d m_my_interactions; ///< Interactions between particles.
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::Athermal m_my_fluctuations; ///< ??
+    detail::Cuspy<Generator> m_pot; ///< copybrief detail::System::m_potential
+    detail::Laplace1d m_int; ///< copybrief detail::System::m_interactions
 
 public:
     /**
-     * @param m copybrief detail::SystemNd_FrameDamping::m_m
-     * @param eta copybrief detail::SystemNd_FrameDamping::m_eta
+     * @param m copybrief detail::System::m_m
+     * @param eta copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::Laplace1d::m_k
-     * @param k_frame copybrief detail::SystemNd_FrameDamping::m_k_frame
-     * @param dt copybrief detail::SystemNd_FrameDamping::m_dt
+     * @param k_frame copybrief detail::System::m_k_frame
+     * @param dt copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_Laplace(
@@ -139,22 +133,10 @@ public:
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::Cuspy<Generator>(mu, chunk);
-        m_my_interactions = detail::Laplace1d(k_interactions, N);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::Laplace1d(k_interactions, N);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
 };
 
@@ -166,13 +148,14 @@ public:
 class System_Cuspy_Laplace_Nopassing : public System_Cuspy_Laplace {
 protected:
     double m_k_interactions; ///< @copybrief detail::Laplace1d::m_k
+    Generator* m_cnk; ///< @copybrief detail::Cuspy::m_chunk
 
 public:
     /**
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::Laplace1d::m_k
-     * @param k_frame copybrief detail::SystemNd_FrameDamping::m_k_frame
-     * @param dt copybrief detail::SystemNd_FrameDamping::m_dt
+     * @param k_frame copybrief detail::System::m_k_frame
+     * @param dt copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_Laplace_Nopassing(
@@ -181,7 +164,7 @@ public:
         double k_frame,
         double dt,
         Generator* chunk)
-        : System_Cuspy_Laplace(1.0, 0.0, mu, k_interactions, k_frame, dt, chunk)
+        : System_Cuspy_Laplace(1.0, 0.0, mu, k_interactions, k_frame, dt, chunk), m_cnk(chunk)
     {
     }
 
@@ -189,7 +172,7 @@ public:
      * @warning This function is based on the no-passing condition and does not follow the dynamics.
      * The time is not updated.
      *
-     * @copydoc detail::SystemNd_FrameDamping::minimise
+     * @copydoc detail::System::minimise
      */
     size_t minimise(
         double tol = 1e-5,
@@ -233,15 +216,15 @@ public:
                     xneigh = m_v_n(p - 1) + m_v_n(p + 1);
                 }
 
-                i = m_my_chunk->chunk_index_at_align()(p);
-                auto* y = &m_my_chunk->data()(p, 0);
+                i = m_cnk->chunk_index_at_align()(p);
+                auto* y = &m_cnk->data()(p, 0);
 
                 while (true) {
                     xmin = 0.5 * (*(y + i) + *(y + i + 1));
                     x = (m_k_interactions * xneigh + m_k_frame * m_u_frame + m_mu * xmin) /
                         (2 * m_k_interactions + m_k_frame + m_mu);
-                    m_my_chunk->align(p, x);
-                    j = m_my_chunk->chunk_index_at_align()(p);
+                    m_cnk->align(p, x);
+                    j = m_cnk->chunk_index_at_align()(p);
                     if (j == i) {
                         break;
                     }
@@ -300,26 +283,25 @@ protected:
  *
  * To apply a fixed force (athermal or thermal) use a non-zero mean *and* set `k_frame = 0`.
  */
-class System_Cuspy_Laplace_RandomNormalForcing : public detail::SystemNd_FrameDamping<
+class System_Cuspy_Laplace_RandomNormalForcing : public detail::System<
                                                      1,
                                                      detail::Cuspy<Generator>,
                                                      Generator,
                                                      detail::Laplace1d,
                                                      detail::RandomNormalForcing<1>> {
 protected:
-    detail::Cuspy<Generator> m_my_potential; ///< @copybrief System_Cuspy_Laplace::m_my_potential
-    detail::Laplace1d m_my_interactions; ///< @copybrief System_Cuspy_Laplace::m_my_interactions
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::RandomNormalForcing<1> m_my_fluctuations; ///< ??
+    detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
+    detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
+    detail::RandomNormalForcing<1> m_ext; ///< Add extra random force to the residual.
 
 public:
     /**
      * @copydoc System_Cuspy_Laplace::System_Cuspy_Laplace
-     * @param mean @copybrief RandomNormalForcing::m_mean
-     * @param stddev @copybrief RandomNormalForcing::m_stddev
+     * @param mean @copybrief detail::RandomNormalForcing::m_mean
+     * @param stddev @copybrief detail::RandomNormalForcing::m_stddev
      * @param seed Seed for the random number generator.
      * @param dinc_init Number of increments to wait to draw the first random force.
-     * @param dinc @copybrief RandomNormalForcing::m_dinc
+     * @param dinc @copybrief detail::RandomNormalForcing::m_dinc
      */
     System_Cuspy_Laplace_RandomNormalForcing(
         double m,
@@ -336,23 +318,12 @@ public:
         const array_type::tensor<ptrdiff_t, 1>& dinc)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::Cuspy<Generator>(mu, chunk);
-        m_my_interactions = detail::Laplace1d(k_interactions, N);
-        m_my_fluctuations = detail::RandomNormalForcing<1>(std::array<size_type, 1>{N}, mean, stddev, seed, dinc_init, dinc);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::Laplace1d(k_interactions, N);
+        m_ext = detail::RandomNormalForcing<1>(
+            std::array<size_type, 1>{N}, mean, stddev, seed, dinc_init, dinc);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int, &m_ext);
     }
 
 protected:
@@ -369,80 +340,17 @@ protected:
     /**
      * \endcond
      */
-
-// public:
-//     /**
-//      * @brief State of the random number generator.
-//      * @return State.
-//      */
-//     uint64_t state() const
-//     {
-//         return m_rng.state();
-//     }
-
-//     /**
-//      * @brief Change the state of the random number generator.
-//      * @param state State.
-//      */
-//     void set_state(uint64_t state)
-//     {
-//         m_rng.restore(state);
-//     }
-
-//     /**
-//      * @brief Current random force.
-//      * @return Array.
-//      */
-//     const auto& f_thermal() const
-//     {
-//         return m_f_thermal;
-//     }
-
-//     /**
-//      * @brief Change the random force.
-//      * @param f_thermal New random force.
-//      */
-//     void set_f_thermal(const array_type::tensor<double, 1>& f_thermal)
-//     {
-//         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f_thermal, m_f_thermal.shape()));
-//         m_f_thermal = f_thermal;
-//     }
-
-//     /**
-//      * @brief Next increment at which the random force is changed.
-//      * @return Array
-//      */
-//     const auto& next()
-//     {
-//         return m_next;
-//     }
-
-//     /**
-//      * @brief Overwrite the next increment at which the random force is changed.
-//      * @param next Next increment.
-//      */
-//     void set_next(const decltype(m_next)& next)
-//     {
-//         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(next, m_next.shape()));
-//         m_next = next;
-//     }
 };
 
 /**
  * Same as System_Cuspy_Laplace() but with a semi-smooth potential.
  * @copybrief detail::SemiSmooth
  */
-class System_SemiSmooth_Laplace : public detail::SystemNd_FrameDamping<
-                                      1,
-                                      detail::SemiSmooth<Generator>,
-                                      Generator,
-                                      detail::Laplace1d,
-                                      detail::Athermal> {
+class System_SemiSmooth_Laplace
+    : public detail::System<1, detail::SemiSmooth<Generator>, Generator, detail::Laplace1d> {
 protected:
-    detail::SemiSmooth<Generator> m_my_potential; ///< @copybrief System_Cuspy_Laplace::m_my_potential
-    detail::Laplace1d m_my_interactions; ///< @copybrief System_Cuspy_Laplace::m_my_interactions
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::Athermal m_my_fluctuations; ///< ??
+    detail::SemiSmooth<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
+    detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
 public:
     /**
@@ -460,22 +368,10 @@ public:
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::SemiSmooth<Generator>(mu, kappa, chunk);
-        m_my_interactions = detail::Laplace1d(k_interactions, N);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::SemiSmooth<Generator>(mu, kappa, chunk);
+        m_int = detail::Laplace1d(k_interactions, N);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
 };
 
@@ -483,17 +379,11 @@ public:
  * Same as System_Cuspy_Laplace() but with a smooth potential.
  * @copybrief detail::Smooth
  */
-class System_Smooth_Laplace : public detail::SystemNd_FrameDamping<
-                                  1,
-                                  detail::Smooth<Generator>,
-                                  Generator,
-                                  detail::Laplace1d,
-                                  detail::Athermal> {
+class System_Smooth_Laplace
+    : public detail::System<1, detail::Smooth<Generator>, Generator, detail::Laplace1d> {
 protected:
-    detail::Smooth<Generator> m_my_potential; ///< @copybrief System_Cuspy_Laplace::m_my_potential
-    detail::Laplace1d m_my_interactions; ///< @copybrief System_Cuspy_Laplace::m_my_interactions
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::Athermal m_my_fluctuations; ///< ??
+    detail::Smooth<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
+    detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
 public:
     /**
@@ -509,22 +399,10 @@ public:
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::Smooth<Generator>(mu, chunk);
-        m_my_interactions = detail::Laplace1d(k_interactions, N);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Smooth<Generator>(mu, chunk);
+        m_int = detail::Laplace1d(k_interactions, N);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
 };
 
@@ -532,27 +410,21 @@ public:
  * Same as System_Cuspy_Laplace() but with a quartic interactions.
  * @copybrief detail::Quartic1d
  */
-class System_Cuspy_Quartic : public detail::SystemNd_FrameDamping<
-                                 1,
-                                 detail::Cuspy<Generator>,
-                                 Generator,
-                                 detail::Quartic1d,
-                                 detail::Athermal> {
+class System_Cuspy_Quartic
+    : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::Quartic1d> {
 protected:
-    detail::Cuspy<Generator> m_my_potential; ///< @copybrief System_Cuspy_Laplace::m_my_potential
-    detail::Quartic1d m_my_interactions; ///< @copybrief System_Cuspy_Laplace::m_my_interactions
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::Athermal m_my_fluctuations; ///< ??
+    detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
+    detail::Quartic1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
 public:
     /**
-     * @param m copybrief detail::SystemNd_FrameDamping::m_m
-     * @param eta copybrief detail::SystemNd_FrameDamping::m_eta
+     * @param m copybrief detail::System::m_m
+     * @param eta copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
-     * @param k2 @copybrief detail::Quartic1d::m_k2
-     * @param k4 @copybrief detail::Quartic1d::m_k4
-     * @param k_frame copybrief detail::SystemNd_FrameDamping::m_k_frame
-     * @param dt copybrief detail::SystemNd_FrameDamping::m_dt
+     * @param k2 copybrief detail::Quartic1d::m_k2
+     * @param k4 copybrief detail::Quartic1d::m_k4
+     * @param k_frame copybrief detail::System::m_k_frame
+     * @param dt copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_Quartic(
@@ -566,22 +438,10 @@ public:
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::Cuspy<Generator>(mu, chunk);
-        m_my_interactions = detail::Quartic1d(k2, k4, N);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::Quartic1d(k2, k4, N);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
 };
 
@@ -589,27 +449,25 @@ public:
  * Same as System_Cuspy_Laplace() but with a quartic interactions.
  * @copybrief detail::QuarticGradient1d
  */
-class System_Cuspy_QuarticGradient : public detail::SystemNd_FrameDamping<
+class System_Cuspy_QuarticGradient : public detail::System<
                                          1,
                                          detail::Cuspy<Generator>,
                                          Generator,
                                          detail::QuarticGradient1d,
                                          detail::Athermal> {
 protected:
-    detail::Cuspy<Generator> m_my_potential; ///< @copybrief System_Cuspy_Laplace::m_my_potential
-    detail::QuarticGradient1d m_my_interactions; ///< @copybrief System_Cuspy_Laplace::m_my_interactions
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::Athermal m_my_fluctuations; ///< ??
+    detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
+    detail::QuarticGradient1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
 public:
     /**
-     * @param m copybrief detail::SystemNd_FrameDamping::m_m
-     * @param eta copybrief detail::SystemNd_FrameDamping::m_eta
+     * @param m copybrief detail::System::m_m
+     * @param eta copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k2 @copybrief detail::QuarticGradient1d::m_k2
      * @param k4 @copybrief detail::QuarticGradient1d::m_k4
-     * @param k_frame copybrief detail::SystemNd_FrameDamping::m_k_frame
-     * @param dt copybrief detail::SystemNd_FrameDamping::m_dt
+     * @param k_frame copybrief detail::System::m_k_frame
+     * @param dt copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_QuarticGradient(
@@ -623,22 +481,10 @@ public:
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::Cuspy<Generator>(mu, chunk);
-        m_my_interactions = detail::QuarticGradient1d(k2, k4, N);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::QuarticGradient1d(k2, k4, N);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
 };
 
@@ -646,27 +492,21 @@ public:
  * Same as System_Cuspy_Laplace() but with a quartic interactions.
  * @copybrief detail::QuarticGradient1d
  */
-class System_Cuspy_LongRange : public detail::SystemNd_FrameDamping<
-                                   1,
-                                   detail::Cuspy<Generator>,
-                                   Generator,
-                                   detail::LongRange1d,
-                                   detail::Athermal> {
+class System_Cuspy_LongRange
+    : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::LongRange1d> {
 protected:
-    detail::Cuspy<Generator> m_my_potential; ///< @copybrief System_Cuspy_Laplace::m_my_potential
-    detail::LongRange1d m_my_interactions; ///< @copybrief System_Cuspy_Laplace::m_my_interactions
-    Generator* m_my_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    detail::Athermal m_my_fluctuations; ///< ??
+    detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
+    detail::LongRange1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
 public:
     /**
-     * @param m copybrief detail::SystemNd_FrameDamping::m_m
-     * @param eta copybrief detail::SystemNd_FrameDamping::m_eta
+     * @param m copybrief detail::System::m_m
+     * @param eta copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::LongRange1d::m_k
      * @param alpha @copybrief detail::LongRange1d::m_alpha
-     * @param k_frame copybrief detail::SystemNd_FrameDamping::m_k_frame
-     * @param dt copybrief detail::SystemNd_FrameDamping::m_dt
+     * @param k_frame copybrief detail::System::m_k_frame
+     * @param dt copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_LongRange(
@@ -680,22 +520,10 @@ public:
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
-        m_my_potential = detail::Cuspy<Generator>(mu, chunk);
-        m_my_interactions = detail::LongRange1d(k_interactions, alpha, N);
-
-        this->init_SystemNd_FrameDamping(
-            m,
-            eta,
-            k_frame,
-            mu,
-            dt,
-            std::array<size_type, 1>{N},
-            &m_my_potential,
-            m_my_chunk,
-            &m_my_interactions,
-            &m_my_fluctuations);
-
-        this->refresh();
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::LongRange1d(k_interactions, alpha, N);
+        this->initSystem(
+            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
 };
 

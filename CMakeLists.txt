@@ -56,6 +56,8 @@ target_link_libraries(${PROJECT_NAME} INTERFACE xtensor GooseFEM GMatTensor prrn
 target_compile_definitions(${PROJECT_NAME} INTERFACE
     ${PROJECT_NAME_UPPER}_VERSION="${PROJECT_VERSION}")
 
+target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
+
 # Libraries
 # =========
 
@@ -178,6 +180,7 @@ if(BUILD_DOCS OR BUILD_ALL)
     set(DOXYGEN_USE_MATHJAX YES)
     set(DOXYGEN_GENERATE_TREEVIEW YES)
     set(DOXYGEN_JAVADOC_AUTOBRIEF YES)
+    set(DOXYGEN_INLINE_INHERITED_MEMB YES)
     set(DOXYGEN_MACRO_EXPANSION YES)
     set(DOXYGEN_SOURCE_BROWSER YES)
     set(DOXYGEN_QUIET YES)
