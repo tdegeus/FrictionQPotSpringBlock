@@ -1411,7 +1411,7 @@ public:
     void advanceToFixedForce(double f_frame)
     {
         auto i_n = m_chunk->index_at_align();
-        this->advanceUniformly((f_frame - xt::mean(m_f_frame)()) / m_k_frame, true);
+        this->advanceUniformly((f_frame - xt::mean(m_f_frame)()) / m_mu, false);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(m_chunk->index_at_align(), i_n)));
     }
 
