@@ -40,6 +40,7 @@ namespace detail {
 template <class Generator>
 class Cuspy {
 protected:
+    using size_type = typename Generator::size_type;
     size_type m_N; ///< Number of particles.
     double m_mu; ///< Curvature of the potentials.
     Generator* m_chunk; ///< Pointer to chunk of yield 'positions' (automatically updated if needed)
@@ -71,7 +72,7 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->data().size() / m_N});
+            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
@@ -205,7 +206,7 @@ public:
     {
         (void)(u_array);
 
-        for (size_t p = 0; p < m_N; ++p) {
+        for (size_type p = 0; p < m_N; ++p) {
             if (inc >= m_next(p)) {
                 m_f_thermal(p) = m_rng.normal(m_mean, m_stddev);
                 m_next(p) += m_dinc(p);
@@ -279,6 +280,7 @@ public:
 template <class Generator>
 class SemiSmooth {
 protected:
+    using size_type = typename Generator::size_type;
     size_type m_N; ///< @copydoc Cuspy::m_N
     double m_mu; ///< @copydoc Cuspy::m_mu
     double m_kappa; ///< Softening stiffness.
@@ -309,7 +311,7 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->data().size() / m_N});
+            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
@@ -354,7 +356,7 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->data().size() / m_N});
+            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
@@ -412,6 +414,7 @@ public:
 template <class Generator>
 class Smooth {
 protected:
+    using size_type = typename Generator::size_type;
     size_type m_N; ///< @copydoc Cuspy::m_N
     double m_mu; ///< @copydoc Cuspy::m_mu
     Generator* m_chunk; ///< @copydoc Cuspy::m_chunk
@@ -441,7 +444,7 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->data().size() / m_N});
+            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
@@ -546,6 +549,19 @@ public:
  *
  * such that
  * \f$ f_{i,j} = k (u_{i - 1, j} + u_{i + 1, j} + u_{i, j - 1} + u_{i, j + 1} - 4 u_{i, j}) \f$.
+ *
+ * ## Indices
+ *
+ * From Python you can access the indices as follows:
+ *
+ *      # array with 'spatial' organisation of the flat indices of particles
+ *      organisation = np.arange(rows * cols).reshape(rows, cols)
+ *
+ *      # flat particle indices of neighbours to all sides
+ *      down = np.roll(organisation, -1, axis=0)
+ *      up = np.roll(organisation, 1, axis=0)
+ *      left = np.roll(organisation, 1, axis=1)
+ *      right = np.roll(organisation, -1, axis=1)
  */
 class Laplace2d {
 protected:
@@ -573,8 +589,8 @@ public:
     {
         for (size_type i = 0; i < m_rows; ++i) {
             for (size_type j = 0; j < m_cols; ++j) {
-                f_array(i, j) = u_array.periodic(i - 1, +j) + u_array.periodic(i + 1, +j) +
-                                u_array.periodic(i, +j - 1) + u_array.periodic(i, +j + 1) -
+                f_array(i, j) = u_array.periodic(i - 1, j) + u_array.periodic(i + 1, j) +
+                                u_array.periodic(i, j - 1) + u_array.periodic(i, j + 1) -
                                 4 * u_array(i, j);
             }
         }

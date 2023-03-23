@@ -49,7 +49,7 @@ inline std::vector<std::string> version_compiler()
  * @brief Chunked storage of the cumulative sum of random numbers, used in all classes.
  */
 using Generator =
-    prrng::pcg32_tensor_cumsum<array_type::tensor<double, 3>, array_type::tensor<ptrdiff_t, 2>, 1>;
+    prrng::pcg32_tensor_cumsum<array_type::tensor<double, 3>, array_type::tensor<ptrdiff_t, 2>, 2>;
 
 /**
  * @brief Identical to Line1d::System_Cuspy_Laplace() but with '2d' interactions.
@@ -78,6 +78,39 @@ public:
         size_type cols = chunk->data().shape(1);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::Laplace2d(k_interactions, rows, cols);
+        std::array<size_type, 2> shape = {rows, cols};
+        this->initSystem(m, eta, k_frame, mu, dt, shape, &m_pot, chunk, &m_int);
+    }
+};
+
+/**
+ * @brief Identical to Line1d::System_Cuspy_QuarticGradient() but with '2d' interactions.
+ * @copybrief detail::QuarticGradient2d
+ */
+class System_Cuspy_QuarticGradient
+    : public detail::System<2, detail::Cuspy<Generator>, Generator, detail::QuarticGradient2d> {
+protected:
+    detail::Cuspy<Generator> m_pot; ///< copybrief detail::System::m_potential
+    detail::QuarticGradient2d m_int; ///< copybrief detail::System::m_interactions
+
+public:
+    /**
+     * @copydoc Line1d::System_Cuspy_QuarticGradient
+     */
+    System_Cuspy_QuarticGradient(
+        double m,
+        double eta,
+        double mu,
+        double k2,
+        double k4,
+        double k_frame,
+        double dt,
+        Generator* chunk)
+    {
+        size_type rows = chunk->data().shape(0);
+        size_type cols = chunk->data().shape(1);
+        m_pot = detail::Cuspy<Generator>(mu, chunk);
+        m_int = detail::QuarticGradient2d(k2, k4, rows, cols);
         std::array<size_type, 2> shape = {rows, cols};
         this->initSystem(m, eta, k_frame, mu, dt, shape, &m_pot, chunk, &m_int);
     }

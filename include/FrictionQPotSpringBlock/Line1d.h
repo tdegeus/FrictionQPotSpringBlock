@@ -155,16 +155,18 @@ public:
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::Laplace1d::m_k
      * @param k_frame copybrief detail::System::m_k_frame
-     * @param dt copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
+     * @param eta copybrief detail::System::m_eta
+     * @param dt copybrief detail::System::m_dt
      */
     System_Cuspy_Laplace_Nopassing(
         double mu,
         double k_interactions,
         double k_frame,
-        double dt,
-        Generator* chunk)
-        : System_Cuspy_Laplace(1.0, 0.0, mu, k_interactions, k_frame, dt, chunk), m_cnk(chunk)
+        Generator* chunk,
+        double eta = 0.0,
+        double dt = 0.0)
+        : System_Cuspy_Laplace(1.0, eta, mu, k_interactions, k_frame, dt, chunk), m_cnk(chunk)
     {
     }
 
@@ -204,7 +206,7 @@ public:
             // "misuse" unused variable
             xt::noalias(m_v_n) = m_u;
 
-            for (size_t p = 0; p < m_N; ++p) {
+            for (size_type p = 0; p < m_N; ++p) {
 
                 if (p == 0) {
                     xneigh = m_v_n.back() + m_v_n(1);
@@ -283,12 +285,12 @@ protected:
  *
  * To apply a fixed force (athermal or thermal) use a non-zero mean *and* set `k_frame = 0`.
  */
-class System_Cuspy_Laplace_RandomNormalForcing : public detail::System<
-                                                     1,
-                                                     detail::Cuspy<Generator>,
-                                                     Generator,
-                                                     detail::Laplace1d,
-                                                     detail::RandomNormalForcing<1>> {
+class System_Cuspy_Laplace_RandomForcing : public detail::System<
+                                               1,
+                                               detail::Cuspy<Generator>,
+                                               Generator,
+                                               detail::Laplace1d,
+                                               detail::RandomNormalForcing<1>> {
 protected:
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
@@ -303,7 +305,7 @@ public:
      * @param dinc_init Number of increments to wait to draw the first random force.
      * @param dinc @copybrief detail::RandomNormalForcing::m_dinc
      */
-    System_Cuspy_Laplace_RandomNormalForcing(
+    System_Cuspy_Laplace_RandomForcing(
         double m,
         double eta,
         double mu,

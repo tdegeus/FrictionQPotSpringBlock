@@ -221,13 +221,14 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_Laplace_Nopassing");
 
             cls.def(
-                py::init<double, double, double, double, SM::Generator*>(),
+                py::init<double, double, double, SM::Generator*, double, double>(),
                 "Constructor.",
                 py::arg("mu"),
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
-                py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk"),
+                py::arg("eta") = 0.0,
+                py::arg("dt") = 0.0);
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -238,9 +239,9 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         }
 
         {
-            using S = SM::System_Cuspy_Laplace_RandomNormalForcing;
+            using S = SM::System_Cuspy_Laplace_RandomForcing;
 
-            py::class_<S> cls(sm, "System_Cuspy_Laplace_RandomNormalForcing");
+            py::class_<S> cls(sm, "System_Cuspy_Laplace_RandomForcing");
 
             cls.def(
                 py::init<
@@ -274,7 +275,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             mySystemNdDynamics<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_RandomNormalForcing>";
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_RandomForcing>";
             });
         }
 
@@ -445,6 +446,32 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
             cls.def("__repr__", [](const S&) {
                 return "<FrictionQPotSpringBlock.Line2d.System_Cuspy_Laplace>";
+            });
+        }
+
+        {
+            using S = SM::System_Cuspy_QuarticGradient;
+
+            py::class_<S> cls(sm, "System_Cuspy_QuarticGradient");
+
+            cls.def(
+                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k2"),
+                py::arg("k4"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("chunk"));
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line2d.System_Cuspy_QuarticGradient>";
             });
         }
     }
