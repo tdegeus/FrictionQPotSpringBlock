@@ -185,7 +185,7 @@ using array = xt::xarray<T>;
 /**
  * @brief Type using for size and shapes of arrays.
  */
-using size_type = array_type::tensor<double, 1>::size_type;
+using size_type = ptrdiff_t;
 
 namespace detail {
 

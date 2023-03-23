@@ -74,7 +74,7 @@ for iout in tqdm.tqdm(range(nout)):
 with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5")) as file:
     assert np.allclose(ret_x_frame, file["x_frame"][...])
     assert np.allclose(ret_f_frame, file["f_frame"][...])
-    assert np.allclose(ret_t_insta, file["t_insta"][...] * 0.5) # correcting definition in v0.22.0
+    assert np.allclose(ret_t_insta, file["t_insta"][...] * 0.5)  # correcting definition in v0.22.0
 
 if plot:
     fig, ax = plt.subplots()
