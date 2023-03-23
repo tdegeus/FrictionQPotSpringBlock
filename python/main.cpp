@@ -162,16 +162,15 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             cls.def("__repr__", [](const S&) {
                 return "<FrictionQPotSpringBlock.detail.RandomNormalForcing_1>";
             });
-        }
+        } // namespace FrictionQPotSpringBlock::detail;
 
         {
             using S = SM::Athermal;
 
             py::class_<S> cls(sm, "Athermal");
 
-            cls.def("__repr__", [](const S&) {
-                return "<FrictionQPotSpringBlock.detail.Athermal>";
-            });
+            cls.def(
+                "__repr__", [](const S&) { return "<FrictionQPotSpringBlock.detail.Athermal>"; });
         }
     }
 
