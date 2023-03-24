@@ -57,3 +57,4 @@ jobs:
         python Line1d_Cuspy_Laplace_Nopassing.py
         python Line1d_Cuspy_Laplace_LongRange.py
         python Line1d_System_Cuspy_Laplace_RandomForcing.py
+        python Line2d_Cuspy_Laplace.py
