@@ -595,11 +595,34 @@ public:
     template <class T>
     void force(const T& u_array, T& f_array)
     {
-        for (size_type i = 0; i < m_rows; ++i) {
+        std::array<size_type, 2> edge_rows = {0, m_rows - 1};
+        std::array<size_type, 2> edge_cols = {0, m_cols - 1};
+
+        // first and last row, all columns
+        for (size_type r = 0; r < 2; ++r) {
             for (size_type j = 0; j < m_cols; ++j) {
+                size_type i = edge_rows[r];
                 f_array(i, j) = u_array.periodic(i - 1, j) + u_array.periodic(i + 1, j) +
                                 u_array.periodic(i, j - 1) + u_array.periodic(i, j + 1) -
                                 4 * u_array(i, j);
+            }
+        }
+
+        // first and last column, 'interior' rows
+        for (size_type i = 1; i < m_rows - 1; ++i) {
+            for (size_type c = 0; c < 2; ++c) {
+                size_type j = edge_cols[c];
+                f_array(i, j) = u_array.periodic(i - 1, j) + u_array.periodic(i + 1, j) +
+                                u_array.periodic(i, j - 1) + u_array.periodic(i, j + 1) -
+                                4 * u_array(i, j);
+            }
+        }
+
+        // interior
+        for (size_type i = 1; i < m_rows - 1; ++i) {
+            for (size_type j = 1; j < m_cols - 1; ++j) {
+                f_array(i, j) = u_array(i - 1, j) + u_array(i + 1, j) + u_array(i, j - 1) +
+                                u_array(i, j + 1) - 4 * u_array(i, j);
             }
         }
 
@@ -709,9 +732,13 @@ public:
     {
         double mk4_3 = m_k4 / 3.0;
         double mk4_23 = 2.0 * mk4_3;
+        std::array<size_type, 2> edge_rows = {0, m_rows - 1};
+        std::array<size_type, 2> edge_cols = {0, m_cols - 1};
 
-        for (size_type i = 0; i < m_rows; ++i) {
+        // first and last row, all columns
+        for (size_type r = 0; r < 2; ++r) {
             for (size_type j = 0; j < m_cols; ++j) {
+                size_type i = edge_rows[r];
                 double l = u_array.periodic(i + 1, j) + u_array.periodic(i - 1, j) +
                            u_array.periodic(i, j + 1) + u_array.periodic(i, j - 1) -
                            4 * u_array(i, j);
@@ -724,6 +751,47 @@ public:
                     u_array.periodic(i + 1, j) - 2 * u_array(i, j) + u_array.periodic(i - 1, j);
                 double d2udy2 =
                     u_array.periodic(i, j + 1) - 2 * u_array(i, j) + u_array.periodic(i, j - 1);
+
+                f_array(i, j) =
+                    l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
+                                                   2.0 * dudx * dudy * d2udxdy);
+            }
+        }
+
+        // first and last column, 'interior' rows
+        for (size_type i = 1; i < m_rows - 1; ++i) {
+            for (size_type c = 0; c < 2; ++c) {
+                size_type j = edge_cols[c];
+                double l = u_array.periodic(i + 1, j) + u_array.periodic(i - 1, j) +
+                           u_array.periodic(i, j + 1) + u_array.periodic(i, j - 1) -
+                           4 * u_array(i, j);
+                double dudx = 0.5 * (u_array.periodic(i + 1, j) - u_array.periodic(i - 1, j));
+                double dudy = 0.5 * (u_array.periodic(i, j + 1) - u_array.periodic(i, j - 1));
+                double d2udxdy =
+                    0.25 * (u_array.periodic(i + 1, j + 1) - u_array.periodic(i + 1, j - 1) -
+                            u_array.periodic(i - 1, j + 1) + u_array.periodic(i - 1, j - 1));
+                double d2udx2 =
+                    u_array.periodic(i + 1, j) - 2 * u_array(i, j) + u_array.periodic(i - 1, j);
+                double d2udy2 =
+                    u_array.periodic(i, j + 1) - 2 * u_array(i, j) + u_array.periodic(i, j - 1);
+
+                f_array(i, j) =
+                    l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
+                                                   2.0 * dudx * dudy * d2udxdy);
+            }
+        }
+
+        // interior
+        for (size_type i = 1; i < m_rows - 1; ++i) {
+            for (size_type j = 1; j < m_cols - 1; ++j) {
+                double l = u_array(i + 1, j) + u_array(i - 1, j) + u_array(i, j + 1) +
+                           u_array(i, j - 1) - 4 * u_array(i, j);
+                double dudx = 0.5 * (u_array(i + 1, j) - u_array(i - 1, j));
+                double dudy = 0.5 * (u_array(i, j + 1) - u_array(i, j - 1));
+                double d2udxdy = 0.25 * (u_array(i + 1, j + 1) - u_array(i + 1, j - 1) -
+                                         u_array(i - 1, j + 1) + u_array(i - 1, j - 1));
+                double d2udx2 = u_array(i + 1, j) - 2 * u_array(i, j) + u_array(i - 1, j);
+                double d2udy2 = u_array(i, j + 1) - 2 * u_array(i, j) + u_array(i, j - 1);
 
                 f_array(i, j) =
                     l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
