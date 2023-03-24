@@ -355,16 +355,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<size_type, 1>{m_N});
+            std::array<stype, 1>{m_N});
 
-        for (size_t p = 0; p < m_N; ++p) {
+        for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
             double xi = 0.5 * (*(y) + *(y + 1));
             double u_u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
@@ -1458,7 +1458,7 @@ protected:
         External* external = nullptr)
     {
         m_shape = shape;
-        m_N = std::accumulate(m_shape.cbegin(), m_shape.cend(), 1, std::multiplies<size_type>{});
+        m_N = static_cast<size_type>(m_chunk->generators().size());
         m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
