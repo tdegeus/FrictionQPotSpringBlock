@@ -1,12 +1,14 @@
 channels:
 - conda-forge
 dependencies:
+- clang-format >=15.0.7
 - cmake
 - doxygen >=1.9.6
 - gmattensor >0.10.1
 - goosefem
 - ninja
 - numpy
+- pre-commit
 - prrng >=1.10.1
 - pybind11
 - python

@@ -72,7 +72,8 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         size_type rows = chunk->data().shape(0);
         size_type cols = chunk->data().shape(1);
@@ -104,7 +105,8 @@ public:
         double k4,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         size_type rows = chunk->data().shape(0);
         size_type cols = chunk->data().shape(1);
