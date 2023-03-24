@@ -30,18 +30,16 @@ namespace detail {
 /**
  * @brief A piece-wise quadratic local potential energy.
  * The resulting force is piece-wise linear:
- * \f$ f_i =  \mu (u_{\min}^{(i)} - u_i) \f$.
+ * \f$ f_\mathrm{pot}^{(i)} =  \mu (u_{\min}^{(i)} - u_i) \f$.
  * where \f$ \mu \f$ is the curvature of the quadratic potentials, and \f$ u_{\min}^{(i)} \f$
  * the position of the current local minimum.
  * The landscape is given by a cumulative sum of random numbers.
- *
- * @tparam Generator The type of the prrng::pcg32_tensor_cumsum object.
  */
 template <class Generator>
 class Cuspy {
 protected:
-    using size_type = typename Generator::size_type;
-    size_type m_N; ///< Number of particles.
+    using stype = typename Generator::size_type; ///< Size type.
+    stype m_N; ///< Number of particles.
     double m_mu; ///< Curvature of the potentials.
     Generator* m_chunk; ///< Pointer to chunk of yield 'positions' (automatically updated if needed)
 
@@ -51,6 +49,7 @@ public:
     /**
      * @param mu @copydoc Cuspy::m_mu
      * @param chunk @copydoc Cuspy::m_chunk
+     * @tparam Generator The type of the prrng::pcg32_tensor_cumsum object.
      */
     Cuspy(double mu, Generator* chunk) : m_mu(mu), m_chunk(chunk)
     {
@@ -72,16 +71,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<size_type, 1>{m_N});
+            std::array<stype, 1>{m_N});
 
-        for (size_type p = 0; p < m_N; ++p) {
+        for (stype p = 0; p < m_N; ++p) {
             const auto* l = &yield(p, i(p));
             f_array(p) = 0.5 * (*(l) + *(l + 1)) - u_array(p);
         }
@@ -156,7 +155,7 @@ public:
 template <size_t rank>
 class RandomNormalForcing {
 protected:
-    std::array<size_type, rank> m_shape; ///< copybrief System::shape
+    std::array<size_type, rank> m_shape; ///< @copybrief System::shape
     size_type m_N; ///< Number of particles.
     array_type::tensor<double, rank> m_f_thermal; ///< Current applied 'random' forces.
     double m_mean; ///< Mean of the random distribution.
@@ -169,7 +168,7 @@ public:
     RandomNormalForcing() = default;
 
     /**
-     * @param shape copybrief System::shape
+     * @param shape @copybrief System::shape
      * @param mean @copybrief RandomNormalForcing::m_mean
      * @param stddev @copybrief RandomNormalForcing::m_stddev
      * @param seed Seed for the random number generator.
@@ -280,8 +279,8 @@ public:
 template <class Generator>
 class SemiSmooth {
 protected:
-    using size_type = typename Generator::size_type;
-    size_type m_N; ///< @copydoc Cuspy::m_N
+    using stype = typename Generator::size_type; ///< Size type.
+    stype m_N; ///< @copydoc Cuspy::m_N
     double m_mu; ///< @copydoc Cuspy::m_mu
     double m_kappa; ///< Softening stiffness.
     Generator* m_chunk; ///< @copydoc Cuspy::m_chunk
@@ -311,16 +310,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<size_type, 1>{m_N});
+            std::array<stype, 1>{m_N});
 
-        for (size_type p = 0; p < m_N; ++p) {
+        for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
             double xi = 0.5 * (*(y) + *(y + 1));
             double u_u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
@@ -414,8 +413,8 @@ public:
 template <class Generator>
 class Smooth {
 protected:
-    using size_type = typename Generator::size_type;
-    size_type m_N; ///< @copydoc Cuspy::m_N
+    using stype = typename Generator::size_type; ///< Size type.
+    stype m_N; ///< @copydoc Cuspy::m_N
     double m_mu; ///< @copydoc Cuspy::m_mu
     Generator* m_chunk; ///< @copydoc Cuspy::m_chunk
 
@@ -444,16 +443,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<size_type, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<size_type, 1>{m_N});
+            std::array<stype, 1>{m_N});
 
-        for (size_type p = 0; p < m_N; ++p) {
+        for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
             double u = u_array(p);
             double umin = 0.5 * (*(y) + *(y + 1));
@@ -495,7 +494,7 @@ public:
 /**
  * @brief Short range elastic interactions with other particles.
  * The interactions are the short-range Laplacian \f$ \Delta u_i \f$:
- * \f$ f_i = k (u_{i - 1} - 2 u_i + u_{i + 1}) \f$.
+ * \f$ f_\mathrm{inter}^{(i)} = k (u_{i - 1} - 2 u_i + u_{i + 1}) \f$.
  */
 class Laplace1d {
 protected:
@@ -621,7 +620,7 @@ public:
  *
  * which is discretised as
  *
- * \f$ f_i = \left( u_{i + 1} + u_{i - 1} - 2 u_i \right)
+ * \f$ f_\mathrm{inter}^{(i)} = \left( u_{i + 1} + u_{i - 1} - 2 u_i \right)
  * \left( k_2 + k_4 / 4 (u_{i + 1} - u_{i - 1})^2 \right)\f$
  *
  * where the gradient term is approximated by central difference
@@ -784,7 +783,7 @@ public:
 class LongRange1d {
 protected:
     size_type m_N; ///< Number of particles.
-    double m_k; ///< copybrief Laplace1d::m_k
+    double m_k; ///< @copybrief detail::Laplace1d::m_k
     double m_alpha; ///< Range of interactions.
     ptrdiff_t m_n; ///< Alias of m_N.
     ptrdiff_t m_m; ///< Midpoint.
@@ -880,7 +879,7 @@ public:
     }
 
     /**
-     * @brief Random force generator.
+     * @brief Class that generates and external force that is add to the residual force.
      * @return Reference.
      */
     const auto& external() const
@@ -1435,16 +1434,16 @@ protected:
     /**
      * @brief Initialise the system.
      *
-     * @param m Mass of the particles.
-     * @param eta Damping coefficient.
-     * @param k_frame Spring constant of the loading frame.
-     * @param mu Stiffness of local potential energy.
-     * @param dt Time step.
-     * @param shape Shape of the system.
-     * @param potential Potential energy.
-     * @param chunk Chunk of yield positions.
-     * @param interactions Particle interactions.
-     * @param external @copybrief System::m_external
+     * @param m @copybrief detail::System::m_m
+     * @param eta @copybrief detail::System::m_eta
+     * @param k_frame @copybrief detail::System::m_k_frame
+     * @param mu @copybrief detail::System::m_mu
+     * @param dt @copybrief detail::System::m_dt
+     * @param shape @copybrief detail::System::m_shape
+     * @param potential @copybrief detail::System::m_potential
+     * @param chunk @copybrief detail::System::m_chunk
+     * @param interactions @copybrief detail::System::m_interactions
+     * @param external @copybrief detail::System::m_external
      */
     void initSystem(
         double m,
@@ -1603,30 +1602,30 @@ protected:
     }
 
 protected:
-    std::array<size_type, rank> m_shape; ///< copybrief System::shape
-    size_type m_N; ///< copybrief System::N
-    array_type::tensor<double, rank> m_f; ///< copybrief System::f
-    array_type::tensor<double, rank> m_f_potential; ///< copybrief System::f_potential
-    array_type::tensor<double, rank> m_f_interactions; ///< copybrief System::f_interactions
-    array_type::tensor<double, rank> m_f_frame; ///< copybrief System::f_frame
-    array_type::tensor<double, rank> m_f_damping; ///< copybrief System::f_damping
-    array_type::tensor<double, rank> m_u; ///< copybrief System::u
-    array_type::tensor<double, rank> m_v; ///< copybrief System::v
-    array_type::tensor<double, rank> m_a; ///< copybrief System::a
+    std::array<size_type, rank> m_shape; ///< @copybrief detail::System::shape
+    size_type m_N; ///< @copybrief detail::System::N
+    array_type::tensor<double, rank> m_f; ///< @copybrief detail::System::f
+    array_type::tensor<double, rank> m_f_potential; ///< @copybrief detail::System::f_potential
+    array_type::tensor<double, rank> m_f_interactions; ///< @copydoc detail::System::f_interactions
+    array_type::tensor<double, rank> m_f_frame; ///< @copybrief detail::System::f_frame
+    array_type::tensor<double, rank> m_f_damping; ///< @copybrief detail::System::f_damping
+    array_type::tensor<double, rank> m_u; ///< @copybrief detail::System::u
+    array_type::tensor<double, rank> m_v; ///< @copybrief detail::System::v
+    array_type::tensor<double, rank> m_a; ///< @copybrief detail::System::a
     array_type::tensor<double, rank> m_v_n; ///< Temporary for integration.
     array_type::tensor<double, rank> m_a_n; ///< Temporary for integration.
-    ptrdiff_t m_inc = 0; ///< copybrief System::inc
-    ptrdiff_t m_qs_inc_first = 0; ///< copybrief System::quasistaticActivityFirst
-    ptrdiff_t m_qs_inc_last = 0; ///< copybrief System::quasistaticActivityLast
+    ptrdiff_t m_inc = 0; ///< @copybrief detail::System::inc
+    ptrdiff_t m_qs_inc_first = 0; ///< @copybrief detail::System::quasistaticActivityFirst
+    ptrdiff_t m_qs_inc_last = 0; ///< @copybrief detail::System::quasistaticActivityLast
     double m_dt; ///< Time step.
     double m_eta; ///< Damping constant (same for all particles).
     double m_m; ///< Mass (same for all particles).
     double m_inv_m; ///< `== 1 / m_m`
     double m_mu; ///< Curvature of the potentials.
     double m_k_frame; ///< Stiffness of the load fame (same for all particles).
-    double m_u_frame = 0.0; ///< copybrief System::u_frame
+    double m_u_frame = 0.0; ///< @copybrief detail::System::u_frame
     Potential* m_potential; ///< Class to get the forces from the local potential energy landscape.
-    Generator* m_chunk; ///< copybrief Cuspy::chunk
+    Generator* m_chunk; ///< @copybrief detail::Cuspy::m_chunk
     Interactions* m_interactions; ///< Class to get the forces from particle interaction.
     External* m_external; ///< Add an (time dependent) externally defined force to the residual.
 };
