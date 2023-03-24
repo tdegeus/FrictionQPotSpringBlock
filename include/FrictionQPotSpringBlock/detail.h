@@ -11,8 +11,6 @@
 
 #include <xtensor/xadapt.hpp>
 #include <xtensor/xnorm.hpp>
-#include <xtensor/xpad.hpp>
-#include <xtensor/xshape.hpp>
 #include <xtensor/xtensor.hpp>
 
 #include "config.h"
