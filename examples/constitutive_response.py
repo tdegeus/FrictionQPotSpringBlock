@@ -18,71 +18,71 @@ fig, ax = plt.subplots()
 
 # Cusp
 
-system = model.System(
+system = model.System_Cuspy_Laplace(
     m=1,
     eta=1,
     mu=1,
-    k_neighbours=1,
+    k_interactions=1,
     k_frame=1,
     dt=1,
     chunk=chunk,
 )
 
-x = np.linspace(0, 10, 1000)
-f = np.zeros(x.size)
+u = np.linspace(0, 10, 1000)
+f = np.zeros(u.size)
 
-for i in range(x.size):
-    system.x = np.array([x[i]])
+for i in range(u.size):
+    system.u = np.array([u[i]])
     f[i] = -system.f_potential[0]
 
-ax.plot(x, f, c="k")
+ax.plot(u, f, c="k")
 
 # Smooth
 
-system = model.SystemSmooth(
+system = model.System_Smooth_Laplace(
     m=1,
     eta=1,
     mu=1,
-    k_neighbours=1,
+    k_interactions=1,
     k_frame=1,
     dt=1,
     chunk=chunk,
 )
 
-x = np.linspace(0, 10, 1000)
-f = np.zeros(x.size)
+u = np.linspace(0, 10, 1000)
+f = np.zeros(u.size)
 
-for i in range(x.size):
-    system.x = np.array([x[i]])
+for i in range(u.size):
+    system.u = np.array([u[i]])
     f[i] = -system.f_potential[0]
 
-ax.plot(x, f, c="b")
+ax.plot(u, f, c="b")
 
 # SemiSmooth
 
-system = model.SystemSemiSmooth(
+system = model.System_SemiSmooth_Laplace(
     m=1,
     eta=1,
     mu=1,
     kappa=1,
-    k_neighbours=1,
+    k_interactions=1,
     k_frame=1,
     dt=1,
     chunk=chunk,
 )
 
-x = np.linspace(0, 10, 1000)
-f = np.zeros(x.size)
+u = np.linspace(0, 10, 1000)
+f = np.zeros(u.size)
 
-for i in range(x.size):
-    system.x = np.array([x[i]])
+for i in range(u.size):
+    system.u = np.array([u[i]])
     f[i] = -system.f_potential[0]
 
-ax.plot(x, f, c="r")
+ax.plot(u, f, c="r")
 
 # annotations
 
-x = np.linspace(0, 10, 1000)
-ax.plot(x, np.zeros_like(x), c="k", ls="--")
+u = np.linspace(0, 10, 1000)
+ax.plot(u, np.zeros_like(u), c="k", ls="--")
 
 plt.show()
