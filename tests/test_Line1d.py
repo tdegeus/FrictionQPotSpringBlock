@@ -540,5 +540,47 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
         self.assertAlmostEqual(system.u_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1)
 
 
+class Test_System_Cuspy_Laplace_RandomForcing(unittest.TestCase):
+    def test_interactions(self):
+        N = 10
+        chunk = prrng.pcg32_tensor_cumsum_1_1(
+            shape=[100],
+            initstate=np.zeros([N], dtype=int),
+            initseq=np.zeros([N], dtype=int),
+            distribution=prrng.delta,
+            parameters=[1.0],
+            align=prrng.alignment(margin=10, buffer=5),
+        )
+        chunk.data -= 49.5
+
+        system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_RandomForcing(
+            m=1,
+            eta=1,
+            mu=1,
+            k_interactions=1,
+            k_frame=0.1,
+            dt=1,
+            chunk=chunk,
+            mean=0,
+            stddev=1,
+            seed=0,
+            dinc_init=np.ones(N, dtype=int),
+            dinc=np.ones(N, dtype=int),
+        )
+        self.assertLess(system.residual(), 1e-5)
+
+        gen = prrng.pcg32(0)
+
+        system.inc += 1
+        system.refresh()
+        self.assertGreater(system.residual(), 1e-5)
+        self.assertTrue(np.allclose(system.external.f_thermal, gen.normal([system.size], 0, 1)))
+
+        system.inc += 1
+        system.refresh()
+        self.assertGreater(system.residual(), 1e-5)
+        self.assertTrue(np.allclose(system.external.f_thermal, gen.normal([system.size], 0, 1)))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

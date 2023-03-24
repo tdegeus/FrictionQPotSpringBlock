@@ -118,6 +118,12 @@ void mySystemNdAthermal(Binder& cls)
 }
 
 template <class Binder, class System>
+void mySystemNdExternal(Binder& cls)
+{
+    cls.def_property_readonly("external", &System::external, "Class adding external force");
+}
+
+template <class Binder, class System>
 void mySystemNdDynamics(Binder& cls)
 {
     cls.def("timeStep", &System::timeStep, "timeStep");
@@ -285,6 +291,7 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdDynamics<py::class_<S>, S>(cls);
+            mySystemNdExternal<py::class_<S>, S>(cls);
 
             cls.def("__repr__", [](const S&) {
                 return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_RandomForcing>";
