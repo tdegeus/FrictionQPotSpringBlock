@@ -11,7 +11,6 @@ faulthandler.enable()
 
 class Test_support(unittest.TestCase):
     def test_version_dependencies(self):
-
         deps = FrictionQPotSpringBlock.Line1d.version_dependencies()
         deps = [i.split("=")[0] for i in deps]
 
@@ -90,7 +89,6 @@ class Test_Uniform(unittest.TestCase):
 
 class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_forces(self):
-
         N = 5
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -182,7 +180,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         self.assertTrue(np.allclose(system.f, f_potential + f_frame + f_interactions + f_damping))
 
     def test_eventDrivenStep(self):
-
         N = 3
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -231,7 +228,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         self.assertAlmostEqual(system.u_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1)
 
     def test_trigger(self):
-
         N = 3
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -260,7 +256,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         self.assertTrue(np.allclose(system.u, u))
 
     def test_advanceToFixedForce(self):
-
         N = 3
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -293,7 +288,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         self.assertTrue(np.allclose(system.u_frame, 0.0))
 
     def test_chunked(self):
-
         N = 3
         seed = int(time.time())
         initstate = seed + np.arange(N)
@@ -334,7 +328,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         du[1] = 7.0
 
         for i in range(50):
-
             system.u = i * du
 
             j = prrng.lower_bound(yref, system.u)
@@ -347,7 +340,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
 class Test_System_SemiSmooth_Laplace(unittest.TestCase):
     def test_eventDrivenStep(self):
-
         N = 3
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -411,7 +403,6 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
 
 class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions(self):
-
         N = 10
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -455,7 +446,6 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
 class Test_System_Cuspy_LongRange(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-
         N = 10
         self.N = N
         self.chunk = prrng.pcg32_tensor_cumsum_1_1(
@@ -481,7 +471,6 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
         )
 
     def test_interactions(self):
-
         N = self.N
         dp = np.arange(N)
         dn = np.arange(N)[::-1] + 1
@@ -501,7 +490,6 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
             self.assertTrue(np.allclose(np.roll(f, i), self.system.f_interactions))
 
     def test_eventDrivenStep(self):
-
         N = 3
         chunk = prrng.pcg32_tensor_cumsum_1_1(
             shape=[100],
@@ -553,5 +541,4 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(verbosity=2)
