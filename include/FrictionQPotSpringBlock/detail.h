@@ -82,7 +82,7 @@ public:
 
         for (stype p = 0; p < m_N; ++p) {
             const auto* l = &yield(p, i(p));
-            f_array(p) = 0.5 * (*(l) + *(l + 1)) - u_array(p);
+            f_array.flat(p) = 0.5 * (*(l) + *(l + 1)) - u_array.flat(p);
         }
 
         f_array *= m_mu;
@@ -208,8 +208,8 @@ public:
 
         for (size_type p = 0; p < m_N; ++p) {
             if (inc >= m_next(p)) {
-                m_f_thermal(p) = m_rng.normal(m_mean, m_stddev);
-                m_next(p) += m_dinc(p);
+                m_f_thermal.flat(p) = m_rng.normal(m_mean, m_stddev);
+                m_next.flat(p) += m_dinc.flat(p);
             }
         }
 
@@ -327,15 +327,15 @@ public:
             double xi = 0.5 * (*(y) + *(y + 1));
             double u_u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
             double u_l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
-            double u = u_array(p);
+            double u = u_array.flat(p);
             if (u < u_l) {
-                f_array(p) = m_kappa * (u - *(y));
+                f_array.flat(p) = m_kappa * (u - *(y));
             }
             else if (u <= u_u) {
-                f_array(p) = m_mu * (0.5 * (*(y) + *(y + 1)) - u);
+                f_array.flat(p) = m_mu * (0.5 * (*(y) + *(y + 1)) - u);
             }
             else {
-                f_array(p) = m_kappa * (u - *(y + 1));
+                f_array.flat(p) = m_kappa * (u - *(y + 1));
             }
         }
     }
@@ -374,7 +374,7 @@ public:
             double xi = 0.5 * (*(y) + *(y + 1));
             double u_u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
             double u_l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
-            double u = u_array(p);
+            double u = u_array.flat(p);
 
             if (u < u_l) {
                 return 0.0;
@@ -461,10 +461,10 @@ public:
 
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
-            double u = u_array(p);
+            double u = u_array.flat(p);
             double umin = 0.5 * (*(y) + *(y + 1));
             double dy = 0.5 * (*(y + 1) - *(y));
-            f_array(p) = -m_mu * dy / M_PI * std::sin(M_PI * (u - umin) / dy);
+            f_array.flat(p) = -m_mu * dy / M_PI * std::sin(M_PI * (u - umin) / dy);
         }
     }
 
