@@ -45,8 +45,9 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             dt=1,
             chunk=chunk,
         )
-
         self.assertLess(system.residual(), 1e-5)
+        self.assertEqual(list(system.shape), [rows, cols])
+        self.assertEqual(system.size, rows * cols)
 
         c = -4
         f0 = (

@@ -7,10 +7,10 @@ dependencies:
 - goosefem
 - ninja
 - numpy
-- prrng >=1.10.0
+- prrng >=1.10.1
 - pybind11
 - python
-- python-prrng >=1.10.0
+- python-prrng >=1.10.1
 - scikit-build
 - setuptools_scm
 - xtensor >=0.24.6

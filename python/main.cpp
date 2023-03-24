@@ -45,7 +45,7 @@ private:
 template <class Binder, class System>
 void mySystemNd(Binder& cls)
 {
-    cls.def_property_readonly("N", &System::N, "Number of particles");
+    cls.def_property_readonly("size", &System::size, "Number of particles");
     cls.def_property_readonly("shape", &System::shape, "Shape of the system");
     cls.def_property("u", &System::u, &System::set_u, "Particle slip ('positions').");
     cls.def_property("v", &System::v, &System::set_v, "Particle velocities.");

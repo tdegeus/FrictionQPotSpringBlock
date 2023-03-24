@@ -78,8 +78,7 @@ public:
         size_type cols = chunk->data().shape(1);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::Laplace2d(k_interactions, rows, cols);
-        std::array<size_type, 2> shape = {rows, cols};
-        this->initSystem(m, eta, k_frame, mu, dt, shape, &m_pot, chunk, &m_int);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
@@ -111,8 +110,7 @@ public:
         size_type cols = chunk->data().shape(1);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::QuarticGradient2d(k2, k4, rows, cols);
-        std::array<size_type, 2> shape = {rows, cols};
-        this->initSystem(m, eta, k_frame, mu, dt, shape, &m_pot, chunk, &m_int);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 

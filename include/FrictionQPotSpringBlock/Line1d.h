@@ -134,11 +134,9 @@ public:
         double dt,
         Generator* chunk)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Laplace1d(k_interactions, N);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
+        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
@@ -268,7 +266,7 @@ protected:
 
 /**
  * @brief System in which the effect of temperature in mimicked by random forcing.
- * Otherwise the system is identical to System_Cuspy_Laplace().
+ * Otherwise the system is identical to Line1d::System_Cuspy_Laplace.
  *
  * ## Physics
  *
@@ -321,13 +319,11 @@ public:
         const array_type::tensor<ptrdiff_t, 1>& dinc_init,
         const array_type::tensor<ptrdiff_t, 1>& dinc)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Laplace1d(k_interactions, N);
+        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
         m_ext = detail::RandomNormalForcing<1>(
-            std::array<size_type, 1>{N}, mean, stddev, seed, dinc_init, dinc);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int, &m_ext);
+            chunk->generators().shape(), mean, stddev, seed, dinc_init, dinc);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int, &m_ext);
     }
 
 protected:
@@ -371,11 +367,9 @@ public:
         double dt,
         Generator* chunk)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::SemiSmooth<Generator>(mu, kappa, chunk);
-        m_int = detail::Laplace1d(k_interactions, N);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
+        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
@@ -402,11 +396,9 @@ public:
         double dt,
         Generator* chunk)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::Smooth<Generator>(mu, chunk);
-        m_int = detail::Laplace1d(k_interactions, N);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
+        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
@@ -441,11 +433,9 @@ public:
         double dt,
         Generator* chunk)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Quartic1d(a1, a2, N);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
+        m_int = detail::Quartic1d(a1, a2, chunk->generators().size());
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
@@ -484,11 +474,9 @@ public:
         double dt,
         Generator* chunk)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::QuarticGradient1d(k2, k4, N);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
+        m_int = detail::QuarticGradient1d(k2, k4, chunk->generators().size());
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
@@ -523,11 +511,9 @@ public:
         double dt,
         Generator* chunk)
     {
-        size_type N = chunk->data().shape(0);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::LongRange1d(k_interactions, alpha, N);
-        this->initSystem(
-            m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
+        m_int = detail::LongRange1d(k_interactions, alpha, chunk->generators().size());
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
     }
 };
 
