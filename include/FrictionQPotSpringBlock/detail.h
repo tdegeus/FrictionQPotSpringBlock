@@ -175,16 +175,16 @@ public:
      * @param dinc_init Number of increments to wait to draw the first random force.
      * @param dinc @copybrief RandomNormalForcing::m_dinc
      */
-    template <class T>
+    template <class T, class S>
     RandomNormalForcing(
-        std::array<size_type, rank> shape,
+        const S& shape,
         double mean,
         double stddev,
         uint64_t seed,
         const T& dinc_init,
         const T& dinc)
     {
-        m_shape = shape;
+        std::copy(shape.cbegin(), shape.cend(), m_shape.begin());
         m_N = std::accumulate(m_shape.cbegin(), m_shape.cend(), 1, std::multiplies<size_type>{});
         m_f_thermal = xt::zeros<double>(m_shape);
         m_rng.seed(seed);
@@ -864,9 +864,9 @@ public:
      * @brief Number of particles.
      * @return Unsigned int
      */
-    size_t N() const
+    auto size() const
     {
-        return m_N;
+        return m_chunk->generators().size();
     }
 
     /**
@@ -875,7 +875,7 @@ public:
      */
     const auto& shape() const
     {
-        return m_shape;
+        return m_chunk->generators().shape();
     }
 
     /**
@@ -941,7 +941,7 @@ public:
      */
     void set_u(const array_type::tensor<double, rank>& arg)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_shape));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_u.shape()));
         xt::noalias(m_u) = arg;
         this->updated_u();
     }
@@ -955,7 +955,7 @@ public:
      */
     void set_v(const array_type::tensor<double, rank>& arg)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_shape));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_v.shape()));
         xt::noalias(m_v) = arg;
         this->updated_v();
     }
@@ -966,7 +966,7 @@ public:
      */
     void set_a(const array_type::tensor<double, rank>& arg)
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_shape));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(arg, m_a.shape()));
         xt::noalias(m_a) = arg;
     }
 
@@ -1439,7 +1439,6 @@ protected:
      * @param k_frame @copybrief detail::System::m_k_frame
      * @param mu @copybrief detail::System::m_mu
      * @param dt @copybrief detail::System::m_dt
-     * @param shape @copybrief detail::System::m_shape
      * @param potential @copybrief detail::System::m_potential
      * @param chunk @copybrief detail::System::m_chunk
      * @param interactions @copybrief detail::System::m_interactions
@@ -1451,14 +1450,12 @@ protected:
         double k_frame,
         double mu,
         double dt,
-        std::array<size_type, rank> shape,
         Potential* potential,
         Generator* chunk,
         Interactions* interactions,
         External* external = nullptr)
     {
-        m_shape = shape;
-        m_N = static_cast<size_type>(m_chunk->generators().size());
+        m_N = static_cast<size_type>(chunk->generators().size());
         m_m = m;
         m_inv_m = 1.0 / m;
         m_eta = eta;
@@ -1466,16 +1463,16 @@ protected:
         m_k_frame = k_frame;
         m_u_frame = 0.0;
         m_dt = dt;
-        m_f = xt::zeros<double>(m_shape);
-        m_f_potential = xt::zeros<double>(m_shape);
-        m_f_interactions = xt::zeros<double>(m_shape);
-        m_f_frame = xt::zeros<double>(m_shape);
-        m_f_damping = xt::zeros<double>(m_shape);
-        m_u = xt::zeros<double>(m_shape);
-        m_v = xt::zeros<double>(m_shape);
-        m_a = xt::zeros<double>(m_shape);
-        m_v_n = xt::zeros<double>(m_shape);
-        m_a_n = xt::zeros<double>(m_shape);
+        m_f = xt::zeros<double>(chunk->generators().shape());
+        m_f_potential = xt::zeros<double>(chunk->generators().shape());
+        m_f_interactions = xt::zeros<double>(chunk->generators().shape());
+        m_f_frame = xt::zeros<double>(chunk->generators().shape());
+        m_f_damping = xt::zeros<double>(chunk->generators().shape());
+        m_u = xt::zeros<double>(chunk->generators().shape());
+        m_v = xt::zeros<double>(chunk->generators().shape());
+        m_a = xt::zeros<double>(chunk->generators().shape());
+        m_v_n = xt::zeros<double>(chunk->generators().shape());
+        m_a_n = xt::zeros<double>(chunk->generators().shape());
         m_potential = potential;
         m_chunk = chunk;
         m_interactions = interactions;
@@ -1602,8 +1599,7 @@ protected:
     }
 
 protected:
-    std::array<size_type, rank> m_shape; ///< @copybrief detail::System::shape
-    size_type m_N; ///< @copybrief detail::System::N
+    size_type m_N; ///< @copybrief detail::System::size
     array_type::tensor<double, rank> m_f; ///< @copybrief detail::System::f
     array_type::tensor<double, rank> m_f_potential; ///< @copybrief detail::System::f_potential
     array_type::tensor<double, rank> m_f_interactions; ///< @copydoc detail::System::f_interactions
