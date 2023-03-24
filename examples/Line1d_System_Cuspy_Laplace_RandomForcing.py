@@ -1,4 +1,4 @@
-import os
+import pathlib
 
 import FrictionQPotSpringBlock.Line1d as model
 import h5py
@@ -26,56 +26,62 @@ chunk = prrng.pcg32_tensor_cumsum_1_1(
 )
 chunk -= 50
 
-# generate sequence of random forces and define start and end increment at which they are applied
-# (fixed internal "dinc" that is randomly shifted per particle by maximum "dinc")
+# prepare by minimising athermal
 
-f = prrng.pcg32_array(initstate, initseq).normal([11000], mu=0.0, sigma=0.05)
-
-delta_inc = 100
-offset = (delta_inc * prrng.pcg32_array(initstate, initseq).random([1])).astype(int)
-start_inc = delta_inc * np.tile(np.arange(f.shape[1] + 1), (N, 1))
-start_inc += offset
-start_inc[:, 0] = 0
-
-# define system
-# initialise by minimising energy athermally
-
-system = model.SystemThermalRandomForcing(
+system = model.System_Cuspy_Laplace(
     m=1.0,
     eta=2.0 * np.sqrt(3.0) / 10.0,
     mu=1.0,
-    k_neighbours=1.0,
+    k_interactions=1.0,
     k_frame=1.0 / N,
     dt=0.1,
     chunk=chunk,
 )
 
 system.minimise()
-system.inc = 0
-system.setRandomForceSequence(f=f, start_inc=start_inc)
+u = np.copy(system.u)
+
+# define thermal system
+
+system = model.System_Cuspy_Laplace_RandomForcing(
+    m=1.0,
+    eta=2.0 * np.sqrt(3.0) / 10.0,
+    mu=1.0,
+    k_interactions=1.0,
+    k_frame=1.0 / N,
+    dt=0.1,
+    chunk=chunk,
+    mean=0.0,
+    stddev=0.05,
+    seed=0,
+    dinc_init=prrng.pcg32(0).randint([N], 100),
+    dinc=100 * np.ones(N, dtype=int),
+)
+system.u = u
 
 # apply load at small finite rate "delta_gamma", write output every "dinc" increments
 
 nout = 500
 dinc = 1000
 delta_gamma = 5e-2
-ret_x_frame = np.empty([nout], dtype=float)
+ret_u_frame = np.empty([nout], dtype=float)
 ret_f_frame = np.empty([nout], dtype=float)
 ret_t_insta = np.empty([nout], dtype=float)
 
 for iout in tqdm.tqdm(range(nout)):
     system.flowSteps(dinc, delta_gamma)
 
-    ret_x_frame[iout] = system.x_frame
+    ret_u_frame[iout] = system.u_frame
     ret_f_frame[iout] = np.mean(system.f_frame)
     ret_t_insta[iout] = system.temperature()
 
-with h5py.File(os.path.join(os.path.dirname(__file__), "ThermalRandomForcing.h5")) as file:
-    assert np.allclose(ret_x_frame, file["x_frame"][...])
+base = pathlib.Path(__file__)
+with h5py.File(base.parent / (base.stem + ".h5")) as file:
+    assert np.allclose(ret_u_frame, file["x_frame"][...])
     assert np.allclose(ret_f_frame, file["f_frame"][...])
-    assert np.allclose(ret_t_insta, file["t_insta"][...] * 0.5)  # correcting definition in v0.22.0
+    assert np.allclose(ret_t_insta, file["t_insta"][...])
 
 if plot:
     fig, ax = plt.subplots()
-    ax.plot(ret_x_frame, ret_f_frame)
+    ax.plot(ret_u_frame, ret_f_frame)
     plt.show()

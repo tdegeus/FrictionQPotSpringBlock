@@ -6,6 +6,7 @@ dependencies:
 - doxygen >=1.9.6
 - gmattensor >0.10.1
 - goosefem
+- h5py
 - ninja
 - numpy
 - pre-commit
@@ -15,5 +16,6 @@ dependencies:
 - python-prrng >=1.10.1
 - scikit-build
 - setuptools_scm
+- tqdm
 - xtensor >=0.24.6
 - xtensor-python

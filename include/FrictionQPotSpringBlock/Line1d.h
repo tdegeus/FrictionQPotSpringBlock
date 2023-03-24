@@ -168,7 +168,8 @@ public:
         double eta = 0.0,
         double dt = 0.0
     )
-        : System_Cuspy_Laplace(1.0, eta, mu, k_interactions, k_frame, dt, chunk), m_cnk(chunk)
+        : System_Cuspy_Laplace(1.0, eta, mu, k_interactions, k_frame, dt, chunk),
+          m_k_interactions(k_interactions), m_cnk(chunk)
     {
     }
 
@@ -195,9 +196,9 @@ public:
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
 
-        double xneigh;
-        double x;
-        double xmin;
+        double uneigh;
+        double u;
+        double umin;
         ptrdiff_t i;
         ptrdiff_t j;
         size_t step;
@@ -212,33 +213,36 @@ public:
             for (size_type p = 0; p < m_N; ++p) {
 
                 if (p == 0) {
-                    xneigh = m_v_n.back() + m_v_n(1);
+                    uneigh = m_v_n.back() + m_v_n(1);
                 }
                 else if (p == m_N - 1) {
-                    xneigh = m_v_n(m_N - 2) + m_v_n.front();
+                    uneigh = m_v_n(m_N - 2) + m_v_n.front();
                 }
                 else {
-                    xneigh = m_v_n(p - 1) + m_v_n(p + 1);
+                    uneigh = m_v_n(p - 1) + m_v_n(p + 1);
                 }
 
                 i = m_cnk->chunk_index_at_align()(p);
                 auto* y = &m_cnk->data()(p, 0);
 
                 while (true) {
-                    xmin = 0.5 * (*(y + i) + *(y + i + 1));
-                    x = (m_k_interactions * xneigh + m_k_frame * m_u_frame + m_mu * xmin) /
+                    umin = 0.5 * (*(y + i) + *(y + i + 1));
+                    u = (m_k_interactions * uneigh + m_k_frame * m_u_frame + m_mu * umin) /
                         (2 * m_k_interactions + m_k_frame + m_mu);
-                    m_cnk->align(p, x);
+                    m_cnk->align(p, u);
                     j = m_cnk->chunk_index_at_align()(p);
                     if (j == i) {
                         break;
                     }
                     i = j;
                 }
-                m_u(p) = x;
+                m_u(p) = u;
+                m_f_frame(p) = m_k_frame * (m_u_frame - u);
+                m_f_potential(p) = m_mu * (umin - u);
             }
 
-            this->updated_u();
+            this->computeForceInteractions();
+            xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_frame;
             residuals.roll_insert(this->residual());
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
