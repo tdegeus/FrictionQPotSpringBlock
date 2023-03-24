@@ -10,7 +10,6 @@ faulthandler.enable()
 
 class Test_support(unittest.TestCase):
     def test_version_dependencies(self):
-
         deps = FrictionQPotSpringBlock.Line2d.version_dependencies()
         deps = [i.split("=")[0] for i in deps]
 
@@ -22,7 +21,6 @@ class Test_support(unittest.TestCase):
 
 class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_interactions(self):
-
         rows = 5
         cols = 4
         chunk = prrng.pcg32_tensor_cumsum_2_1(
@@ -67,7 +65,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
 class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions_basic(self):
-
         rows = 5
         cols = 4
         chunk = prrng.pcg32_tensor_cumsum_2_1(
@@ -107,7 +104,6 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
                 self.assertTrue(np.allclose(system.u, x))
 
     def test_interactions(self):
-
         rows = 5
         cols = 5
         chunk = prrng.pcg32_tensor_cumsum_2_1(
@@ -194,5 +190,4 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(verbosity=2)

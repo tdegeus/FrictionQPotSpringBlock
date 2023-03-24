@@ -44,7 +44,6 @@ ret_S = np.empty([nstep], dtype=int)
 pbar = tqdm.tqdm(total=nstep)
 
 for step in range(nstep):
-
     # Extract output data.
     i_n = np.copy(system.i)
 
