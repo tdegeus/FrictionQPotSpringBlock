@@ -71,14 +71,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()}
+        );
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<stype, 1>{m_N});
+            std::array<stype, 1>{m_N}
+        );
 
         for (stype p = 0; p < m_N; ++p) {
             const auto* l = &yield(p, i(p));
@@ -182,7 +184,8 @@ public:
         double stddev,
         uint64_t seed,
         const T& dinc_init,
-        const T& dinc)
+        const T& dinc
+    )
     {
         std::copy(shape.cbegin(), shape.cend(), m_shape.begin());
         m_N = std::accumulate(m_shape.cbegin(), m_shape.cend(), 1, std::multiplies<size_type>{});
@@ -310,14 +313,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()}
+        );
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<stype, 1>{m_N});
+            std::array<stype, 1>{m_N}
+        );
 
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
@@ -355,14 +360,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()}
+        );
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<stype, 1>{m_N});
+            std::array<stype, 1>{m_N}
+        );
 
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
@@ -443,14 +450,16 @@ public:
             m_chunk->data().data(),
             m_chunk->data().size(),
             xt::no_ownership(),
-            std::array<stype, 2>{m_N, m_chunk->chunk_size()});
+            std::array<stype, 2>{m_N, m_chunk->chunk_size()}
+        );
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const ptrdiff_t, 1> i = xt::adapt(
             m_chunk->chunk_index_at_align().data(),
             m_chunk->chunk_index_at_align().size(),
             xt::no_ownership(),
-            std::array<stype, 1>{m_N});
+            std::array<stype, 1>{m_N}
+        );
 
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
@@ -1261,7 +1270,8 @@ public:
         size_t niter_tol = 10,
         size_t max_iter = 1e9,
         bool time_activity = false,
-        bool max_iter_is_error = true)
+        bool max_iter_is_error = true
+    )
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
@@ -1453,7 +1463,8 @@ protected:
         Potential* potential,
         Generator* chunk,
         Interactions* interactions,
-        External* external = nullptr)
+        External* external = nullptr
+    )
     {
         m_N = static_cast<size_type>(chunk->generators().size());
         m_m = m;

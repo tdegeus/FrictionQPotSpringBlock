@@ -67,7 +67,8 @@ void mySystemNd(Binder& cls)
         "maxUniformDisplacement",
         &System::maxUniformDisplacement,
         "maxUniformDisplacement",
-        py::arg("direction") = 1);
+        py::arg("direction") = 1
+    );
 
     cls.def(
         "trigger",
@@ -75,13 +76,15 @@ void mySystemNd(Binder& cls)
         "trigger",
         py::arg("p"),
         py::arg("eps"),
-        py::arg("direction") = 1);
+        py::arg("direction") = 1
+    );
 
     cls.def(
         "advanceToFixedForce",
         &System::advanceToFixedForce,
         "advanceToFixedForce",
-        py::arg("f_frame"));
+        py::arg("f_frame")
+    );
 }
 
 template <class Binder, class System>
@@ -95,7 +98,8 @@ void mySystemNdAthermal(Binder& cls)
         py::arg("niter_tol") = 10,
         py::arg("max_iter") = size_t(1e9),
         py::arg("time_activity") = false,
-        py::arg("max_iter_is_error") = true);
+        py::arg("max_iter_is_error") = true
+    );
 
     cls.def(
         "eventDrivenStep",
@@ -103,10 +107,12 @@ void mySystemNdAthermal(Binder& cls)
         "eventDrivenStep",
         py::arg("eps"),
         py::arg("kick"),
-        py::arg("direction") = 1);
+        py::arg("direction") = 1
+    );
 
     cls.def(
-        "quasistaticActivityFirst", &System::quasistaticActivityFirst, "quasistaticActivityFirst");
+        "quasistaticActivityFirst", &System::quasistaticActivityFirst, "quasistaticActivityFirst"
+    );
 
     cls.def("quasistaticActivityLast", &System::quasistaticActivityLast, "quasistaticActivityLast");
 }
@@ -123,7 +129,8 @@ void mySystemNdDynamics(Binder& cls)
         "timeStepsUntilEvent",
         py::arg("tol") = 1e-5,
         py::arg("niter_tol") = 10,
-        py::arg("max_iter") = size_t(1e9));
+        py::arg("max_iter") = size_t(1e9)
+    );
 
     cls.def("flowSteps", &System::flowSteps, "flowSteps", py::arg("n"), py::arg("v_frame"));
 }
@@ -169,8 +176,9 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
             py::class_<S> cls(sm, "Athermal");
 
-            cls.def(
-                "__repr__", [](const S&) { return "<FrictionQPotSpringBlock.detail.Athermal>"; });
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.detail.Athermal>";
+            });
         }
     }
 
@@ -186,7 +194,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         sm.def(
             "version_dependencies",
             &SM::version_dependencies,
-            "Return version information of library and its dependencies.");
+            "Return version information of library and its dependencies."
+        );
 
         sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
 
@@ -204,7 +213,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -228,7 +238,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_frame"),
                 py::arg("chunk"),
                 py::arg("eta") = 0.0,
-                py::arg("dt") = 0.0);
+                py::arg("dt") = 0.0
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -269,7 +280,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("stddev"),
                 py::arg("seed"),
                 py::arg("dinc_init"),
-                py::arg("dinc"));
+                py::arg("dinc")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdDynamics<py::class_<S>, S>(cls);
@@ -294,7 +306,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -319,7 +332,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -345,7 +359,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("a2"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -371,7 +386,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k4"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -397,7 +413,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("alpha"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -420,7 +437,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         sm.def(
             "version_dependencies",
             &SM::version_dependencies,
-            "Return version information of library and its dependencies.");
+            "Return version information of library and its dependencies."
+        );
 
         sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
 
@@ -438,7 +456,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);
@@ -464,7 +483,8 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k4"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"));
+                py::arg("chunk")
+            );
 
             mySystemNd<py::class_<S>, S>(cls);
             mySystemNdAthermal<py::class_<S>, S>(cls);

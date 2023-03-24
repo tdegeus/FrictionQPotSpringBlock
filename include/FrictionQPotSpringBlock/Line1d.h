@@ -132,7 +132,8 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
@@ -165,7 +166,8 @@ public:
         double k_frame,
         Generator* chunk,
         double eta = 0.0,
-        double dt = 0.0)
+        double dt = 0.0
+    )
         : System_Cuspy_Laplace(1.0, eta, mu, k_interactions, k_frame, dt, chunk), m_cnk(chunk)
     {
     }
@@ -181,7 +183,8 @@ public:
         size_t niter_tol = 10,
         size_t max_iter = 1e9,
         bool time_activity = false,
-        bool max_iter_is_error = true) override
+        bool max_iter_is_error = true
+    ) override
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(!time_activity);
         (void)(time_activity);
@@ -317,12 +320,14 @@ public:
         double stddev,
         uint64_t seed,
         const array_type::tensor<ptrdiff_t, 1>& dinc_init,
-        const array_type::tensor<ptrdiff_t, 1>& dinc)
+        const array_type::tensor<ptrdiff_t, 1>& dinc
+    )
     {
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
         m_ext = detail::RandomNormalForcing<1>(
-            chunk->generators().shape(), mean, stddev, seed, dinc_init, dinc);
+            chunk->generators().shape(), mean, stddev, seed, dinc_init, dinc
+        );
         this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int, &m_ext);
     }
 
@@ -365,7 +370,8 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         m_pot = detail::SemiSmooth<Generator>(mu, kappa, chunk);
         m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
@@ -394,7 +400,8 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         m_pot = detail::Smooth<Generator>(mu, chunk);
         m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
@@ -431,7 +438,8 @@ public:
         double a2,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::Quartic1d(a1, a2, chunk->generators().size());
@@ -472,7 +480,8 @@ public:
         double k4,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::QuarticGradient1d(k2, k4, chunk->generators().size());
@@ -509,7 +518,8 @@ public:
         double alpha,
         double k_frame,
         double dt,
-        Generator* chunk)
+        Generator* chunk
+    )
     {
         m_pot = detail::Cuspy<Generator>(mu, chunk);
         m_int = detail::LongRange1d(k_interactions, alpha, chunk->generators().size());
