@@ -1,6 +1,6 @@
-import os
+import pathlib
 
-import FrictionQPotSpringBlock.Line1d as model
+import FrictionQPotSpringBlock.Line2d as model
 import h5py
 import numpy as np
 import prrng
@@ -15,10 +15,10 @@ except ImportError:
 
 rows = 50
 cols = 50
-chunk = prrng.pcg32_tensor_cumsum_1_1(
+chunk = prrng.pcg32_tensor_cumsum_2_1(
     shape=[1500],
-    initstate=np.arange(rows * cols),
-    initseq=np.zeros(rows * cols),
+    initstate=np.arange(rows * cols).reshape(rows, cols),
+    initseq=np.zeros((rows, cols)),
     distribution=prrng.distribution.random,
     parameters=[2.0],
     align=prrng.alignment(buffer=5, margin=50, min_margin=25, strict=False),
@@ -26,32 +26,30 @@ chunk = prrng.pcg32_tensor_cumsum_1_1(
 chunk -= 50
 xdelta = 1e-3
 
-system = model.System2d(
+system = model.System_Cuspy_Laplace(
     m=1.0,
     eta=2.0 * np.sqrt(3.0) / 10.0,
     mu=1.0,
-    k_neighbours=1.0,
+    k_interactions=1.0,
     k_frame=1.0 / (rows * cols),
     dt=0.1,
     chunk=chunk,
-    width=cols,
 )
 
 nstep = 1000
-ret_x_frame = np.empty([nstep], dtype=float)
+ret_u_frame = np.empty([nstep], dtype=float)
 ret_f_frame = np.empty([nstep], dtype=float)
 ret_S = np.empty([nstep], dtype=int)
 
 pbar = tqdm.tqdm(total=nstep)
 
 for step in range(nstep):
-
     # Extract output data.
-    i_n = np.copy(system.i)
+    i_n = np.copy(chunk.index_at_align)
 
     # Apply event-driven protocol.
     if step == 0:
-        system.x_frame = 0.0  # initial quench
+        system.u_frame = 0.0  # initial quench
     else:
         system.eventDrivenStep(xdelta, step % 2 == 0)  # normal event driven step
 
@@ -65,16 +63,17 @@ for step in range(nstep):
         pbar.refresh()
 
     # Extract output data.
-    ret_x_frame[step] = system.x_frame
+    ret_u_frame[step] = system.u_frame
     ret_f_frame[step] = np.mean(system.f_frame)
-    ret_S[step] = np.sum(system.i - i_n)
+    ret_S[step] = np.sum(chunk.index_at_align - i_n)
 
-with h5py.File(os.path.join(os.path.dirname(__file__), "Line2d_Cuspy_Laplace.h5")) as file:
-    assert np.allclose(ret_x_frame, file["x_frame"][...])
+base = pathlib.Path(__file__)
+with h5py.File(base.parent / (base.stem + ".h5")) as file:
+    assert np.allclose(ret_u_frame, file["x_frame"][...])
     assert np.allclose(ret_f_frame, file["f_frame"][...])
     assert np.all(ret_S == file["S"][...])
 
 if plot:
     fig, ax = plt.subplots()
-    ax.plot(ret_x_frame, ret_f_frame)
+    ax.plot(ret_u_frame, ret_f_frame)
     plt.show()
