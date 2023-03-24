@@ -1,5 +1,4 @@
 import faulthandler
-import time
 import unittest
 
 import FrictionQPotSpringBlock
@@ -19,6 +18,7 @@ class Test_support(unittest.TestCase):
         self.assertTrue("xtensor" in deps)
         self.assertTrue("xtensor-python" in deps)
         self.assertTrue("xtl" in deps)
+
 
 class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_interactions(self):

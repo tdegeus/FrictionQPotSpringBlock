@@ -58,8 +58,8 @@ using Generator =
 class System_Cuspy_Laplace
     : public detail::System<2, detail::Cuspy<Generator>, Generator, detail::Laplace2d> {
 protected:
-    detail::Cuspy<Generator> m_pot; ///< copybrief detail::System::m_potential
-    detail::Laplace2d m_int; ///< copybrief detail::System::m_interactions
+    detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
+    detail::Laplace2d m_int; ///< @copybrief detail::System::m_interactions
 
 public:
     /**
@@ -90,8 +90,8 @@ public:
 class System_Cuspy_QuarticGradient
     : public detail::System<2, detail::Cuspy<Generator>, Generator, detail::QuarticGradient2d> {
 protected:
-    detail::Cuspy<Generator> m_pot; ///< copybrief detail::System::m_potential
-    detail::QuarticGradient2d m_int; ///< copybrief detail::System::m_interactions
+    detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
+    detail::QuarticGradient2d m_int; ///< @copybrief detail::System::m_interactions
 
 public:
     /**

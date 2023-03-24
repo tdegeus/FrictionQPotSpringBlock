@@ -56,8 +56,10 @@ using Generator =
  *
  * ## Physics
  *
- * The system of particles of mass \f$ m \f$.
+ * The system consists of particles of mass \f$ m \f$.
  * The principle degree of freedom is the slip ('position') \f$ u_i \f$ of each particle \f$ i \f$.
+ * Each particle follows Newtonian dynamics \f$ m \ddot{u}_i = f_i \f$, with the residual force
+ * \f$ f_i \f$ given by the sum of:
  *
  * -    @copydoc detail::Cuspy
  *
@@ -80,25 +82,25 @@ using Generator =
  * Because of the competition between disorder and elastic interactions, the interface
  * gets a roughness \f$ \delta u \sim \ell^\zeta \f$.
  * This corresponds to fluctuations of interactions
- * \f$ \delta f_\text{interactions} \sim k_\text{interactions} \partial^2 \delta u
- * \sim k_\text{interactions} \ell^{\zeta - 2} \f$.
+ * \f$ \delta f_\text{inter} \sim k_\text{inter} \partial^2 \delta u
+ * \sim k_\text{inter} \ell^{\zeta - 2} \f$.
  * The fluctuations of the drive are
  * \f$ \delta f_\text{frame} \sim k_\text{frame} \delta u \sim k_\text{frame} \ell^\zeta \f$.
  * For the disorder to be relevant
- * \f$ \delta f_\text{interactions} \sim \delta f_\text{frame} \f$.
- * Such that \f$ k_\text{frame} / k_\text{interactions} \sim 1 / \ell^2 \f$.
+ * \f$ \delta f_\text{inter} \sim \delta f_\text{frame} \f$.
+ * Such that \f$ k_\text{frame} / k_\text{inter} \sim 1 / \ell^2 \f$.
  * With \f$ L = 1 / N \f$ the linear size of the system
- * \f$ k_\text{frame} / k_\text{interactions} \sim 1 / L^2 \f$
+ * \f$ k_\text{frame} / k_\text{inter} \sim 1 / L^2 \f$
  *
  * ## Dynamics
  *
  * The dynamics follow
- * \f$ m a_i = f_\text{residual}^{(i)} \f$, with the particle's acceleration
+ * \f$ m a_i = f_i \f$, with the particle's acceleration
  * \f$ a_i \equiv \ddot{u}_i \equiv \partial_t^2 u_i \f$, and the residual force
- * \f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
- * f_\text{interactions}^{(i)} + f_\text{frame}^{(i)} \f$.
+ * \f$ f_i = f_\text{damping}^{(i)} + f_\text{pot}^{(i)} +
+ * f_\text{inter}^{(i)} + f_\text{frame}^{(i)} \f$.
  * This differential equation is integrated using Velocity-Verlet in timeStep()
- * Note that this function updates the time #t (or increment number #inc),
+ * Note that this function updates the time #t (or in fact the increment number #inc),
  * and that this is the only function that does so.
  *
  * The implementation is is such that all forces are updated (if needed) every time the positions
@@ -110,17 +112,17 @@ using Generator =
 class System_Cuspy_Laplace
     : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::Laplace1d> {
 protected:
-    detail::Cuspy<Generator> m_pot; ///< copybrief detail::System::m_potential
-    detail::Laplace1d m_int; ///< copybrief detail::System::m_interactions
+    detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
+    detail::Laplace1d m_int; ///< @copybrief detail::System::m_interactions
 
 public:
     /**
-     * @param m copybrief detail::System::m_m
-     * @param eta copybrief detail::System::m_eta
+     * @param m @copybrief detail::System::m_m
+     * @param eta @copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::Laplace1d::m_k
-     * @param k_frame copybrief detail::System::m_k_frame
-     * @param dt copybrief detail::System::m_dt
+     * @param k_frame @copybrief detail::System::m_k_frame
+     * @param dt @copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_Laplace(
@@ -154,10 +156,10 @@ public:
     /**
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::Laplace1d::m_k
-     * @param k_frame copybrief detail::System::m_k_frame
+     * @param k_frame @copybrief detail::System::m_k_frame
      * @param chunk @copybrief detail::Cuspy::m_chunk
-     * @param eta copybrief detail::System::m_eta
-     * @param dt copybrief detail::System::m_dt
+     * @param eta @copybrief detail::System::m_eta
+     * @param dt @copybrief detail::System::m_dt
      */
     System_Cuspy_Laplace_Nopassing(
         double mu,
@@ -278,8 +280,8 @@ protected:
  *  -   The number of increments between two changes of the random force.
  *
  * The residual now reads
- * \f$ f_\text{residual}^{(i)} = f_\text{damping}^{(i)} + f_\text{potential}^{(i)} +
- * f_\text{interactions}^{(i)} + f_\text{frame}^{(i)} + f_\text{random}^{(i)} \f$.
+ * \f$ f_i = f_\text{damping}^{(i)} + f_\text{pot}^{(i)} +
+ * f_\text{inter}^{(i)} + f_\text{frame}^{(i)} + f_\text{random}^{(i)} \f$.
  *
  * ## Apply fixed force instead of fixed displacement
  *
@@ -420,28 +422,28 @@ protected:
 
 public:
     /**
-     * @param m copybrief detail::System::m_m
-     * @param eta copybrief detail::System::m_eta
+     * @param m @copybrief detail::System::m_m
+     * @param eta @copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
-     * @param k2 copybrief detail::Quartic1d::m_k2
-     * @param k4 copybrief detail::Quartic1d::m_k4
-     * @param k_frame copybrief detail::System::m_k_frame
-     * @param dt copybrief detail::System::m_dt
+     * @param a1 @copybrief detail::Quartic1d::m_a1
+     * @param a2 @copybrief detail::Quartic1d::m_a2
+     * @param k_frame @copybrief detail::System::m_k_frame
+     * @param dt @copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_Quartic(
         double m,
         double eta,
         double mu,
-        double k2,
-        double k4,
+        double a1,
+        double a2,
         double k_frame,
         double dt,
         Generator* chunk)
     {
         size_type N = chunk->data().shape(0);
         m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Quartic1d(k2, k4, N);
+        m_int = detail::Quartic1d(a1, a2, N);
         this->initSystem(
             m, eta, k_frame, mu, dt, std::array<size_type, 1>{N}, &m_pot, chunk, &m_int);
     }
@@ -463,13 +465,13 @@ protected:
 
 public:
     /**
-     * @param m copybrief detail::System::m_m
-     * @param eta copybrief detail::System::m_eta
+     * @param m @copybrief detail::System::m_m
+     * @param eta @copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k2 @copybrief detail::QuarticGradient1d::m_k2
      * @param k4 @copybrief detail::QuarticGradient1d::m_k4
-     * @param k_frame copybrief detail::System::m_k_frame
-     * @param dt copybrief detail::System::m_dt
+     * @param k_frame @copybrief detail::System::m_k_frame
+     * @param dt @copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_QuarticGradient(
@@ -502,13 +504,13 @@ protected:
 
 public:
     /**
-     * @param m copybrief detail::System::m_m
-     * @param eta copybrief detail::System::m_eta
+     * @param m @copybrief detail::System::m_m
+     * @param eta @copybrief detail::System::m_eta
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::LongRange1d::m_k
      * @param alpha @copybrief detail::LongRange1d::m_alpha
-     * @param k_frame copybrief detail::System::m_k_frame
-     * @param dt copybrief detail::System::m_dt
+     * @param k_frame @copybrief detail::System::m_k_frame
+     * @param dt @copybrief detail::System::m_dt
      * @param chunk @copybrief detail::Cuspy::m_chunk
      */
     System_Cuspy_LongRange(
