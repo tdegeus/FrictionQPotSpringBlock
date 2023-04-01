@@ -58,6 +58,7 @@ using Generator =
 class System_Cuspy_Laplace
     : public detail::System<2, detail::Cuspy<Generator>, Generator, detail::Laplace2d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
     detail::Laplace2d m_int; ///< @copybrief detail::System::m_interactions
 
@@ -72,14 +73,28 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 2>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        size_type rows = chunk->data().shape(0);
-        size_type cols = chunk->data().shape(1);
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Laplace2d(k_interactions, rows, cols);
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        array_type::tensor<uint64_t, 2> initstate =
+            seed + xt::arange<uint64_t>(shape[0] * shape[1]).reshape(shape);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            initstate,
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::Laplace2d(k_interactions, shape[0], shape[1]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 
@@ -90,6 +105,7 @@ public:
 class System_Cuspy_QuarticGradient
     : public detail::System<2, detail::Cuspy<Generator>, Generator, detail::QuarticGradient2d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
     detail::QuarticGradient2d m_int; ///< @copybrief detail::System::m_interactions
 
@@ -105,14 +121,28 @@ public:
         double k4,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 2>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        size_type rows = chunk->data().shape(0);
-        size_type cols = chunk->data().shape(1);
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::QuarticGradient2d(k2, k4, rows, cols);
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        array_type::tensor<uint64_t, 2> initstate =
+            seed + xt::arange<uint64_t>(shape[0] * shape[1]).reshape(shape);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            initstate,
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::QuarticGradient2d(k2, k4, shape[0], shape[1]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 

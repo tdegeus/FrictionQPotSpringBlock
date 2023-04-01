@@ -3,7 +3,6 @@ import unittest
 
 import FrictionQPotSpringBlock
 import numpy as np
-import prrng
 
 faulthandler.enable()
 
@@ -23,16 +22,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_interactions(self):
         rows = 5
         cols = 4
-        chunk = prrng.pcg32_tensor_cumsum_2_1(
-            shape=[100],
-            initstate=np.zeros([rows, cols], dtype=int),
-            initseq=np.zeros([rows, cols], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         k_interactions = float(np.random.random(1))
         system = FrictionQPotSpringBlock.Line2d.System_Cuspy_Laplace(
             m=1,
@@ -41,7 +30,12 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             k_interactions=k_interactions,
             k_frame=0.1,
             dt=1,
-            chunk=chunk,
+            shape=[rows, cols],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         self.assertLess(system.residual(), 1e-5)
         self.assertEqual(list(system.shape), [rows, cols])
@@ -67,16 +61,6 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions_basic(self):
         rows = 5
         cols = 4
-        chunk = prrng.pcg32_tensor_cumsum_2_1(
-            shape=[100],
-            initstate=np.zeros([rows, cols], dtype=int),
-            initseq=np.zeros([rows, cols], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         k2 = 0.12
         k4 = 0.0
         system = FrictionQPotSpringBlock.Line2d.System_Cuspy_QuarticGradient(
@@ -87,7 +71,12 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
             k4=k4,
             k_frame=0.1,
             dt=1,
-            chunk=chunk,
+            shape=[rows, cols],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         self.assertLess(system.residual(), 1e-5)
 
@@ -106,16 +95,6 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions(self):
         rows = 5
         cols = 5
-        chunk = prrng.pcg32_tensor_cumsum_2_1(
-            shape=[100],
-            initstate=np.zeros([rows, cols], dtype=int),
-            initseq=np.zeros([rows, cols], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         k2 = 0.12
         k4 = 0.34
         system = FrictionQPotSpringBlock.Line2d.System_Cuspy_QuarticGradient(
@@ -126,7 +105,12 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
             k4=k4,
             k_frame=0.1,
             dt=1,
-            chunk=chunk,
+            shape=[rows, cols],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
 
         self.assertLess(system.residual(), 1e-5)

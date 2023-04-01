@@ -14,17 +14,6 @@ except ImportError:
     plot = False
 
 N = 1000
-initstate = np.arange(N)
-initseq = np.zeros(N)
-chunk = prrng.pcg32_tensor_cumsum_1_1(
-    shape=[1500],
-    initstate=initstate,
-    initseq=initseq,
-    distribution=prrng.distribution.random,
-    parameters=[2.0],
-    align=prrng.alignment(buffer=5, margin=50, min_margin=25, strict=False),
-)
-chunk -= 50
 
 # prepare by minimising athermal
 
@@ -35,7 +24,11 @@ system = model.System_Cuspy_Laplace(
     k_interactions=1.0,
     k_frame=1.0 / N,
     dt=0.1,
-    chunk=chunk,
+    shape=[N],
+    seed=0,
+    distribution="random",
+    parameters=[2.0],
+    offset=-50,
 )
 
 system.minimise()
@@ -50,12 +43,16 @@ system = model.System_Cuspy_Laplace_RandomForcing(
     k_interactions=1.0,
     k_frame=1.0 / N,
     dt=0.1,
-    chunk=chunk,
     mean=0.0,
     stddev=0.05,
-    seed=0,
+    seed_forcing=0,
     dinc_init=prrng.pcg32(0).randint([N], 100),
     dinc=100 * np.ones(N, dtype=int),
+    shape=[N],
+    seed=0,
+    distribution="random",
+    parameters=[2.0],
+    offset=-50,
 )
 system.u = u
 

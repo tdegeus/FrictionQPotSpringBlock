@@ -27,16 +27,6 @@ class Test_Uniform(unittest.TestCase):
         """
 
         N = 5
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         eta = float(np.random.random(1))
         mu = float(np.random.random(1))
         k_interactions = float(np.random.random(1))
@@ -48,12 +38,17 @@ class Test_Uniform(unittest.TestCase):
             k_interactions=k_interactions,
             k_frame=k_frame,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         rand = dict(
             mean=0,
             stddev=1,
-            seed=0,
+            seed_forcing=0,
             dinc_init=np.ones(N, dtype=int),
             dinc=np.ones(N, dtype=int),
         )
@@ -82,24 +77,16 @@ class Test_Uniform(unittest.TestCase):
             self.assertTrue(np.allclose(system.f_frame, 0.0))
             self.assertTrue(np.allclose(system.f_interactions, 0.0))
             self.assertTrue(np.allclose(system.f_damping, 0.0))
-            self.assertTrue(np.all(chunk.index_at_align + 1 == np.argmax(chunk.data[0, :] > 0)))
-            self.assertTrue(np.all(chunk.right_of_align > 0))
-            self.assertTrue(np.all(chunk.left_of_align <= 0))
+            self.assertTrue(
+                np.all(system.chunk.index_at_align + 1 == np.argmax(system.chunk.data[0, :] > 0))
+            )
+            self.assertTrue(np.all(system.chunk.right_of_align > 0))
+            self.assertTrue(np.all(system.chunk.left_of_align <= 0))
 
 
 class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_forces(self):
         N = 5
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         eta = float(np.random.random(1))
         mu = float(np.random.random(1))
         k_interactions = float(np.random.random(1))
@@ -112,7 +99,12 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             k_interactions=k_interactions,
             k_frame=k_frame,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
 
         # by construction u = 0 which is a local minimum in all potentials
@@ -122,9 +114,11 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         self.assertTrue(np.allclose(system.f_frame, 0.0))
         self.assertTrue(np.allclose(system.f_interactions, 0.0))
         self.assertTrue(np.allclose(system.f_damping, 0.0))
-        self.assertTrue(np.all(chunk.index_at_align + 1 == np.argmax(chunk.data[0, :] > 0)))
-        self.assertTrue(np.all(chunk.right_of_align > 0))
-        self.assertTrue(np.all(chunk.left_of_align <= 0))
+        self.assertTrue(
+            np.all(system.chunk.index_at_align + 1 == np.argmax(system.chunk.data[0, :] > 0))
+        )
+        self.assertTrue(np.all(system.chunk.right_of_align > 0))
+        self.assertTrue(np.all(system.chunk.left_of_align <= 0))
 
         du = np.zeros(N)
         dv = np.zeros(N)
@@ -139,8 +133,8 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         f_frame = k_frame * np.array([-du[0], 0, 0, 0, 0])
         f_damping = eta * np.array([0, 0, -dv[2], 0, 0])
 
-        self.assertTrue(np.all(chunk.right_of_align > system.u))
-        self.assertTrue(np.all(chunk.left_of_align <= system.u))
+        self.assertTrue(np.all(system.chunk.right_of_align > system.u))
+        self.assertTrue(np.all(system.chunk.left_of_align <= system.u))
         self.assertTrue(np.allclose(system.f_potential, f_potential))
         self.assertTrue(np.allclose(system.f_frame, f_frame))
         self.assertTrue(np.allclose(system.f_interactions, f_interactions))
@@ -171,8 +165,8 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         f_frame = k_frame * np.array([-u[0], -u[1], 0, 0, 0])
         f_damping = eta * np.array([0, 0, -v[2], -v[3], 0])
 
-        self.assertTrue(np.all(chunk.right_of_align > system.u))
-        self.assertTrue(np.all(chunk.left_of_align <= system.u))
+        self.assertTrue(np.all(system.chunk.right_of_align > system.u))
+        self.assertTrue(np.all(system.chunk.left_of_align <= system.u))
         self.assertTrue(np.allclose(system.f_potential, f_potential))
         self.assertTrue(np.allclose(system.f_frame, f_frame))
         self.assertTrue(np.allclose(system.f_interactions, f_interactions))
@@ -181,16 +175,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
     def test_eventDrivenStep(self):
         N = 3
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
             eta=1.0,
@@ -198,47 +182,42 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         self.assertLess(system.residual(), 1e-5)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, False)
         self.assertLess(system.residual(), 1e-5)
         self.assertTrue(np.allclose(system.u, (0.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(chunk.index_at_align == i_n))
+        self.assertTrue(np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.u, (0.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(chunk.index_at_align == i_n))
+        self.assertTrue(not np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, False)
         self.assertTrue(np.allclose(system.u, (1.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(chunk.index_at_align == i_n))
+        self.assertTrue(np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.u, (1.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(chunk.index_at_align == i_n))
+        self.assertTrue(not np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1)
 
     def test_trigger(self):
         N = 3
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
             eta=1.0,
@@ -246,7 +225,12 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
 
         system.trigger(0, 0.2)
@@ -257,16 +241,6 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
     def test_advanceToFixedForce(self):
         N = 3
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
             eta=1.0,
@@ -274,7 +248,12 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         self.assertLess(system.residual(), 1e-5)
         system.advanceToFixedForce(0.1)
@@ -291,28 +270,13 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         N = 3
         seed = int(time.time())
         initstate = seed + np.arange(N)
-
-        nchunk = 100  # size of chunk of yield positions kept in memory
-        buffer = 20  # redraw within this margin from the edges of the chunk
-        margin = 10  # position to place the particle after redraw
-        init_offset = 50.0  # initial negative position shift
+        init_offset = 50.0
 
         # draw reference yield positions
         gen = prrng.pcg32_array(initstate, np.zeros_like(initstate))
         yref = np.cumsum(gen.random([2000]), axis=1) - init_offset
 
         # chunked storage of "yref" (same seed)
-        align = prrng.alignment(margin=margin, buffer=buffer)
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[nchunk],
-            initstate=initstate,
-            initseq=np.zeros_like(initstate),
-            distribution=prrng.random,
-            parameters=[],
-            align=align,
-        )
-        chunk -= init_offset
-
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
             eta=1.0,
@@ -320,7 +284,12 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=seed,
+            distribution="random",
+            parameters=[],
+            offset=-init_offset,
+            nchunk=100,
         )
 
         du = 10.0 * np.ones(N)
@@ -333,24 +302,18 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             j = prrng.lower_bound(yref, system.u)
             r = np.arange(N)
 
-            self.assertTrue(np.all(chunk.index_at_align == j))
-            self.assertTrue(np.allclose(yref[r, chunk.index_at_align], chunk.left_of_align))
-            self.assertTrue(np.allclose(yref[r, chunk.index_at_align + 1], chunk.right_of_align))
+            self.assertTrue(np.all(system.chunk.index_at_align == j))
+            self.assertTrue(
+                np.allclose(yref[r, system.chunk.index_at_align], system.chunk.left_of_align)
+            )
+            self.assertTrue(
+                np.allclose(yref[r, system.chunk.index_at_align + 1], system.chunk.right_of_align)
+            )
 
 
 class Test_System_SemiSmooth_Laplace(unittest.TestCase):
     def test_eventDrivenStep(self):
         N = 3
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         mu = 1
         kappa = 0.1
 
@@ -362,14 +325,19 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         self.assertLess(system.residual(), 1e-5)
 
         u0 = system.u.copy()
         uf0 = system.u_frame
-        left = chunk.left_of_align
-        right = chunk.right_of_align
+        left = system.chunk.left_of_align
+        right = system.chunk.right_of_align
         mid = 0.5 * (left + right)
         upper = (mu * mid + kappa * right) / (mu + kappa)
         lower = (mu * mid + kappa * left) / (mu + kappa)
@@ -404,16 +372,6 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
 class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions(self):
         N = 10
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         k2 = 0.12
         k4 = 0.34
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_QuarticGradient(
@@ -424,7 +382,12 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
             k4=k4,
             k_frame=0.1,
             dt=1,
-            chunk=chunk,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
 
         self.assertLess(system.residual(), 1e-5)
@@ -448,16 +411,6 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
     def setUpClass(self):
         N = 10
         self.N = N
-        self.chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        self.chunk.data -= 49.5
-
         self.k_interactions = 0.12
         self.system = FrictionQPotSpringBlock.Line1d.System_Cuspy_LongRange(
             m=1,
@@ -466,8 +419,13 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
             k_interactions=self.k_interactions,
             k_frame=0.1,
             dt=1,
-            chunk=self.chunk,
             alpha=1,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
 
     def test_interactions(self):
@@ -491,16 +449,6 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
 
     def test_eventDrivenStep(self):
         N = 3
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_LongRange(
             m=1.0,
             eta=1.0,
@@ -508,51 +456,46 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
-            chunk=chunk,
             alpha=1,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
 
         self.assertLess(system.residual(), 1e-5)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, False)
         self.assertLess(system.residual(), 1e-5)
         self.assertTrue(np.allclose(system.u, (0.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(chunk.index_at_align == i_n))
+        self.assertTrue(np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.u, (0.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(chunk.index_at_align == i_n))
+        self.assertTrue(not np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (0.5 + 0.1) * (1.0 + 0.1) / 0.1)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, False)
         self.assertTrue(np.allclose(system.u, (1.5 - 0.1) * np.ones(N)))
-        self.assertTrue(np.all(chunk.index_at_align == i_n))
+        self.assertTrue(np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (1.5 - 0.1) * (1.0 + 0.1) / 0.1)
 
-        i_n = chunk.index_at_align
+        i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, True)
         self.assertTrue(np.allclose(system.u, (1.5 + 0.1) * np.ones(N)))
-        self.assertTrue(not np.all(chunk.index_at_align == i_n))
+        self.assertTrue(not np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (1.5 + 0.1) * (1.0 + 0.1) / 0.1)
 
 
 class Test_System_Cuspy_Laplace_RandomForcing(unittest.TestCase):
     def test_interactions(self):
         N = 10
-        chunk = prrng.pcg32_tensor_cumsum_1_1(
-            shape=[100],
-            initstate=np.zeros([N], dtype=int),
-            initseq=np.zeros([N], dtype=int),
-            distribution=prrng.delta,
-            parameters=[1.0],
-            align=prrng.alignment(margin=10, buffer=5),
-        )
-        chunk.data -= 49.5
-
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace_RandomForcing(
             m=1,
             eta=1,
@@ -560,12 +503,17 @@ class Test_System_Cuspy_Laplace_RandomForcing(unittest.TestCase):
             k_interactions=1,
             k_frame=0.1,
             dt=1,
-            chunk=chunk,
             mean=0,
             stddev=1,
-            seed=0,
+            seed_forcing=0,
             dinc_init=np.ones(N, dtype=int),
             dinc=np.ones(N, dtype=int),
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
         )
         self.assertLess(system.residual(), 1e-5)
 

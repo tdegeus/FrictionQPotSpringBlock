@@ -3,7 +3,6 @@ import pathlib
 import FrictionQPotSpringBlock.Line1d as model
 import h5py
 import numpy as np
-import prrng
 import tqdm
 
 try:
@@ -14,23 +13,17 @@ except ImportError:
     plot = False
 
 N = 1000
-
-chunk = prrng.pcg32_tensor_cumsum_1_1(
-    shape=[1500],
-    initstate=np.arange(N),
-    initseq=np.zeros(N),
-    distribution=prrng.distribution.random,
-    parameters=[2.0],
-    align=prrng.alignment(buffer=5, margin=50, min_margin=25, strict=False),
-)
-chunk -= 50
 xdelta = 1e-3
 
 system = model.System_Cuspy_Laplace_Nopassing(
     mu=1.0,
     k_interactions=1.0,
     k_frame=1.0 / N,
-    chunk=chunk,
+    shape=[N],
+    seed=0,
+    distribution="random",
+    parameters=[2.0],
+    offset=-50,
 )
 
 nstep = 1000
@@ -42,7 +35,7 @@ pbar = tqdm.tqdm(total=nstep)
 
 for step in range(nstep):
     # Extract output data.
-    i_n = np.copy(chunk.index_at_align)
+    i_n = np.copy(system.chunk.index_at_align)
 
     # Apply event-driven protocol.
     if step == 0:
@@ -62,7 +55,7 @@ for step in range(nstep):
     # Extract output data.
     ret_u_frame[step] = system.u_frame
     ret_f_frame[step] = np.mean(system.f_frame)
-    ret_S[step] = np.sum(chunk.index_at_align - i_n)
+    ret_S[step] = np.sum(system.chunk.index_at_align - i_n)
 
 base = pathlib.Path(__file__)
 with h5py.File(base.parent / (base.stem + ".h5")) as file:
