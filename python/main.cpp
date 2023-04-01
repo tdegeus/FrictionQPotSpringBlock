@@ -45,6 +45,22 @@ private:
 template <class Binder, class System>
 void mySystemNd(Binder& cls)
 {
+    cls.def_property(
+        "x",
+        []() { throw std::runtime_error("Deprecated, use 'u'"); },
+        [](const xt::pyarray<double>&) { throw std::runtime_error("Deprecated, use 'u'"); }
+    );
+
+    cls.def_property(
+        "x_frame",
+        []() { throw std::runtime_error("Deprecated, use 'u_frame'"); },
+        [](double) { throw std::runtime_error("Deprecated, use 'u_frame'"); }
+    );
+
+    cls.def_property_readonly("f_neighbours", []() {
+        throw std::runtime_error("Deprecated, use 'f_interactions'");
+    });
+
     cls.def_property_readonly("size", &System::size, "Number of particles");
     cls.def_property_readonly("shape", &System::shape, "Shape of the system");
     cls.def_property("u", &System::u, &System::set_u, "Particle slip ('positions').");
