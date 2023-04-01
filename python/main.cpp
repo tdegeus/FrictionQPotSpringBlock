@@ -61,6 +61,7 @@ void mySystemNd(Binder& cls)
         throw std::runtime_error("Deprecated, use 'f_interactions'");
     });
 
+    cls.def_property_readonly("chunk", &System::chunk, "Chunk of random numbers");
     cls.def_property_readonly("size", &System::size, "Number of particles");
     cls.def_property_readonly("shape", &System::shape, "Shape of the system");
     cls.def_property("u", &System::u, &System::set_u, "Particle slip ('positions').");
@@ -227,7 +228,19 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_Laplace");
 
             cls.def(
-                py::init<double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -235,7 +248,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -253,12 +271,28 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_Laplace_Nopassing");
 
             cls.def(
-                py::init<double, double, double, SM::Generator*, double, double>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t,
+                    double,
+                    double>(),
                 "Constructor.",
                 py::arg("mu"),
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
-                py::arg("chunk"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000,
                 py::arg("eta") = 0.0,
                 py::arg("dt") = 0.0
             );
@@ -284,12 +318,17 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                     double,
                     double,
                     double,
-                    SM::Generator*,
                     double,
                     double,
                     uint64_t,
                     const xt::pytensor<ptrdiff_t, 1>&,
-                    const xt::pytensor<ptrdiff_t, 1>&>(),
+                    const xt::pytensor<ptrdiff_t, 1>&,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -297,12 +336,17 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk"),
                 py::arg("mean"),
                 py::arg("stddev"),
-                py::arg("seed"),
+                py::arg("seed_forcing"),
                 py::arg("dinc_init"),
-                py::arg("dinc")
+                py::arg("dinc"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -320,7 +364,20 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_SemiSmooth_Laplace");
 
             cls.def(
-                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -329,7 +386,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -347,7 +409,19 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Smooth_Laplace");
 
             cls.def(
-                py::init<double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -355,7 +429,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -373,7 +452,20 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_Quartic");
 
             cls.def(
-                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -382,7 +474,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("a2"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -400,7 +497,20 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_QuarticGradient");
 
             cls.def(
-                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -409,7 +519,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k4"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -427,7 +542,20 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_LongRange");
 
             cls.def(
-                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -436,7 +564,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("alpha"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -471,7 +604,19 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_Laplace");
 
             cls.def(
-                py::init<double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 2>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -479,7 +624,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k_interactions"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);
@@ -497,7 +647,20 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "System_Cuspy_QuarticGradient");
 
             cls.def(
-                py::init<double, double, double, double, double, double, double, SM::Generator*>(),
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 2>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
                 "Constructor.",
                 py::arg("m"),
                 py::arg("eta"),
@@ -506,7 +669,12 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
                 py::arg("k4"),
                 py::arg("k_frame"),
                 py::arg("dt"),
-                py::arg("chunk")
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
             );
 
             mySystemNd<py::class_<S>, S>(cls);

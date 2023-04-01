@@ -112,6 +112,7 @@ using Generator =
 class System_Cuspy_Laplace
     : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::Laplace1d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
     detail::Laplace1d m_int; ///< @copybrief detail::System::m_interactions
 
@@ -123,7 +124,12 @@ public:
      * @param k_interactions @copybrief detail::Laplace1d::m_k
      * @param k_frame @copybrief detail::System::m_k_frame
      * @param dt @copybrief detail::System::m_dt
-     * @param chunk @copybrief detail::Cuspy::m_chunk
+     * @param shape @copybrief detail::System::shape
+     * @param seed Global seed to use (`size` seeds will be consumed).
+     * @param distribution Type of distribution (see prrng).
+     * @param parameters Parameters of the distribution (see prrng).
+     * @param offset Global offset to apply to the sequence of yield positions.
+     * @param nchunk Number of random numbers to keep in memory.
      */
     System_Cuspy_Laplace(
         double m,
@@ -132,12 +138,26 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::Laplace1d(k_interactions, shape[0]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 
@@ -149,14 +169,18 @@ public:
 class System_Cuspy_Laplace_Nopassing : public System_Cuspy_Laplace {
 protected:
     double m_k_interactions; ///< @copybrief detail::Laplace1d::m_k
-    Generator* m_cnk; ///< @copybrief detail::Cuspy::m_chunk
 
 public:
     /**
      * @param mu @copybrief detail::Cuspy::m_mu
      * @param k_interactions @copybrief detail::Laplace1d::m_k
      * @param k_frame @copybrief detail::System::m_k_frame
-     * @param chunk @copybrief detail::Cuspy::m_chunk
+     * @param shape @copybrief detail::System::shape
+     * @param seed Global seed to use (`size` seeds will be consumed).
+     * @param distribution Type of distribution (see prrng).
+     * @param parameters Parameters of the distribution (see prrng).
+     * @param offset Global offset to apply to the sequence of yield positions.
+     * @param nchunk Number of random numbers to keep in memory.
      * @param eta @copybrief detail::System::m_eta
      * @param dt @copybrief detail::System::m_dt
      */
@@ -164,12 +188,30 @@ public:
         double mu,
         double k_interactions,
         double k_frame,
-        Generator* chunk,
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000,
         double eta = 0.0,
         double dt = 0.0
     )
-        : System_Cuspy_Laplace(1.0, eta, mu, k_interactions, k_frame, dt, chunk),
-          m_k_interactions(k_interactions), m_cnk(chunk)
+        : System_Cuspy_Laplace(
+              1.0,
+              eta,
+              mu,
+              k_interactions,
+              k_frame,
+              dt,
+              shape,
+              seed,
+              distribution,
+              parameters,
+              offset,
+              nchunk
+          ),
+          m_k_interactions(k_interactions)
     {
     }
 
@@ -222,15 +264,15 @@ public:
                     uneigh = m_v_n(p - 1) + m_v_n(p + 1);
                 }
 
-                i = m_cnk->chunk_index_at_align()(p);
-                auto* y = &m_cnk->data()(p, 0);
+                i = m_gen.chunk_index_at_align()(p);
+                auto* y = &m_gen.data()(p, 0);
 
                 while (true) {
                     umin = 0.5 * (*(y + i) + *(y + i + 1));
                     u = (m_k_interactions * uneigh + m_k_frame * m_u_frame + m_mu * umin) /
                         (2 * m_k_interactions + m_k_frame + m_mu);
-                    m_cnk->align(p, u);
-                    j = m_cnk->chunk_index_at_align()(p);
+                    m_gen.align(p, u);
+                    j = m_gen.chunk_index_at_align()(p);
                     if (j == i) {
                         break;
                     }
@@ -299,6 +341,7 @@ class System_Cuspy_Laplace_RandomForcing : public detail::System<
                                                detail::Laplace1d,
                                                detail::RandomNormalForcing<1>> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
     detail::RandomNormalForcing<1> m_ext; ///< Add extra random force to the residual.
@@ -308,7 +351,7 @@ public:
      * @copydoc System_Cuspy_Laplace::System_Cuspy_Laplace
      * @param mean @copybrief detail::RandomNormalForcing::m_mean
      * @param stddev @copybrief detail::RandomNormalForcing::m_stddev
-     * @param seed Seed for the random number generator.
+     * @param seed_forcing Seed for the random number generator.
      * @param dinc_init Number of increments to wait to draw the first random force.
      * @param dinc @copybrief detail::RandomNormalForcing::m_dinc
      */
@@ -319,20 +362,34 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk,
         double mean,
         double stddev,
-        uint64_t seed,
+        uint64_t seed_forcing,
         const array_type::tensor<ptrdiff_t, 1>& dinc_init,
-        const array_type::tensor<ptrdiff_t, 1>& dinc
+        const array_type::tensor<ptrdiff_t, 1>& dinc,
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
-        m_ext = detail::RandomNormalForcing<1>(
-            chunk->generators().shape(), mean, stddev, seed, dinc_init, dinc
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
         );
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int, &m_ext);
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::Laplace1d(k_interactions, shape[0]);
+        m_ext = detail::RandomNormalForcing<1>(
+            m_gen.generators().shape(), mean, stddev, seed_forcing, dinc_init, dinc
+        );
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int, &m_ext);
     }
 
 protected:
@@ -358,6 +415,7 @@ protected:
 class System_SemiSmooth_Laplace
     : public detail::System<1, detail::SemiSmooth<Generator>, Generator, detail::Laplace1d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::SemiSmooth<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
@@ -374,12 +432,26 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::SemiSmooth<Generator>(mu, kappa, chunk);
-        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::SemiSmooth<Generator>(mu, kappa, &m_gen);
+        m_int = detail::Laplace1d(k_interactions, shape[0]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 
@@ -390,6 +462,7 @@ public:
 class System_Smooth_Laplace
     : public detail::System<1, detail::Smooth<Generator>, Generator, detail::Laplace1d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Smooth<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::Laplace1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
@@ -404,12 +477,26 @@ public:
         double k_interactions,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::Smooth<Generator>(mu, chunk);
-        m_int = detail::Laplace1d(k_interactions, chunk->generators().size());
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Smooth<Generator>(mu, &m_gen);
+        m_int = detail::Laplace1d(k_interactions, shape[0]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 
@@ -420,6 +507,7 @@ public:
 class System_Cuspy_Quartic
     : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::Quartic1d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::Quartic1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
@@ -432,7 +520,12 @@ public:
      * @param a2 @copybrief detail::Quartic1d::m_a2
      * @param k_frame @copybrief detail::System::m_k_frame
      * @param dt @copybrief detail::System::m_dt
-     * @param chunk @copybrief detail::Cuspy::m_chunk
+     * @param shape @copybrief detail::System::shape
+     * @param seed Global seed to use (`size` seeds will be consumed).
+     * @param distribution Type of distribution (see prrng).
+     * @param parameters Parameters of the distribution (see prrng).
+     * @param offset Global offset to apply to the sequence of yield positions.
+     * @param nchunk Number of random numbers to keep in memory.
      */
     System_Cuspy_Quartic(
         double m,
@@ -442,12 +535,26 @@ public:
         double a2,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::Quartic1d(a1, a2, chunk->generators().size());
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::Quartic1d(a1, a2, shape[0]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 
@@ -462,6 +569,7 @@ class System_Cuspy_QuarticGradient : public detail::System<
                                          detail::QuarticGradient1d,
                                          detail::Athermal> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::QuarticGradient1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
@@ -474,7 +582,12 @@ public:
      * @param k4 @copybrief detail::QuarticGradient1d::m_k4
      * @param k_frame @copybrief detail::System::m_k_frame
      * @param dt @copybrief detail::System::m_dt
-     * @param chunk @copybrief detail::Cuspy::m_chunk
+     * @param shape @copybrief detail::System::shape
+     * @param seed Global seed to use (`size` seeds will be consumed).
+     * @param distribution Type of distribution (see prrng).
+     * @param parameters Parameters of the distribution (see prrng).
+     * @param offset Global offset to apply to the sequence of yield positions.
+     * @param nchunk Number of random numbers to keep in memory.
      */
     System_Cuspy_QuarticGradient(
         double m,
@@ -484,12 +597,26 @@ public:
         double k4,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::QuarticGradient1d(k2, k4, chunk->generators().size());
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::QuarticGradient1d(k2, k4, shape[0]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 
@@ -500,6 +627,7 @@ public:
 class System_Cuspy_LongRange
     : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::LongRange1d> {
 protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
     detail::LongRange1d m_int; ///< @copybrief System_Cuspy_Laplace::m_int
 
@@ -512,7 +640,12 @@ public:
      * @param alpha @copybrief detail::LongRange1d::m_alpha
      * @param k_frame @copybrief detail::System::m_k_frame
      * @param dt @copybrief detail::System::m_dt
-     * @param chunk @copybrief detail::Cuspy::m_chunk
+     * @param shape @copybrief detail::System::shape
+     * @param seed Global seed to use (`size` seeds will be consumed).
+     * @param distribution Type of distribution (see prrng).
+     * @param parameters Parameters of the distribution (see prrng).
+     * @param offset Global offset to apply to the sequence of yield positions.
+     * @param nchunk Number of random numbers to keep in memory.
      */
     System_Cuspy_LongRange(
         double m,
@@ -522,12 +655,26 @@ public:
         double alpha,
         double k_frame,
         double dt,
-        Generator* chunk
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
     )
     {
-        m_pot = detail::Cuspy<Generator>(mu, chunk);
-        m_int = detail::LongRange1d(k_interactions, alpha, chunk->generators().size());
-        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, chunk, &m_int);
+        m_gen = Generator(
+            std::array<size_t, 1>{nchunk},
+            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+            xt::eval(xt::zeros<uint64_t>(shape)),
+            detail::string_to_distribution(distribution),
+            parameters,
+            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+        );
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::LongRange1d(k_interactions, alpha, shape[0]);
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 };
 

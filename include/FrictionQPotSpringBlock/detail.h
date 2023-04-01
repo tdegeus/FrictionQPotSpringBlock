@@ -26,6 +26,46 @@ namespace FrictionQPotSpringBlock {
 namespace detail {
 
 /**
+ * @brief Convert string to prrng::distribution.
+ */
+inline prrng::distribution string_to_distribution(const std::string& str)
+{
+    if (str == "random") {
+        return prrng::distribution::random;
+    }
+
+    if (str == "delta") {
+        return prrng::distribution::delta;
+    }
+
+    if (str == "exponential") {
+        return prrng::distribution::exponential;
+    }
+
+    if (str == "power") {
+        return prrng::distribution::power;
+    }
+
+    if (str == "gamma") {
+        return prrng::distribution::gamma;
+    }
+
+    if (str == "pareto") {
+        return prrng::distribution::pareto;
+    }
+
+    if (str == "weibull") {
+        return prrng::distribution::weibull;
+    }
+
+    if (str == "normal") {
+        return prrng::distribution::normal;
+    }
+
+    throw std::runtime_error("Unknown distribution: " + str);
+}
+
+/**
  * @brief A piece-wise quadratic local potential energy.
  * The resulting force is piece-wise linear:
  * \f$ f_\mathrm{pot}^{(i)} =  \mu (u_{\min}^{(i)} - u_i) \f$.
@@ -934,6 +974,15 @@ template <size_t rank, class Potential, class Generator, class Interactions, cla
 class System {
 public:
     virtual ~System() = default;
+
+    /**
+     * @brief Chunk of (cumulative sum of) random numbers.
+     * @return Reference.
+     */
+    const auto& chunk() const
+    {
+        return m_chunk;
+    }
 
     /**
      * @brief Number of particles.
