@@ -1394,7 +1394,7 @@ public:
         double tol2 = tol * tol;
         GooseFEM::Iterate::StopList residuals(niter_tol);
 
-        array_type::tensor<ptrdiff_t, 1> i_n;
+        array_type::tensor<ptrdiff_t, rank> i_n;
         long s = 0;
         long s_n = 0;
         bool init = true;
