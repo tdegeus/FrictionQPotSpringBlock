@@ -868,24 +868,24 @@ public:
     void force(const T& u_array, T& f_array)
     {
         for (size_type p = 1; p < m_N - 1; ++p) {
-            double dup = std::pow(u_array(p + 1) - u_array(p), 3.0);
-            double dun = std::pow(u_array(p - 1) - u_array(p), 3.0);
-            f_array(p) =
-                m_a1 * (u_array(p - 1) - 2 * u_array(p) + u_array(p + 1)) + m_a2 * (dup + dun);
+            double dup = u_array(p + 1) - u_array(p);
+            double dun = u_array(p - 1) - u_array(p);
+            f_array(p) = m_a1 * (u_array(p - 1) - 2 * u_array(p) + u_array(p + 1)) +
+                         m_a2 * (dup * dup * dup + dun * dun * dun);
         }
 
         {
-            double dup = std::pow(u_array(1) - u_array.front(), 3.0);
-            double dun = std::pow(u_array.back() - u_array.front(), 3.0);
-            f_array.front() =
-                m_a1 * (u_array.back() - 2 * u_array.front() + u_array(1)) + m_a2 * (dup + dun);
+            double dup = u_array(1) - u_array.front();
+            double dun = u_array.back() - u_array.front();
+            f_array.front() = m_a1 * (u_array.back() - 2 * u_array.front() + u_array(1)) +
+                              m_a2 * (dup * dup * dup + dun * dun * dun);
         }
 
         {
-            double dup = std::pow(u_array.front() - u_array.back(), 3.0);
-            double dun = std::pow(u_array(m_N - 2) - u_array.back(), 3.0);
+            double dup = u_array.front() - u_array.back();
+            double dun = u_array(m_N - 2) - u_array.back();
             f_array.back() = m_a1 * (u_array(m_N - 2) - 2 * u_array.back() + u_array.front()) +
-                             m_a2 * (dup + dun);
+                             m_a2 * (dup * dup * dup + dun * dun * dun);
         }
     }
 };
@@ -1253,7 +1253,7 @@ public:
         xt::noalias(m_v_n) = m_v;
         xt::noalias(m_a_n) = m_a;
 
-        xt::noalias(m_u) = m_u + m_dt * m_v + 0.5 * std::pow(m_dt, 2.0) * m_a;
+        xt::noalias(m_u) = m_u + m_dt * m_v + 0.5 * m_dt * m_dt * m_a;
         this->updated_u();
 
         xt::noalias(m_v) = m_v_n + m_dt * m_a_n;
