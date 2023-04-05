@@ -16,6 +16,25 @@
 
 namespace FrictionQPotSpringBlock {
 
+namespace detail {
+
+/**
+ * @brief Get the default initial state.
+ *
+ * @param seed Global seed (`prod(shape)` consumed)
+ * @param shape Shape
+ * @return Initial state
+ */
+inline array_type::tensor<uint64_t, 2>
+get_initstate_2d(uint64_t seed, const std::array<size_t, 2>& shape)
+{
+    array_type::tensor<uint64_t, 2> ret =
+        seed + xt::arange<uint64_t>(shape[0] * shape[1]).reshape(shape);
+    return ret;
+};
+
+} // namespace detail
+
 /**
  * Line in 2d.
  */
@@ -80,17 +99,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              detail::get_initstate_2d(seed, shape),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        array_type::tensor<uint64_t, 2> initstate =
-            seed + xt::arange<uint64_t>(shape[0] * shape[1]).reshape(shape);
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            initstate,
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::Laplace2d(k_interactions, shape[0], shape[1]);
@@ -128,17 +145,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              detail::get_initstate_2d(seed, shape),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        array_type::tensor<uint64_t, 2> initstate =
-            seed + xt::arange<uint64_t>(shape[0] * shape[1]).reshape(shape);
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            initstate,
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::QuarticGradient2d(k2, k4, shape[0], shape[1]);

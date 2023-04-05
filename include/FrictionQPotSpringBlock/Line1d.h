@@ -145,15 +145,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::Laplace1d(k_interactions, shape[0]);
@@ -374,15 +374,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::Laplace1d(k_interactions, shape[0]);
@@ -439,15 +439,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::SemiSmooth<Generator>(mu, kappa, &m_gen);
         m_int = detail::Laplace1d(k_interactions, shape[0]);
@@ -484,15 +484,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Smooth<Generator>(mu, &m_gen);
         m_int = detail::Laplace1d(k_interactions, shape[0]);
@@ -542,15 +542,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::Quartic1d(a1, a2, shape[0]);
@@ -604,15 +604,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::QuarticGradient1d(k2, k4, shape[0]);
@@ -662,15 +662,15 @@ public:
         double offset = -100.0,
         size_t nchunk = 5000
     )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-        m_gen = Generator(
-            std::array<size_t, 1>{nchunk},
-            xt::eval(seed + xt::arange<uint64_t>(shape[0])),
-            xt::eval(xt::zeros<uint64_t>(shape)),
-            detail::string_to_distribution(distribution),
-            parameters,
-            prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
-        );
         m_gen += offset;
         m_pot = detail::Cuspy<Generator>(mu, &m_gen);
         m_int = detail::LongRange1d(k_interactions, alpha, shape[0]);
