@@ -276,7 +276,7 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
         # draw reference yield positions
         gen = prrng.pcg32_array(initstate, np.zeros_like(initstate))
-        yref = np.cumsum(gen.weibull([20000], 2.0), axis=1) - init_offset
+        yref = np.cumsum(1e-3 + 1.1 * gen.weibull([20000], 2.0), axis=1) - init_offset
 
         # chunked storage of "yref" (same seed)
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
@@ -289,7 +289,7 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             shape=[N],
             seed=seed,
             distribution="weibull",
-            parameters=[2.0],
+            parameters=[2.0, 1.1, 1e-3],
             offset=-init_offset,
             nchunk=100,
         )
