@@ -120,7 +120,10 @@ void mySystemNd(Binder& cls)
         py::return_value_policy::reference_internal
     );
     cls.def_property_readonly("temperature", &System::temperature, "Temperature");
-    cls.def_property_readonly("residual", &System::residual, "Residual");
+    cls.def_property_readonly("norm_residual", &System::norm_residual, "Residua");
+    cls.def_property_readonly(
+        "norm_static_residual", &System::norm_static_residual, "Residual that also checks if static"
+    );
     cls.def("refresh", &System::refresh, "refresh");
     cls.def("quench", &System::quench, "quench");
 
