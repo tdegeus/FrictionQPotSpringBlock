@@ -123,6 +123,8 @@ public:
         for (stype p = 0; p < m_N; ++p) {
             const auto* l = &yield(p, i(p));
             f_array.flat(p) = 0.5 * (*(l) + *(l + 1)) - u_array.flat(p);
+            FRICTIONQPOTSPRINGBLOCK_DEBUG(i(p) > 0 && i(p) < m_chunk->chunk_size() - 1);
+            FRICTIONQPOTSPRINGBLOCK_DEBUG(u_array.flat(p) >= *(l) && u_array.flat(p) <= *(l + 1));
         }
 
         f_array *= m_mu;
