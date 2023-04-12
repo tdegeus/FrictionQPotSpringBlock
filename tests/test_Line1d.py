@@ -7,6 +7,8 @@ import numpy as np
 import prrng
 
 faulthandler.enable()
+seed = int(time.time())
+np.random.seed(seed)
 
 
 class Test_support(unittest.TestCase):
@@ -369,6 +371,45 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
 
 
+class Test_System_Cuspy_Quartic(unittest.TestCase):
+    def test_interactions(self):
+        N = 10
+        a1 = float(np.random.random(1))
+        a2 = float(np.random.random(1))
+        system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Quartic(
+            m=1,
+            eta=1,
+            mu=1,
+            a1=a1,
+            a2=a2,
+            k_frame=0.1,
+            dt=1,
+            shape=[N],
+            seed=0,
+            distribution="delta",
+            parameters=[1.0],
+            offset=-49.5,
+            nchunk=100,
+        )
+
+        self.assertLess(system.residual(), 1e-5)
+
+        du = float(np.random.random(1))
+        u0 = np.array([du, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        laplace = np.array([-2 * du, du, 0, 0, 0, 0, 0, 0, 0, du])
+        du_p = np.array([-du, 0, 0, 0, 0, 0, 0, 0, 0, du])
+        du_n = np.array([-du, du, 0, 0, 0, 0, 0, 0, 0, 0])
+
+        f0 = a1 * laplace + a2 * (du_p**3 + du_n**3)
+
+        for i in range(N):
+            u = np.roll(u0, i)
+            system.u = u
+            f = np.roll(f0, i)
+            self.assertTrue(np.allclose(system.f_interactions, f))
+            self.assertTrue(np.allclose(system.u, u))
+
+
 class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions(self):
         N = 10
@@ -400,7 +441,7 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
 
         for i in range(N):
             u = np.roll(u0, i)
-            system.u = u.ravel()
+            system.u = u
             f = np.roll(f0, i)
             self.assertTrue(np.allclose(system.f_interactions, f))
             self.assertTrue(np.allclose(system.u, u))
