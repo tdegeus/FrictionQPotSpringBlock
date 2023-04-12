@@ -77,7 +77,7 @@
 #endif
 
 /**
- * Assertions that cannot be disable.
+ * Assertions that cannot be disabled.
  *
  * \throw std::runtime_error
  */
