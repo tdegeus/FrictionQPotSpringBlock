@@ -151,7 +151,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
@@ -380,7 +380,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
@@ -445,7 +445,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
@@ -490,7 +490,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
@@ -548,7 +548,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
@@ -610,7 +610,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
@@ -668,7 +668,7 @@ public:
               xt::eval(xt::zeros<uint64_t>(shape)),
               detail::string_to_distribution(distribution),
               parameters,
-              prrng::alignment(/*buffer*/ 5, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
           )
     {
         m_gen += offset;
