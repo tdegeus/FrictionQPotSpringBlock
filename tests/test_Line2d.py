@@ -37,7 +37,7 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             offset=-49.5,
             nchunk=100,
         )
-        self.assertLess(system.residual(), 1e-5)
+        self.assertLess(system.residual, 1e-5)
         self.assertEqual(list(system.shape), [rows, cols])
         self.assertEqual(system.size, rows * cols)
 
@@ -78,7 +78,7 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
             offset=-49.5,
             nchunk=100,
         )
-        self.assertLess(system.residual(), 1e-5)
+        self.assertLess(system.residual, 1e-5)
 
         c = -4
         f0 = np.array([[c, 1, 0, 1], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]]) * k2
@@ -113,7 +113,7 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
             nchunk=100,
         )
 
-        self.assertLess(system.residual(), 1e-5)
+        self.assertLess(system.residual, 1e-5)
 
         u0 = np.array(
             [
