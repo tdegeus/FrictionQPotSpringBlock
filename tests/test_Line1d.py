@@ -315,14 +315,8 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
                 r = np.arange(N)
 
                 self.assertTrue(np.all(system.chunk.index_at_align == j))
-                self.assertTrue(
-                    np.allclose(yref[r, system.chunk.index_at_align], system.chunk.left_of_align)
-                )
-                self.assertTrue(
-                    np.allclose(
-                        yref[r, system.chunk.index_at_align + 1], system.chunk.right_of_align
-                    )
-                )
+                self.assertTrue(np.allclose(yref[r, j], system.chunk.left_of_align))
+                self.assertTrue(np.allclose(yref[r, j + 1], system.chunk.right_of_align))
 
                 if repeat == 0 and i == 500:
                     u = np.copy(system.u)
