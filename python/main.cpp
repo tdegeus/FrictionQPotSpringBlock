@@ -75,8 +75,8 @@ void mySystemNd(Binder& cls)
     cls.def_property_readonly("f_frame", &System::f_frame, "Frame forces");
     cls.def_property_readonly("f_interactions", &System::f_interactions, "Interaction forces");
     cls.def_property_readonly("f_damping", &System::f_damping, "Particle damping forces");
-    cls.def("temperature", &System::temperature, "Temperature");
-    cls.def("residual", &System::residual, "Residual");
+    cls.def_property_readonly("temperature", &System::temperature, "Temperature");
+    cls.def_property_readonly("residual", &System::residual, "Residual");
     cls.def("refresh", &System::refresh, "refresh");
     cls.def("quench", &System::quench, "quench");
 
@@ -127,11 +127,13 @@ void mySystemNdAthermal(Binder& cls)
         py::arg("direction") = 1
     );
 
-    cls.def(
+    cls.def_property_readonly(
         "quasistaticActivityFirst", &System::quasistaticActivityFirst, "quasistaticActivityFirst"
     );
 
-    cls.def("quasistaticActivityLast", &System::quasistaticActivityLast, "quasistaticActivityLast");
+    cls.def_property_readonly(
+        "quasistaticActivityLast", &System::quasistaticActivityLast, "quasistaticActivityLast"
+    );
 }
 
 template <class Binder, class System>
