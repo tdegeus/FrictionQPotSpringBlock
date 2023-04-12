@@ -70,7 +70,7 @@ for iout in tqdm.tqdm(range(nout)):
 
     ret_u_frame[iout] = system.u_frame
     ret_f_frame[iout] = np.mean(system.f_frame)
-    ret_t_insta[iout] = system.temperature()
+    ret_t_insta[iout] = system.temperature
 
 base = pathlib.Path(__file__)
 with h5py.File(base.parent / (base.stem + ".h5")) as file:
