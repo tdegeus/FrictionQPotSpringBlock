@@ -61,20 +61,64 @@ void mySystemNd(Binder& cls)
         throw std::runtime_error("Deprecated, use 'f_interactions'");
     });
 
-    cls.def_property_readonly("chunk", &System::chunk, "Chunk of random numbers");
+    cls.def_property_readonly(
+        "chunk",
+        &System::chunk,
+        "Chunk of random numbers",
+        py::return_value_policy::reference_internal
+    );
     cls.def_property_readonly("size", &System::size, "Number of particles");
-    cls.def_property_readonly("shape", &System::shape, "Shape of the system");
-    cls.def_property("u", &System::u, &System::set_u, "Particle slip ('positions').");
-    cls.def_property("v", &System::v, &System::set_v, "Particle velocities.");
-    cls.def_property("a", &System::a, &System::set_a, "Particle accelerations.");
+    cls.def_property_readonly(
+        "shape", &System::shape, "Shape of the system", py::return_value_policy::reference_internal
+    );
+    cls.def_property(
+        "u",
+        &System::u,
+        &System::set_u,
+        "Particle slip ('positions').",
+        py::return_value_policy::reference_internal
+    );
+    cls.def_property(
+        "v",
+        &System::v,
+        &System::set_v,
+        "Particle velocities.",
+        py::return_value_policy::reference_internal
+    );
+    cls.def_property(
+        "a",
+        &System::a,
+        &System::set_a,
+        "Particle accelerations.",
+        py::return_value_policy::reference_internal
+    );
     cls.def_property("inc", &System::inc, &System::set_inc, "Increment");
     cls.def_property("t", &System::t, &System::set_t, "Time");
     cls.def_property("u_frame", &System::u_frame, &System::set_u_frame, "Frame position");
-    cls.def_property_readonly("f", &System::f, "Residual forces");
-    cls.def_property_readonly("f_potential", &System::f_potential, "Elastic forces");
-    cls.def_property_readonly("f_frame", &System::f_frame, "Frame forces");
-    cls.def_property_readonly("f_interactions", &System::f_interactions, "Interaction forces");
-    cls.def_property_readonly("f_damping", &System::f_damping, "Particle damping forces");
+    cls.def_property_readonly(
+        "f", &System::f, "Residual forces", py::return_value_policy::reference_internal
+    );
+    cls.def_property_readonly(
+        "f_potential",
+        &System::f_potential,
+        "Elastic forces",
+        py::return_value_policy::reference_internal
+    );
+    cls.def_property_readonly(
+        "f_frame", &System::f_frame, "Frame forces", py::return_value_policy::reference_internal
+    );
+    cls.def_property_readonly(
+        "f_interactions",
+        &System::f_interactions,
+        "Interaction forces",
+        py::return_value_policy::reference_internal
+    );
+    cls.def_property_readonly(
+        "f_damping",
+        &System::f_damping,
+        "Particle damping forces",
+        py::return_value_policy::reference_internal
+    );
     cls.def_property_readonly("temperature", &System::temperature, "Temperature");
     cls.def_property_readonly("residual", &System::residual, "Residual");
     cls.def("refresh", &System::refresh, "refresh");
@@ -188,8 +232,20 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
             py::class_<S> cls(sm, "RandomNormalForcing_1");
 
             cls.def_property("state", &S::state, &S::set_state, "State of RNG");
-            cls.def_property("f_thermal", &S::f_thermal, &S::set_f_thermal, "Random force");
-            cls.def_property("next", &S::next, &S::set_next, "Next draw increment");
+            cls.def_property(
+                "f_thermal",
+                &S::f_thermal,
+                &S::set_f_thermal,
+                "Random force",
+                py::return_value_policy::reference_internal
+            );
+            cls.def_property(
+                "next",
+                &S::next,
+                &S::set_next,
+                "Next draw increment",
+                py::return_value_policy::reference_internal
+            );
 
             cls.def("__repr__", [](const S&) {
                 return "<FrictionQPotSpringBlock.detail.RandomNormalForcing_1>";
