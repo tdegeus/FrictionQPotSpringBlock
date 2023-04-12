@@ -298,19 +298,43 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         du[0] = 5.0
         du[1] = 7.0
 
-        for i in list(range(1500)) + list(range(1500))[::-1]:
-            system.u = i * du
+        u = np.copy(system.u)
+        start = np.copy(system.chunk.start)
+        state = np.copy(system.chunk.state_at(start))
+        value = np.copy(system.chunk.data[..., 0])
 
-            j = prrng.lower_bound(yref, system.u)
-            r = np.arange(N)
+        for repeat in range(3):
+            if repeat >= 1:
+                system.chunk.restore(state=state, value=value, index=start)
+                system.u = u
 
-            self.assertTrue(np.all(system.chunk.index_at_align == j))
-            self.assertTrue(
-                np.allclose(yref[r, system.chunk.index_at_align], system.chunk.left_of_align)
-            )
-            self.assertTrue(
-                np.allclose(yref[r, system.chunk.index_at_align + 1], system.chunk.right_of_align)
-            )
+            for i in list(range(1500)) + list(range(1500))[::-1]:
+                system.u = i * du
+
+                j = prrng.lower_bound(yref, system.u)
+                r = np.arange(N)
+
+                self.assertTrue(np.all(system.chunk.index_at_align == j))
+                self.assertTrue(
+                    np.allclose(yref[r, system.chunk.index_at_align], system.chunk.left_of_align)
+                )
+                self.assertTrue(
+                    np.allclose(
+                        yref[r, system.chunk.index_at_align + 1], system.chunk.right_of_align
+                    )
+                )
+
+                if repeat == 0 and i == 500:
+                    u = np.copy(system.u)
+                    start = np.copy(system.chunk.start)
+                    state = np.copy(system.chunk.state_at(start))
+                    value = np.copy(system.chunk.data[..., 0])
+
+                if repeat == 1 and i == 1000:
+                    u = np.copy(system.u)
+                    start = np.copy(system.chunk.start)
+                    state = np.copy(system.chunk.state_at(start))
+                    value = np.copy(system.chunk.data[..., 0])
 
 
 class Test_System_SemiSmooth_Laplace(unittest.TestCase):
