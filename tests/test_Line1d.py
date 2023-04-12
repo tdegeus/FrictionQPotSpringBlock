@@ -279,10 +279,11 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         yref = np.cumsum(1e-3 + 1.1 * gen.weibull([20000], 2.0), axis=1) - init_offset
 
         # chunked storage of "yref" (same seed)
+        mu = float(np.random.random(1))
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
             eta=1.0,
-            mu=1.0,
+            mu=mu,
             k_interactions=1.0,
             k_frame=0.1,
             dt=1.0,
@@ -317,6 +318,9 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
                 self.assertTrue(np.all(system.chunk.index_at_align == j))
                 self.assertTrue(np.allclose(yref[r, j], system.chunk.left_of_align))
                 self.assertTrue(np.allclose(yref[r, j + 1], system.chunk.right_of_align))
+
+                umin = 0.5 * (yref[r, j] + yref[r, j + 1])
+                self.assertTrue(np.allclose(mu * (umin - system.u), system.f_potential))
 
                 if repeat == 0 and i == 500:
                     u = np.copy(system.u)
