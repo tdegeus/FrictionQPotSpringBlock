@@ -990,6 +990,93 @@ public:
  */
 template <size_t rank, class Potential, class Generator, class Interactions, class External = void>
 class System {
+protected:
+    size_type m_N; ///< @copybrief detail::System::size
+    array_type::tensor<double, rank> m_f; ///< @copybrief detail::System::f
+    array_type::tensor<double, rank> m_f_thermal; ///< Force due to thermal fluctuations.
+    array_type::tensor<double, rank> m_f_potential; ///< @copybrief detail::System::f_potential
+    array_type::tensor<double, rank> m_f_interactions; ///< @copydoc detail::System::f_interactions
+    array_type::tensor<double, rank> m_f_frame; ///< @copybrief detail::System::f_frame
+    array_type::tensor<double, rank> m_f_damping; ///< @copybrief detail::System::f_damping
+    array_type::tensor<double, rank> m_u; ///< @copybrief detail::System::u
+    array_type::tensor<double, rank> m_v; ///< @copybrief detail::System::v
+    array_type::tensor<double, rank> m_a; ///< @copybrief detail::System::a
+    array_type::tensor<double, rank> m_v_n; ///< Temporary for integration.
+    array_type::tensor<double, rank> m_a_n; ///< Temporary for integration.
+    ptrdiff_t m_inc = 0; ///< @copybrief detail::System::inc
+    ptrdiff_t m_qs_inc_first = 0; ///< @copybrief detail::System::quasistaticActivityFirst
+    ptrdiff_t m_qs_inc_last = 0; ///< @copybrief detail::System::quasistaticActivityLast
+    double m_dt; ///< Time step.
+    double m_eta; ///< Damping constant (same for all particles).
+    double m_m; ///< Mass (same for all particles).
+    double m_inv_m; ///< `== 1 / m_m`
+    double m_mu; ///< Curvature of the potentials.
+    double m_k_frame; ///< Stiffness of the load fame (same for all particles).
+    double m_u_frame = 0.0; ///< @copybrief detail::System::u_frame
+    Potential* m_potential; ///< Class to get the forces from the local potential energy landscape.
+    Generator* m_chunk; ///< @copybrief detail::Cuspy::m_chunk
+    Interactions* m_interactions; ///< Class to get the forces from particle interaction.
+    External* m_external; ///< Add an (time dependent) externally defined force to the residual.
+
+protected:
+    /**
+     * @brief Initialise the system.
+     *
+     * @param m @copybrief detail::System::m_m
+     * @param eta @copybrief detail::System::m_eta
+     * @param k_frame @copybrief detail::System::m_k_frame
+     * @param mu @copybrief detail::System::m_mu
+     * @param dt @copybrief detail::System::m_dt
+     * @param potential @copybrief detail::System::m_potential
+     * @param chunk @copybrief detail::System::m_chunk
+     * @param interactions @copybrief detail::System::m_interactions
+     * @param external @copybrief detail::System::m_external
+     */
+    void initSystem(
+        double m,
+        double eta,
+        double k_frame,
+        double mu,
+        double dt,
+        Potential* potential,
+        Generator* chunk,
+        Interactions* interactions,
+        External* external = nullptr
+    )
+    {
+        m_N = static_cast<size_type>(chunk->generators().size());
+        m_m = m;
+        m_inv_m = 1.0 / m;
+        m_eta = eta;
+        m_mu = mu;
+        m_k_frame = k_frame;
+        m_u_frame = 0.0;
+        m_dt = dt;
+
+        m_f = xt::zeros<double>(chunk->generators().shape());
+        m_f_potential = xt::zeros<double>(chunk->generators().shape());
+        m_f_interactions = xt::zeros<double>(chunk->generators().shape());
+        m_f_frame = xt::zeros<double>(chunk->generators().shape());
+        m_f_damping = xt::zeros<double>(chunk->generators().shape());
+
+        if constexpr (!std::is_same<External, void>::value) {
+            m_f_thermal = xt::zeros<double>(chunk->generators().shape());
+        }
+
+        m_u = xt::zeros<double>(chunk->generators().shape());
+        m_v = xt::zeros<double>(chunk->generators().shape());
+        m_a = xt::zeros<double>(chunk->generators().shape());
+        m_v_n = xt::zeros<double>(chunk->generators().shape());
+        m_a_n = xt::zeros<double>(chunk->generators().shape());
+
+        m_potential = potential;
+        m_chunk = chunk;
+        m_interactions = interactions;
+        m_external = external;
+
+        this->refresh();
+    }
+
 public:
     virtual ~System() = default;
 
@@ -1123,6 +1210,85 @@ public:
         this->updated_inc();
     }
 
+protected:
+    /**
+     * @brief Compute residual force.
+     */
+    void computeForce()
+    {
+        if constexpr (std::is_same<External, void>::value) {
+            xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_damping + m_f_frame;
+        }
+        else {
+            xt::noalias(m_f) =
+                m_f_potential + m_f_interactions + m_f_damping + m_f_frame + m_f_thermal;
+        }
+    }
+
+    /**
+     * @brief Compute force due to the potential energy.
+     */
+    void computeForcePotential()
+    {
+        m_potential->force(m_u, m_f_potential);
+    }
+
+    /**
+     * @brief Compute force due to interactions between particles.
+     */
+    void computeForceInteractions()
+    {
+        m_interactions->force(m_u, m_f_interactions);
+    }
+
+    /**
+     * @brief Compute force due to the loading frame.
+     */
+    void computeForceFrame()
+    {
+        xt::noalias(m_f_frame) = m_k_frame * (m_u_frame - m_u);
+    }
+
+    /**
+     * @brief Compute force due to damping.
+     */
+    void computeForceDamping()
+    {
+        xt::noalias(m_f_damping) = -m_eta * m_v;
+    }
+
+    /**
+     * @brief Update forces that depend on time
+     */
+    void updated_inc()
+    {
+        if constexpr (!std::is_same<External, void>::value) {
+            m_external->force(m_u, m_f_thermal, m_inc);
+        }
+        this->computeForce();
+    }
+
+    /**
+     * @brief Update forces that depend on slip.
+     */
+    void updated_u()
+    {
+        this->computeForcePotential();
+        this->computeForceInteractions();
+        this->computeForceFrame();
+        this->computeForce();
+    }
+
+    /**
+     * @brief Update forces that depend on velocity.
+     */
+    void updated_v()
+    {
+        this->computeForceDamping();
+        this->computeForce();
+    }
+
+public:
     /**
      * @brief Slip ('position') of each particle.
      * @return Array of floats.
@@ -1578,142 +1744,6 @@ public:
 
 protected:
     /**
-     * @brief Initialise the system.
-     *
-     * @param m @copybrief detail::System::m_m
-     * @param eta @copybrief detail::System::m_eta
-     * @param k_frame @copybrief detail::System::m_k_frame
-     * @param mu @copybrief detail::System::m_mu
-     * @param dt @copybrief detail::System::m_dt
-     * @param potential @copybrief detail::System::m_potential
-     * @param chunk @copybrief detail::System::m_chunk
-     * @param interactions @copybrief detail::System::m_interactions
-     * @param external @copybrief detail::System::m_external
-     */
-    void initSystem(
-        double m,
-        double eta,
-        double k_frame,
-        double mu,
-        double dt,
-        Potential* potential,
-        Generator* chunk,
-        Interactions* interactions,
-        External* external = nullptr
-    )
-    {
-        m_N = static_cast<size_type>(chunk->generators().size());
-        m_m = m;
-        m_inv_m = 1.0 / m;
-        m_eta = eta;
-        m_mu = mu;
-        m_k_frame = k_frame;
-        m_u_frame = 0.0;
-        m_dt = dt;
-
-        m_f = xt::zeros<double>(chunk->generators().shape());
-        m_f_potential = xt::zeros<double>(chunk->generators().shape());
-        m_f_interactions = xt::zeros<double>(chunk->generators().shape());
-        m_f_frame = xt::zeros<double>(chunk->generators().shape());
-        m_f_damping = xt::zeros<double>(chunk->generators().shape());
-
-        if constexpr (!std::is_same<External, void>::value) {
-            m_f_thermal = xt::zeros<double>(chunk->generators().shape());
-        }
-
-        m_u = xt::zeros<double>(chunk->generators().shape());
-        m_v = xt::zeros<double>(chunk->generators().shape());
-        m_a = xt::zeros<double>(chunk->generators().shape());
-        m_v_n = xt::zeros<double>(chunk->generators().shape());
-        m_a_n = xt::zeros<double>(chunk->generators().shape());
-
-        m_potential = potential;
-        m_chunk = chunk;
-        m_interactions = interactions;
-        m_external = external;
-
-        this->refresh();
-    }
-
-protected:
-    /**
-     * @brief Compute residual force.
-     */
-    void computeForce()
-    {
-        if constexpr (std::is_same<External, void>::value) {
-            xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_damping + m_f_frame;
-        }
-        else {
-            xt::noalias(m_f) =
-                m_f_potential + m_f_interactions + m_f_damping + m_f_frame + m_f_thermal;
-        }
-    }
-
-    /**
-     * @brief Compute force due to the potential energy.
-     */
-    void computeForcePotential()
-    {
-        m_potential->force(m_u, m_f_potential);
-    }
-
-    /**
-     * @brief Compute force due to interactions between particles.
-     */
-    void computeForceInteractions()
-    {
-        m_interactions->force(m_u, m_f_interactions);
-    }
-
-    /**
-     * @brief Compute force due to the loading frame.
-     */
-    void computeForceFrame()
-    {
-        xt::noalias(m_f_frame) = m_k_frame * (m_u_frame - m_u);
-    }
-
-    /**
-     * @brief Compute force due to damping.
-     */
-    void computeForceDamping()
-    {
-        xt::noalias(m_f_damping) = -m_eta * m_v;
-    }
-
-    /**
-     * @brief Update forces that depend on time
-     */
-    void updated_inc()
-    {
-        if constexpr (!std::is_same<External, void>::value) {
-            m_external->force(m_u, m_f_thermal, m_inc);
-        }
-        this->computeForce();
-    }
-
-    /**
-     * @brief Update forces that depend on slip.
-     */
-    void updated_u()
-    {
-        this->computeForcePotential();
-        this->computeForceInteractions();
-        this->computeForceFrame();
-        this->computeForce();
-    }
-
-    /**
-     * @brief Update forces that depend on velocity.
-     */
-    void updated_v()
-    {
-        this->computeForceDamping();
-        this->computeForce();
-    }
-
-    /**
      * @brief Advance the system uniformly.
      *
      * -    All particle move by the same amount.
@@ -1766,34 +1796,6 @@ protected:
 
         return du_frame;
     }
-
-protected:
-    size_type m_N; ///< @copybrief detail::System::size
-    array_type::tensor<double, rank> m_f; ///< @copybrief detail::System::f
-    array_type::tensor<double, rank> m_f_thermal; ///< Force due to thermal fluctuations.
-    array_type::tensor<double, rank> m_f_potential; ///< @copybrief detail::System::f_potential
-    array_type::tensor<double, rank> m_f_interactions; ///< @copydoc detail::System::f_interactions
-    array_type::tensor<double, rank> m_f_frame; ///< @copybrief detail::System::f_frame
-    array_type::tensor<double, rank> m_f_damping; ///< @copybrief detail::System::f_damping
-    array_type::tensor<double, rank> m_u; ///< @copybrief detail::System::u
-    array_type::tensor<double, rank> m_v; ///< @copybrief detail::System::v
-    array_type::tensor<double, rank> m_a; ///< @copybrief detail::System::a
-    array_type::tensor<double, rank> m_v_n; ///< Temporary for integration.
-    array_type::tensor<double, rank> m_a_n; ///< Temporary for integration.
-    ptrdiff_t m_inc = 0; ///< @copybrief detail::System::inc
-    ptrdiff_t m_qs_inc_first = 0; ///< @copybrief detail::System::quasistaticActivityFirst
-    ptrdiff_t m_qs_inc_last = 0; ///< @copybrief detail::System::quasistaticActivityLast
-    double m_dt; ///< Time step.
-    double m_eta; ///< Damping constant (same for all particles).
-    double m_m; ///< Mass (same for all particles).
-    double m_inv_m; ///< `== 1 / m_m`
-    double m_mu; ///< Curvature of the potentials.
-    double m_k_frame; ///< Stiffness of the load fame (same for all particles).
-    double m_u_frame = 0.0; ///< @copybrief detail::System::u_frame
-    Potential* m_potential; ///< Class to get the forces from the local potential energy landscape.
-    Generator* m_chunk; ///< @copybrief detail::Cuspy::m_chunk
-    Interactions* m_interactions; ///< Class to get the forces from particle interaction.
-    External* m_external; ///< Add an (time dependent) externally defined force to the residual.
 };
 
 } // namespace detail
