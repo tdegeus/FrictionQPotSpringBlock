@@ -1397,6 +1397,19 @@ public:
     }
 
     /**
+     * @brief Check if the velocity is zero.
+     */
+    bool is_static(double tol = 1e-5) const
+    {
+        double r_fvel = xt::norm_l2(m_f_damping)();
+        double r_fnorm = xt::norm_l2(m_f_frame)();
+        if (r_fnorm != 0.0) {
+            return r_fvel / r_fnorm < tol;
+        }
+        return r_fvel < tol;
+    }
+
+    /**
      * @brief Residual.
      *
      * Tthe ratio between the norm of f() and f_frame().
@@ -1609,8 +1622,10 @@ public:
             }
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return 0;
+                if (is_static(tol2)) {
+                    this->quench();
+                    return 0;
+                }
             }
         }
 
