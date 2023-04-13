@@ -562,12 +562,8 @@ public:
  * Same as System_Cuspy_Laplace() but with a quartic interactions.
  * @copybrief detail::QuarticGradient1d
  */
-class System_Cuspy_QuarticGradient : public detail::System<
-                                         1,
-                                         detail::Cuspy<Generator>,
-                                         Generator,
-                                         detail::QuarticGradient1d,
-                                         detail::Athermal> {
+class System_Cuspy_QuarticGradient
+    : public detail::System<1, detail::Cuspy<Generator>, Generator, detail::QuarticGradient1d> {
 protected:
     Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
