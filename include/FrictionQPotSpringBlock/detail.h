@@ -169,23 +169,6 @@ public:
 };
 
 /**
- * Athermal 'dummy' class
- */
-class Athermal {
-protected:
-public:
-    Athermal() = default;
-
-    /**
-     * @brief Do nothing.
-     */
-    template <class T, class S>
-    void force(const T& /* u_array */, T& /* f_array */, S /* inc */)
-    {
-    }
-};
-
-/**
  * Each particle experiences a random force representing the effect of temperature.
  * The random force drawn from a random distribution and is changed every `n` increments.
  * As such, it is defined by:
