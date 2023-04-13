@@ -904,7 +904,7 @@ public:
             }
         }
 
-        f += m_f_thermal;
+        std::copy(m_f_thermal.begin(), m_f_thermal.end(), f.begin());
     }
 
     /**
@@ -967,19 +967,26 @@ public:
 /**
  * @brief System in generic number of dimensions.
  *
- * ## Internal strategy
+ * @details
  *
- * Internally, everything is kept up-to-date by calling:
+ *     Internally, everything is kept up-to-date by calling:
  *
- * -    updated_u() every time #m_u is updated
- * -    updated_v() every time #m_v is updated
+ *     -    updated_u() every time #m_u is updated
+ *     -    updated_v() every time #m_v is updated
+ *     -    updated_inc() every time #m_inc is updated
  *
- * In addition refresh() can be called to update everything.
+ *     In addition refresh() can be called to update everything.
  *
- * The suggested usage for deriving classes is to:
+ *     The suggested usage for deriving classes is to:
  *
- * -    do the same
- * -    only use set_u() and set_v() to update #m_u and #m_v
+ *     -    do the same, or
+ *     -    only use set_u(), set_v(), set_inc() to update #m_u, #m_v, and #m_inc
+ *
+ * @tparam rank Rank of the system.
+ * @tparam Potential Potential forces (called from updated_u()).
+ * @tparam Generator Generator to compute disorder for potential forces.
+ * @tparam Interactions Interactions forces (called from updated_u()).
+ * @tparam External External forces (called from updated_inc()).
  */
 template <size_t rank, class Potential, class Generator, class Interactions, class External = void>
 class System {
@@ -1045,6 +1052,7 @@ public:
         m_inc = arg;
         m_qs_inc_first = arg;
         m_qs_inc_last = arg;
+        this->updated_inc();
     }
 
     /**
@@ -1106,15 +1114,13 @@ public:
     }
 
     /**
-     * @brief Recompute all forces.
+     * @brief Recompute all forces. There is normally no reason to call this.
      */
     void refresh()
     {
-        this->computeForcePotential();
-        this->computeForceInteractions();
-        this->computeForceFrame();
-        this->computeForceDamping();
-        this->computeForce();
+        this->updated_u();
+        this->updated_v();
+        this->updated_inc();
     }
 
     /**
@@ -1261,6 +1267,10 @@ public:
     void timeStep()
     {
         m_inc++;
+        if constexpr (!std::is_same<External, void>::value) {
+            this->updated_inc();
+        }
+
         xt::noalias(m_v_n) = m_v;
         xt::noalias(m_a_n) = m_a;
 
@@ -1600,20 +1610,28 @@ protected:
         m_k_frame = k_frame;
         m_u_frame = 0.0;
         m_dt = dt;
+
         m_f = xt::zeros<double>(chunk->generators().shape());
         m_f_potential = xt::zeros<double>(chunk->generators().shape());
         m_f_interactions = xt::zeros<double>(chunk->generators().shape());
         m_f_frame = xt::zeros<double>(chunk->generators().shape());
         m_f_damping = xt::zeros<double>(chunk->generators().shape());
+
+        if constexpr (!std::is_same<External, void>::value) {
+            m_f_thermal = xt::zeros<double>(chunk->generators().shape());
+        }
+
         m_u = xt::zeros<double>(chunk->generators().shape());
         m_v = xt::zeros<double>(chunk->generators().shape());
         m_a = xt::zeros<double>(chunk->generators().shape());
         m_v_n = xt::zeros<double>(chunk->generators().shape());
         m_a_n = xt::zeros<double>(chunk->generators().shape());
+
         m_potential = potential;
         m_chunk = chunk;
         m_interactions = interactions;
         m_external = external;
+
         this->refresh();
     }
 
@@ -1623,9 +1641,12 @@ protected:
      */
     void computeForce()
     {
-        xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_damping + m_f_frame;
-        if constexpr (!std::is_same<External, void>::value) {
-            m_external->force(m_u, m_f, m_inc);
+        if constexpr (std::is_same<External, void>::value) {
+            xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_damping + m_f_frame;
+        }
+        else {
+            xt::noalias(m_f) =
+                m_f_potential + m_f_interactions + m_f_damping + m_f_frame + m_f_thermal;
         }
     }
 
@@ -1659,6 +1680,17 @@ protected:
     void computeForceDamping()
     {
         xt::noalias(m_f_damping) = -m_eta * m_v;
+    }
+
+    /**
+     * @brief Update forces that depend on time
+     */
+    void updated_inc()
+    {
+        if constexpr (!std::is_same<External, void>::value) {
+            m_external->force(m_u, m_f_thermal, m_inc);
+        }
+        this->computeForce();
     }
 
     /**
@@ -1738,6 +1770,7 @@ protected:
 protected:
     size_type m_N; ///< @copybrief detail::System::size
     array_type::tensor<double, rank> m_f; ///< @copybrief detail::System::f
+    array_type::tensor<double, rank> m_f_thermal; ///< Force due to thermal fluctuations.
     array_type::tensor<double, rank> m_f_potential; ///< @copybrief detail::System::f_potential
     array_type::tensor<double, rank> m_f_interactions; ///< @copydoc detail::System::f_interactions
     array_type::tensor<double, rank> m_f_frame; ///< @copybrief detail::System::f_frame
