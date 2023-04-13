@@ -627,9 +627,8 @@ public:
         for (size_type r = 0; r < 2; ++r) {
             for (size_type j = 0; j < m_cols; ++j) {
                 size_type i = edge_rows[r];
-                f(i, j) = u.periodic(i - 1, j) + u.periodic(i + 1, j) +
-                                u.periodic(i, j - 1) + u.periodic(i, j + 1) -
-                                4 * u(i, j);
+                f(i, j) = u.periodic(i - 1, j) + u.periodic(i + 1, j) + u.periodic(i, j - 1) +
+                          u.periodic(i, j + 1) - 4 * u(i, j);
             }
         }
 
@@ -637,17 +636,15 @@ public:
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type c = 0; c < 2; ++c) {
                 size_type j = edge_cols[c];
-                f(i, j) = u.periodic(i - 1, j) + u.periodic(i + 1, j) +
-                                u.periodic(i, j - 1) + u.periodic(i, j + 1) -
-                                4 * u(i, j);
+                f(i, j) = u.periodic(i - 1, j) + u.periodic(i + 1, j) + u.periodic(i, j - 1) +
+                          u.periodic(i, j + 1) - 4 * u(i, j);
             }
         }
 
         // interior
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type j = 1; j < m_cols - 1; ++j) {
-                f(i, j) = u(i - 1, j) + u(i + 1, j) + u(i, j - 1) +
-                                u(i, j + 1) - 4 * u(i, j);
+                f(i, j) = u(i - 1, j) + u(i + 1, j) + u(i, j - 1) + u(i, j + 1) - 4 * u(i, j);
             }
         }
 
@@ -711,17 +708,14 @@ public:
     {
         for (size_type p = 1; p < m_N - 1; ++p) {
             double du = 0.5 * (u(p + 1) - u(p - 1));
-            f(p) =
-                (u(p - 1) - 2 * u(p) + u(p + 1)) * (m_k2 + m_k4 * (du * du));
+            f(p) = (u(p - 1) - 2 * u(p) + u(p + 1)) * (m_k2 + m_k4 * (du * du));
         }
 
         double duf = 0.5 * (u(1) - u.back());
-        f.front() =
-            (u.back() - 2 * u.front() + u(1)) * (m_k2 + m_k4 * (duf * duf));
+        f.front() = (u.back() - 2 * u.front() + u(1)) * (m_k2 + m_k4 * (duf * duf));
 
         double dub = 0.5 * (u.front() - u(m_N - 2));
-        f.back() =
-            (u(m_N - 2) - 2 * u.back() + u.front()) * (m_k2 + m_k4 * (dub * dub));
+        f.back() = (u(m_N - 2) - 2 * u.back() + u.front()) * (m_k2 + m_k4 * (dub * dub));
     }
 };
 
@@ -764,18 +758,14 @@ public:
         for (size_type r = 0; r < 2; ++r) {
             for (size_type j = 0; j < m_cols; ++j) {
                 size_type i = edge_rows[r];
-                double l = u.periodic(i + 1, j) + u.periodic(i - 1, j) +
-                           u.periodic(i, j + 1) + u.periodic(i, j - 1) -
-                           4 * u(i, j);
+                double l = u.periodic(i + 1, j) + u.periodic(i - 1, j) + u.periodic(i, j + 1) +
+                           u.periodic(i, j - 1) - 4 * u(i, j);
                 double dudx = 0.5 * (u.periodic(i + 1, j) - u.periodic(i - 1, j));
                 double dudy = 0.5 * (u.periodic(i, j + 1) - u.periodic(i, j - 1));
-                double d2udxdy =
-                    0.25 * (u.periodic(i + 1, j + 1) - u.periodic(i + 1, j - 1) -
-                            u.periodic(i - 1, j + 1) + u.periodic(i - 1, j - 1));
-                double d2udx2 =
-                    u.periodic(i + 1, j) - 2 * u(i, j) + u.periodic(i - 1, j);
-                double d2udy2 =
-                    u.periodic(i, j + 1) - 2 * u(i, j) + u.periodic(i, j - 1);
+                double d2udxdy = 0.25 * (u.periodic(i + 1, j + 1) - u.periodic(i + 1, j - 1) -
+                                         u.periodic(i - 1, j + 1) + u.periodic(i - 1, j - 1));
+                double d2udx2 = u.periodic(i + 1, j) - 2 * u(i, j) + u.periodic(i - 1, j);
+                double d2udy2 = u.periodic(i, j + 1) - 2 * u(i, j) + u.periodic(i, j - 1);
 
                 f(i, j) =
                     l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
@@ -787,18 +777,14 @@ public:
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type c = 0; c < 2; ++c) {
                 size_type j = edge_cols[c];
-                double l = u.periodic(i + 1, j) + u.periodic(i - 1, j) +
-                           u.periodic(i, j + 1) + u.periodic(i, j - 1) -
-                           4 * u(i, j);
+                double l = u.periodic(i + 1, j) + u.periodic(i - 1, j) + u.periodic(i, j + 1) +
+                           u.periodic(i, j - 1) - 4 * u(i, j);
                 double dudx = 0.5 * (u.periodic(i + 1, j) - u.periodic(i - 1, j));
                 double dudy = 0.5 * (u.periodic(i, j + 1) - u.periodic(i, j - 1));
-                double d2udxdy =
-                    0.25 * (u.periodic(i + 1, j + 1) - u.periodic(i + 1, j - 1) -
-                            u.periodic(i - 1, j + 1) + u.periodic(i - 1, j - 1));
-                double d2udx2 =
-                    u.periodic(i + 1, j) - 2 * u(i, j) + u.periodic(i - 1, j);
-                double d2udy2 =
-                    u.periodic(i, j + 1) - 2 * u(i, j) + u.periodic(i, j - 1);
+                double d2udxdy = 0.25 * (u.periodic(i + 1, j + 1) - u.periodic(i + 1, j - 1) -
+                                         u.periodic(i - 1, j + 1) + u.periodic(i - 1, j - 1));
+                double d2udx2 = u.periodic(i + 1, j) - 2 * u(i, j) + u.periodic(i - 1, j);
+                double d2udy2 = u.periodic(i, j + 1) - 2 * u(i, j) + u.periodic(i, j - 1);
 
                 f(i, j) =
                     l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
@@ -809,12 +795,11 @@ public:
         // interior
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type j = 1; j < m_cols - 1; ++j) {
-                double l = u(i + 1, j) + u(i - 1, j) + u(i, j + 1) +
-                           u(i, j - 1) - 4 * u(i, j);
+                double l = u(i + 1, j) + u(i - 1, j) + u(i, j + 1) + u(i, j - 1) - 4 * u(i, j);
                 double dudx = 0.5 * (u(i + 1, j) - u(i - 1, j));
                 double dudy = 0.5 * (u(i, j + 1) - u(i, j - 1));
-                double d2udxdy = 0.25 * (u(i + 1, j + 1) - u(i + 1, j - 1) -
-                                         u(i - 1, j + 1) + u(i - 1, j - 1));
+                double d2udxdy =
+                    0.25 * (u(i + 1, j + 1) - u(i + 1, j - 1) - u(i - 1, j + 1) + u(i - 1, j - 1));
                 double d2udx2 = u(i + 1, j) - 2 * u(i, j) + u(i - 1, j);
                 double d2udy2 = u(i, j + 1) - 2 * u(i, j) + u(i, j - 1);
 
@@ -858,21 +843,21 @@ public:
             double dup = u(p + 1) - u(p);
             double dun = u(p - 1) - u(p);
             f(p) = m_a1 * (u(p - 1) - 2 * u(p) + u(p + 1)) +
-                         m_a2 * (dup * dup * dup + dun * dun * dun);
+                   m_a2 * (dup * dup * dup + dun * dun * dun);
         }
 
         {
             double dup = u(1) - u.front();
             double dun = u.back() - u.front();
             f.front() = m_a1 * (u.back() - 2 * u.front() + u(1)) +
-                              m_a2 * (dup * dup * dup + dun * dun * dun);
+                        m_a2 * (dup * dup * dup + dun * dun * dun);
         }
 
         {
             double dup = u.front() - u.back();
             double dun = u(m_N - 2) - u.back();
             f.back() = m_a1 * (u(m_N - 2) - 2 * u.back() + u.front()) +
-                             m_a2 * (dup * dup * dup + dun * dun * dun);
+                       m_a2 * (dup * dup * dup + dun * dun * dun);
         }
     }
 };
