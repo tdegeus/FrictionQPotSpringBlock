@@ -96,13 +96,13 @@ public:
 
     /**
      * @brief Update forces based on current slips.
-     * @param u_array Slip per particle.
-     * @param f_array Force per particle (output).
+     * @param u Slip per particle.
+     * @param f Force per particle (output).
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
-        m_chunk->align(u_array);
+        m_chunk->align(u);
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const double, 2> yield = xt::adapt(
@@ -122,48 +122,48 @@ public:
 
         for (stype p = 0; p < m_N; ++p) {
             const auto* l = &yield(p, i(p));
-            f_array.flat(p) = 0.5 * (*(l) + *(l + 1)) - u_array.flat(p);
+            f.flat(p) = 0.5 * (*(l) + *(l + 1)) - u.flat(p);
             FRICTIONQPOTSPRINGBLOCK_DEBUG(
                 i(p) > 0 && i(p) < static_cast<ptrdiff_t>(m_chunk->chunk_size()) - 1
             );
-            FRICTIONQPOTSPRINGBLOCK_DEBUG(u_array.flat(p) >= *(l) && u_array.flat(p) <= *(l + 1));
+            FRICTIONQPOTSPRINGBLOCK_DEBUG(u.flat(p) >= *(l) && u.flat(p) <= *(l + 1));
         }
 
-        f_array *= m_mu;
+        f *= m_mu;
     }
 
     /**
      * @copydoc System::maxUniformDisplacement
-     * @param u_array Slip per particle.
+     * @param u Slip per particle.
      */
     template <class T>
-    double maxUniformDisplacement(const T& u_array, int direction) const
+    double maxUniformDisplacement(const T& u, int direction) const
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
-        m_chunk->align(u_array);
+        m_chunk->align(u);
 
         if (direction > 0) {
-            return xt::amin(m_chunk->template right_of_align<T>() - u_array)();
+            return xt::amin(m_chunk->template right_of_align<T>() - u)();
         }
 
-        return xt::amin(u_array - m_chunk->template left_of_align<T>())();
+        return xt::amin(u - m_chunk->template left_of_align<T>())();
     }
 
     /**
      * @copydoc System::trigger
-     * @param u_array Slip per particle.
+     * @param u Slip per particle.
      */
     template <class T>
-    void trigger(T& u_array, size_t p, double eps, int direction) const
+    void trigger(T& u, size_t p, double eps, int direction) const
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
-        m_chunk->align(u_array);
+        m_chunk->align(u);
 
         if (direction > 0) {
-            u_array.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
+            u.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
         }
         else {
-            u_array.flat(p) = m_chunk->template left_of_align<T>().flat(p) - 0.5 * eps;
+            u.flat(p) = m_chunk->template left_of_align<T>().flat(p) - 0.5 * eps;
         }
     }
 };
@@ -224,14 +224,14 @@ public:
 
     /**
      * @brief Update forces based on current slips.
-     * @param u_array Slip per particle.
-     * @param f_array Force per particle (output: added to current result).
+     * @param u Slip per particle.
+     * @param f Force per particle (output: added to current result).
      * @param inc Current increment.
      */
     template <class T, class S>
-    void force(const T& u_array, T& f_array, S inc)
+    void force(const T& u, T& f, S inc)
     {
-        (void)(u_array);
+        (void)(u);
 
         for (size_type p = 0; p < m_N; ++p) {
             if (inc >= m_next(p)) {
@@ -240,7 +240,7 @@ public:
             }
         }
 
-        f_array += m_f_thermal;
+        f += m_f_thermal;
     }
 
     /**
@@ -329,9 +329,9 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
-        m_chunk->align(u_array);
+        m_chunk->align(u);
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const double, 2> yield = xt::adapt(
@@ -352,17 +352,17 @@ public:
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
             double xi = 0.5 * (*(y) + *(y + 1));
-            double u_u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
+            double u_r = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
             double u_l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
-            double u = u_array.flat(p);
-            if (u < u_l) {
-                f_array.flat(p) = m_kappa * (u - *(y));
+            double up = u.flat(p);
+            if (up < u_l) {
+                f.flat(p) = m_kappa * (up - *(y));
             }
-            else if (u <= u_u) {
-                f_array.flat(p) = m_mu * (0.5 * (*(y) + *(y + 1)) - u);
+            else if (up <= u_r) {
+                f.flat(p) = m_mu * (0.5 * (*(y) + *(y + 1)) - up);
             }
             else {
-                f_array.flat(p) = m_kappa * (u - *(y + 1));
+                f.flat(p) = m_kappa * (up - *(y + 1));
             }
         }
     }
@@ -371,10 +371,10 @@ public:
      * @copydoc Cuspy::maxUniformDisplacement
      */
     template <class T>
-    double maxUniformDisplacement(const T& u_array, int direction) const
+    double maxUniformDisplacement(const T& u, int direction) const
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
-        m_chunk->align(u_array);
+        m_chunk->align(u);
 
         bool positive = direction > 0;
         std::vector<double> du;
@@ -399,19 +399,19 @@ public:
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
             double xi = 0.5 * (*(y) + *(y + 1));
-            double u_u = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
+            double u_r = (m_mu * xi + m_kappa * *(y + 1)) / (m_mu + m_kappa);
             double u_l = (m_mu * xi + m_kappa * *(y)) / (m_mu + m_kappa);
-            double u = u_array.flat(p);
+            double up = u.flat(p);
 
-            if (u < u_l) {
+            if (up < u_l) {
                 return 0.0;
             }
-            else if (u <= u_u) {
+            else if (up <= u_r) {
                 if (positive) {
-                    du.push_back(u_u - u);
+                    du.push_back(u_r - up);
                 }
                 else {
-                    du.push_back(u - u_l);
+                    du.push_back(up - u_l);
                 }
             }
             else {
@@ -426,15 +426,15 @@ public:
      * @copydoc Cuspy::trigger
      */
     template <class T>
-    void trigger(T& u_array, size_t p, double eps, int direction) const
+    void trigger(T& u, size_t p, double eps, int direction) const
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
 
         if (direction > 0) {
-            u_array.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
+            u.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
         }
         else {
-            u_array.flat(p) = m_chunk->template left_of_align<T>().flat(p) - 0.5 * eps;
+            u.flat(p) = m_chunk->template left_of_align<T>().flat(p) - 0.5 * eps;
         }
     }
 };
@@ -466,9 +466,9 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
-        m_chunk->align(u_array);
+        m_chunk->align(u);
 
         // this does not allocate data, but only creates a view
         xt::xtensor_pointer<const double, 2> yield = xt::adapt(
@@ -488,10 +488,10 @@ public:
 
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
-            double u = u_array.flat(p);
+            double up = u.flat(p);
             double umin = 0.5 * (*(y) + *(y + 1));
             double dy = 0.5 * (*(y + 1) - *(y));
-            f_array.flat(p) = -m_mu * dy / M_PI * std::sin(M_PI * (u - umin) / dy);
+            f.flat(p) = -m_mu * dy / M_PI * std::sin(M_PI * (up - umin) / dy);
         }
     }
 
@@ -499,10 +499,10 @@ public:
      * @copydoc Cuspy::maxUniformDisplacement
      */
     template <class T>
-    double maxUniformDisplacement(const T& u_array, int direction) const
+    double maxUniformDisplacement(const T& u, int direction) const
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
-        (void)(u_array);
+        (void)(u);
         (void)(direction);
         throw std::runtime_error("Operation not possible.");
         return 0.0;
@@ -512,15 +512,15 @@ public:
      * @copydoc Cuspy::trigger
      */
     template <class T>
-    void trigger(T& u_array, size_t p, double eps, int direction) const
+    void trigger(T& u, size_t p, double eps, int direction) const
     {
         FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
 
         if (direction > 0) {
-            u_array.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
+            u.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
         }
         else {
-            u_array.flat(p) = m_chunk->template left_of_align<T>().flat(p) - 0.5 * eps;
+            u.flat(p) = m_chunk->template left_of_align<T>().flat(p) - 0.5 * eps;
         }
     }
 };
@@ -550,15 +550,15 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
         for (size_type p = 1; p < m_N - 1; ++p) {
-            f_array(p) = u_array(p - 1) - 2 * u_array(p) + u_array(p + 1);
+            f(p) = u(p - 1) - 2 * u(p) + u(p + 1);
         }
-        f_array.front() = u_array.back() - 2 * u_array.front() + u_array(1);
-        f_array.back() = u_array(m_N - 2) - 2 * u_array.back() + u_array.front();
+        f.front() = u.back() - 2 * u.front() + u(1);
+        f.back() = u(m_N - 2) - 2 * u.back() + u.front();
 
-        f_array *= m_k;
+        f *= m_k;
     }
 };
 
@@ -618,7 +618,7 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
         std::array<size_type, 2> edge_rows = {0, m_rows - 1};
         std::array<size_type, 2> edge_cols = {0, m_cols - 1};
@@ -627,9 +627,9 @@ public:
         for (size_type r = 0; r < 2; ++r) {
             for (size_type j = 0; j < m_cols; ++j) {
                 size_type i = edge_rows[r];
-                f_array(i, j) = u_array.periodic(i - 1, j) + u_array.periodic(i + 1, j) +
-                                u_array.periodic(i, j - 1) + u_array.periodic(i, j + 1) -
-                                4 * u_array(i, j);
+                f(i, j) = u.periodic(i - 1, j) + u.periodic(i + 1, j) +
+                                u.periodic(i, j - 1) + u.periodic(i, j + 1) -
+                                4 * u(i, j);
             }
         }
 
@@ -637,21 +637,21 @@ public:
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type c = 0; c < 2; ++c) {
                 size_type j = edge_cols[c];
-                f_array(i, j) = u_array.periodic(i - 1, j) + u_array.periodic(i + 1, j) +
-                                u_array.periodic(i, j - 1) + u_array.periodic(i, j + 1) -
-                                4 * u_array(i, j);
+                f(i, j) = u.periodic(i - 1, j) + u.periodic(i + 1, j) +
+                                u.periodic(i, j - 1) + u.periodic(i, j + 1) -
+                                4 * u(i, j);
             }
         }
 
         // interior
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type j = 1; j < m_cols - 1; ++j) {
-                f_array(i, j) = u_array(i - 1, j) + u_array(i + 1, j) + u_array(i, j - 1) +
-                                u_array(i, j + 1) - 4 * u_array(i, j);
+                f(i, j) = u(i - 1, j) + u(i + 1, j) + u(i, j - 1) +
+                                u(i, j + 1) - 4 * u(i, j);
             }
         }
 
-        f_array *= m_k;
+        f *= m_k;
     }
 };
 
@@ -707,21 +707,21 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
         for (size_type p = 1; p < m_N - 1; ++p) {
-            double du = 0.5 * (u_array(p + 1) - u_array(p - 1));
-            f_array(p) =
-                (u_array(p - 1) - 2 * u_array(p) + u_array(p + 1)) * (m_k2 + m_k4 * (du * du));
+            double du = 0.5 * (u(p + 1) - u(p - 1));
+            f(p) =
+                (u(p - 1) - 2 * u(p) + u(p + 1)) * (m_k2 + m_k4 * (du * du));
         }
 
-        double duf = 0.5 * (u_array(1) - u_array.back());
-        f_array.front() =
-            (u_array.back() - 2 * u_array.front() + u_array(1)) * (m_k2 + m_k4 * (duf * duf));
+        double duf = 0.5 * (u(1) - u.back());
+        f.front() =
+            (u.back() - 2 * u.front() + u(1)) * (m_k2 + m_k4 * (duf * duf));
 
-        double dub = 0.5 * (u_array.front() - u_array(m_N - 2));
-        f_array.back() =
-            (u_array(m_N - 2) - 2 * u_array.back() + u_array.front()) * (m_k2 + m_k4 * (dub * dub));
+        double dub = 0.5 * (u.front() - u(m_N - 2));
+        f.back() =
+            (u(m_N - 2) - 2 * u.back() + u.front()) * (m_k2 + m_k4 * (dub * dub));
     }
 };
 
@@ -753,7 +753,7 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
         double mk4_3 = m_k4 / 3.0;
         double mk4_23 = 2.0 * mk4_3;
@@ -764,20 +764,20 @@ public:
         for (size_type r = 0; r < 2; ++r) {
             for (size_type j = 0; j < m_cols; ++j) {
                 size_type i = edge_rows[r];
-                double l = u_array.periodic(i + 1, j) + u_array.periodic(i - 1, j) +
-                           u_array.periodic(i, j + 1) + u_array.periodic(i, j - 1) -
-                           4 * u_array(i, j);
-                double dudx = 0.5 * (u_array.periodic(i + 1, j) - u_array.periodic(i - 1, j));
-                double dudy = 0.5 * (u_array.periodic(i, j + 1) - u_array.periodic(i, j - 1));
+                double l = u.periodic(i + 1, j) + u.periodic(i - 1, j) +
+                           u.periodic(i, j + 1) + u.periodic(i, j - 1) -
+                           4 * u(i, j);
+                double dudx = 0.5 * (u.periodic(i + 1, j) - u.periodic(i - 1, j));
+                double dudy = 0.5 * (u.periodic(i, j + 1) - u.periodic(i, j - 1));
                 double d2udxdy =
-                    0.25 * (u_array.periodic(i + 1, j + 1) - u_array.periodic(i + 1, j - 1) -
-                            u_array.periodic(i - 1, j + 1) + u_array.periodic(i - 1, j - 1));
+                    0.25 * (u.periodic(i + 1, j + 1) - u.periodic(i + 1, j - 1) -
+                            u.periodic(i - 1, j + 1) + u.periodic(i - 1, j - 1));
                 double d2udx2 =
-                    u_array.periodic(i + 1, j) - 2 * u_array(i, j) + u_array.periodic(i - 1, j);
+                    u.periodic(i + 1, j) - 2 * u(i, j) + u.periodic(i - 1, j);
                 double d2udy2 =
-                    u_array.periodic(i, j + 1) - 2 * u_array(i, j) + u_array.periodic(i, j - 1);
+                    u.periodic(i, j + 1) - 2 * u(i, j) + u.periodic(i, j - 1);
 
-                f_array(i, j) =
+                f(i, j) =
                     l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
                                                    2.0 * dudx * dudy * d2udxdy);
             }
@@ -787,20 +787,20 @@ public:
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type c = 0; c < 2; ++c) {
                 size_type j = edge_cols[c];
-                double l = u_array.periodic(i + 1, j) + u_array.periodic(i - 1, j) +
-                           u_array.periodic(i, j + 1) + u_array.periodic(i, j - 1) -
-                           4 * u_array(i, j);
-                double dudx = 0.5 * (u_array.periodic(i + 1, j) - u_array.periodic(i - 1, j));
-                double dudy = 0.5 * (u_array.periodic(i, j + 1) - u_array.periodic(i, j - 1));
+                double l = u.periodic(i + 1, j) + u.periodic(i - 1, j) +
+                           u.periodic(i, j + 1) + u.periodic(i, j - 1) -
+                           4 * u(i, j);
+                double dudx = 0.5 * (u.periodic(i + 1, j) - u.periodic(i - 1, j));
+                double dudy = 0.5 * (u.periodic(i, j + 1) - u.periodic(i, j - 1));
                 double d2udxdy =
-                    0.25 * (u_array.periodic(i + 1, j + 1) - u_array.periodic(i + 1, j - 1) -
-                            u_array.periodic(i - 1, j + 1) + u_array.periodic(i - 1, j - 1));
+                    0.25 * (u.periodic(i + 1, j + 1) - u.periodic(i + 1, j - 1) -
+                            u.periodic(i - 1, j + 1) + u.periodic(i - 1, j - 1));
                 double d2udx2 =
-                    u_array.periodic(i + 1, j) - 2 * u_array(i, j) + u_array.periodic(i - 1, j);
+                    u.periodic(i + 1, j) - 2 * u(i, j) + u.periodic(i - 1, j);
                 double d2udy2 =
-                    u_array.periodic(i, j + 1) - 2 * u_array(i, j) + u_array.periodic(i, j - 1);
+                    u.periodic(i, j + 1) - 2 * u(i, j) + u.periodic(i, j - 1);
 
-                f_array(i, j) =
+                f(i, j) =
                     l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
                                                    2.0 * dudx * dudy * d2udxdy);
             }
@@ -809,16 +809,16 @@ public:
         // interior
         for (size_type i = 1; i < m_rows - 1; ++i) {
             for (size_type j = 1; j < m_cols - 1; ++j) {
-                double l = u_array(i + 1, j) + u_array(i - 1, j) + u_array(i, j + 1) +
-                           u_array(i, j - 1) - 4 * u_array(i, j);
-                double dudx = 0.5 * (u_array(i + 1, j) - u_array(i - 1, j));
-                double dudy = 0.5 * (u_array(i, j + 1) - u_array(i, j - 1));
-                double d2udxdy = 0.25 * (u_array(i + 1, j + 1) - u_array(i + 1, j - 1) -
-                                         u_array(i - 1, j + 1) + u_array(i - 1, j - 1));
-                double d2udx2 = u_array(i + 1, j) - 2 * u_array(i, j) + u_array(i - 1, j);
-                double d2udy2 = u_array(i, j + 1) - 2 * u_array(i, j) + u_array(i, j - 1);
+                double l = u(i + 1, j) + u(i - 1, j) + u(i, j + 1) +
+                           u(i, j - 1) - 4 * u(i, j);
+                double dudx = 0.5 * (u(i + 1, j) - u(i - 1, j));
+                double dudy = 0.5 * (u(i, j + 1) - u(i, j - 1));
+                double d2udxdy = 0.25 * (u(i + 1, j + 1) - u(i + 1, j - 1) -
+                                         u(i - 1, j + 1) + u(i - 1, j - 1));
+                double d2udx2 = u(i + 1, j) - 2 * u(i, j) + u(i - 1, j);
+                double d2udy2 = u(i, j + 1) - 2 * u(i, j) + u(i, j - 1);
 
-                f_array(i, j) =
+                f(i, j) =
                     l * (m_k2 + mk4_3) + mk4_23 * (dudx * dudx * d2udx2 + dudy * dudy * d2udy2 +
                                                    2.0 * dudx * dudy * d2udxdy);
             }
@@ -852,26 +852,26 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
         for (size_type p = 1; p < m_N - 1; ++p) {
-            double dup = u_array(p + 1) - u_array(p);
-            double dun = u_array(p - 1) - u_array(p);
-            f_array(p) = m_a1 * (u_array(p - 1) - 2 * u_array(p) + u_array(p + 1)) +
+            double dup = u(p + 1) - u(p);
+            double dun = u(p - 1) - u(p);
+            f(p) = m_a1 * (u(p - 1) - 2 * u(p) + u(p + 1)) +
                          m_a2 * (dup * dup * dup + dun * dun * dun);
         }
 
         {
-            double dup = u_array(1) - u_array.front();
-            double dun = u_array.back() - u_array.front();
-            f_array.front() = m_a1 * (u_array.back() - 2 * u_array.front() + u_array(1)) +
+            double dup = u(1) - u.front();
+            double dun = u.back() - u.front();
+            f.front() = m_a1 * (u.back() - 2 * u.front() + u(1)) +
                               m_a2 * (dup * dup * dup + dun * dun * dun);
         }
 
         {
-            double dup = u_array.front() - u_array.back();
-            double dun = u_array(m_N - 2) - u_array.back();
-            f_array.back() = m_a1 * (u_array(m_N - 2) - 2 * u_array.back() + u_array.front()) +
+            double dup = u.front() - u.back();
+            double dun = u(m_N - 2) - u.back();
+            f.back() = m_a1 * (u(m_N - 2) - 2 * u.back() + u.front()) +
                              m_a2 * (dup * dup * dup + dun * dun * dun);
         }
     }
@@ -920,11 +920,11 @@ public:
      * @copydoc Cuspy::force
      */
     template <class T>
-    void force(const T& u_array, T& f_array)
+    void force(const T& u, T& f)
     {
         for (ptrdiff_t p = 0; p < m_n; ++p) {
-            double f = 0.0;
-            double u = u_array(p);
+            double fp = 0.0;
+            double up = u(p);
             for (ptrdiff_t i = 0; i < m_n; ++i) {
                 if (i == p) {
                     continue;
@@ -933,9 +933,9 @@ public:
                 if (d > m_m) {
                     d = m_n - d;
                 }
-                f += (u_array(i) - u) * m_prefactor(d);
+                fp += (u(i) - up) * m_prefactor(d);
             }
-            f_array(p) = f;
+            f(p) = fp;
         }
     }
 };
