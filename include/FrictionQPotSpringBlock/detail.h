@@ -1217,11 +1217,11 @@ protected:
     void computeForce()
     {
         if constexpr (std::is_same<External, void>::value) {
-            xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_damping + m_f_frame;
+            xt::noalias(m_f) = m_f_frame + m_f_potential + m_f_interactions + m_f_damping;
         }
         else {
             xt::noalias(m_f) =
-                m_f_potential + m_f_interactions + m_f_damping + m_f_frame + m_f_thermal;
+                m_f_frame + m_f_potential + m_f_interactions + m_f_damping + m_f_thermal;
         }
     }
 
