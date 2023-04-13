@@ -435,8 +435,9 @@ class Test_System_Cuspy_Quartic(unittest.TestCase):
 class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions(self):
         N = 10
-        k2 = 0.12
-        k4 = 0.34
+        k2 = float(np.random.random(1))
+        k4 = float(np.random.random(1))
+        du = float(np.random.random(1))
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_QuarticGradient(
             m=1,
             eta=1,
@@ -455,9 +456,9 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
 
         self.assertLess(system.residual, 1e-5)
 
-        u0 = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        laplace = np.array([-2, 1, 0, 0, 0, 0, 0, 0, 0, 1])
-        gradient = np.array([0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0.5])
+        u0 = np.array([du, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        laplace = np.array([-2 * du, du, 0, 0, 0, 0, 0, 0, 0, du])
+        gradient = np.array([0, 0.5 * du, 0, 0, 0, 0, 0, 0, 0, 0.5 * du])
 
         f0 = k2 * laplace + k4 * laplace * gradient**2
 

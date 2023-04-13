@@ -594,6 +594,7 @@ protected:
     size_type m_N; ///< Number of particles.
     double m_k2; ///< Stiffness of the interactions.
     double m_k4; ///< Stiffness of the interactions.
+    double m_k4_4; ///< == 0.25 * m_k4
 
 public:
     QuarticGradient1d() = default;
@@ -603,7 +604,8 @@ public:
      * @param k4 @copydoc QuarticGradient1d::m_k4
      * @param N @copydoc QuarticGradient1d::m_N
      */
-    QuarticGradient1d(double k2, double k4, size_type N) : m_N(N), m_k2(k2), m_k4(k4)
+    QuarticGradient1d(double k2, double k4, size_type N)
+        : m_N(N), m_k2(k2), m_k4(k4), m_k4_4(0.25 * k4)
     {
     }
 
@@ -614,15 +616,15 @@ public:
     void force(const T& u, T& f)
     {
         for (size_type p = 1; p < m_N - 1; ++p) {
-            double du = 0.5 * (u(p + 1) - u(p - 1));
-            f(p) = (u(p - 1) - 2 * u(p) + u(p + 1)) * (m_k2 + m_k4 * (du * du));
+            double du = u(p + 1) - u(p - 1);
+            f(p) = (u(p - 1) - 2 * u(p) + u(p + 1)) * (m_k2 + m_k4_4 * du * du);
         }
 
-        double duf = 0.5 * (u(1) - u.back());
-        f.front() = (u.back() - 2 * u.front() + u(1)) * (m_k2 + m_k4 * (duf * duf));
+        double duf = u(1) - u.back();
+        f.front() = (u.back() - 2 * u.front() + u(1)) * (m_k2 + m_k4_4 * duf * duf);
 
-        double dub = 0.5 * (u.front() - u(m_N - 2));
-        f.back() = (u(m_N - 2) - 2 * u.back() + u.front()) * (m_k2 + m_k4 * (dub * dub));
+        double dub = u.front() - u(m_N - 2);
+        f.back() = (u(m_N - 2) - 2 * u.back() + u.front()) * (m_k2 + m_k4_4 * dub * dub);
     }
 };
 
