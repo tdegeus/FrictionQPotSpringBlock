@@ -204,138 +204,6 @@ public:
 };
 
 /**
- * Each particle experiences a random force representing the effect of temperature.
- * The random force drawn from a random distribution and is changed every `n` increments.
- * As such, it is defined by:
- *
- *  -   The mean and standard deviation of the random distribution.
- *  -   The first increment at which the random force is changed.
- *  -   The number of increments between two changes of the random force.
- *
- * @tparam rank rank of the system
- */
-template <size_t rank>
-class RandomNormalForcing {
-protected:
-    std::array<size_type, rank> m_shape; ///< @copybrief System::shape
-    size_type m_N; ///< Number of particles.
-    array_type::tensor<double, rank> m_f_thermal; ///< Current applied 'random' forces.
-    double m_mean; ///< Mean of the random distribution.
-    double m_stddev; ///< Standard deviation of the random distribution.
-    array_type::tensor<ptrdiff_t, rank> m_next; ///< Next increment at to draw.
-    array_type::tensor<ptrdiff_t, rank> m_dinc; ///< \#increments between two draws.
-    prrng::pcg32 m_rng; ///< Random number generator.
-
-public:
-    RandomNormalForcing() = default;
-
-    /**
-     * @param shape @copybrief System::shape
-     * @param mean @copybrief RandomNormalForcing::m_mean
-     * @param stddev @copybrief RandomNormalForcing::m_stddev
-     * @param seed Seed for the random number generator.
-     * @param dinc_init Number of increments to wait to draw the first random force.
-     * @param dinc @copybrief RandomNormalForcing::m_dinc
-     */
-    template <class T, class S>
-    RandomNormalForcing(
-        const S& shape,
-        double mean,
-        double stddev,
-        uint64_t seed,
-        const T& dinc_init,
-        const T& dinc
-    )
-    {
-        std::copy(shape.cbegin(), shape.cend(), m_shape.begin());
-        m_N = std::accumulate(m_shape.cbegin(), m_shape.cend(), 1, std::multiplies<size_type>{});
-        m_f_thermal = xt::zeros<double>(m_shape);
-        m_rng.seed(seed);
-        m_mean = mean;
-        m_stddev = stddev;
-        m_next = dinc_init;
-        m_dinc = dinc;
-    }
-
-    /**
-     * @brief Update forces based on current slips.
-     * @param u Slip per particle.
-     * @param f Force per particle (output: added to current result).
-     * @param inc Current increment.
-     */
-    template <class T, class S>
-    void force(const T& u, T& f, S inc)
-    {
-        (void)(u);
-
-        for (size_type p = 0; p < m_N; ++p) {
-            if (inc >= m_next(p)) {
-                m_f_thermal.flat(p) = m_rng.normal(m_mean, m_stddev);
-                m_next.flat(p) += m_dinc.flat(p);
-            }
-        }
-
-        f += m_f_thermal;
-    }
-
-    /**
-     * @brief State of the random number generator.
-     * @return State.
-     */
-    uint64_t state() const
-    {
-        return m_rng.state();
-    }
-
-    /**
-     * @brief Change the state of the random number generator.
-     * @param state State.
-     */
-    void set_state(uint64_t state)
-    {
-        m_rng.restore(state);
-    }
-
-    /**
-     * @brief Current random force.
-     * @return Array.
-     */
-    const auto& f_thermal() const
-    {
-        return m_f_thermal;
-    }
-
-    /**
-     * @brief Change the random force.
-     * @param f_thermal New random force.
-     */
-    void set_f_thermal(const array_type::tensor<double, rank>& f_thermal)
-    {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f_thermal, m_f_thermal.shape()));
-        m_f_thermal = f_thermal;
-    }
-
-    /**
-     * @brief Next increment at which the random force is changed.
-     * @return Array
-     */
-    const auto& next()
-    {
-        return m_next;
-    }
-
-    /**
-     * @brief Overwrite the next increment at which the random force is changed.
-     * @param next Next increment.
-     */
-    void set_next(const array_type::tensor<ptrdiff_t, rank>& next)
-    {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(next, m_next.shape()));
-        m_next = next;
-    }
-};
-
-/**
  * @brief A potential energy landscape of each particle that is piecewise smooth.
  * This corresponds to a piecewise linear force.
  */
@@ -961,6 +829,138 @@ public:
             }
             f(p) = fp;
         }
+    }
+};
+
+/**
+ * Each particle experiences a random force representing the effect of temperature.
+ * The random force drawn from a random distribution and is changed every `n` increments.
+ * As such, it is defined by:
+ *
+ *  -   The mean and standard deviation of the random distribution.
+ *  -   The first increment at which the random force is changed.
+ *  -   The number of increments between two changes of the random force.
+ *
+ * @tparam rank rank of the system
+ */
+template <size_t rank>
+class RandomNormalForcing {
+protected:
+    std::array<size_type, rank> m_shape; ///< @copybrief System::shape
+    size_type m_N; ///< Number of particles.
+    array_type::tensor<double, rank> m_f_thermal; ///< Current applied 'random' forces.
+    double m_mean; ///< Mean of the random distribution.
+    double m_stddev; ///< Standard deviation of the random distribution.
+    array_type::tensor<ptrdiff_t, rank> m_next; ///< Next increment at to draw.
+    array_type::tensor<ptrdiff_t, rank> m_dinc; ///< \#increments between two draws.
+    prrng::pcg32 m_rng; ///< Random number generator.
+
+public:
+    RandomNormalForcing() = default;
+
+    /**
+     * @param shape @copybrief System::shape
+     * @param mean @copybrief RandomNormalForcing::m_mean
+     * @param stddev @copybrief RandomNormalForcing::m_stddev
+     * @param seed Seed for the random number generator.
+     * @param dinc_init Number of increments to wait to draw the first random force.
+     * @param dinc @copybrief RandomNormalForcing::m_dinc
+     */
+    template <class T, class S>
+    RandomNormalForcing(
+        const S& shape,
+        double mean,
+        double stddev,
+        uint64_t seed,
+        const T& dinc_init,
+        const T& dinc
+    )
+    {
+        std::copy(shape.cbegin(), shape.cend(), m_shape.begin());
+        m_N = std::accumulate(m_shape.cbegin(), m_shape.cend(), 1, std::multiplies<size_type>{});
+        m_f_thermal = xt::zeros<double>(m_shape);
+        m_rng.seed(seed);
+        m_mean = mean;
+        m_stddev = stddev;
+        m_next = dinc_init;
+        m_dinc = dinc;
+    }
+
+    /**
+     * @brief Update forces based on current slips.
+     * @param u Slip per particle.
+     * @param f Force per particle (output: added to current result).
+     * @param inc Current increment.
+     */
+    template <class T, class S>
+    void force(const T& u, T& f, S inc)
+    {
+        (void)(u);
+
+        for (size_type p = 0; p < m_N; ++p) {
+            if (inc >= m_next(p)) {
+                m_f_thermal.flat(p) = m_rng.normal(m_mean, m_stddev);
+                m_next.flat(p) += m_dinc.flat(p);
+            }
+        }
+
+        f += m_f_thermal;
+    }
+
+    /**
+     * @brief State of the random number generator.
+     * @return State.
+     */
+    uint64_t state() const
+    {
+        return m_rng.state();
+    }
+
+    /**
+     * @brief Change the state of the random number generator.
+     * @param state State.
+     */
+    void set_state(uint64_t state)
+    {
+        m_rng.restore(state);
+    }
+
+    /**
+     * @brief Current random force.
+     * @return Array.
+     */
+    const auto& f_thermal() const
+    {
+        return m_f_thermal;
+    }
+
+    /**
+     * @brief Change the random force.
+     * @param f_thermal New random force.
+     */
+    void set_f_thermal(const array_type::tensor<double, rank>& f_thermal)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(f_thermal, m_f_thermal.shape()));
+        m_f_thermal = f_thermal;
+    }
+
+    /**
+     * @brief Next increment at which the random force is changed.
+     * @return Array
+     */
+    const auto& next()
+    {
+        return m_next;
+    }
+
+    /**
+     * @brief Overwrite the next increment at which the random force is changed.
+     * @param next Next increment.
+     */
+    void set_next(const array_type::tensor<ptrdiff_t, rank>& next)
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(next, m_next.shape()));
+        m_next = next;
     }
 };
 
