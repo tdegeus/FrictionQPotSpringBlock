@@ -66,6 +66,43 @@ inline prrng::distribution string_to_distribution(const std::string& str)
 }
 
 /**
+ * @brief Check disorder.
+ * @param u Particle slips.
+ * @param yield Yield positions per particle.
+ * @param i Index of the current slip.
+ */
+template <class U, class Y, class I>
+inline bool check_disorder(const U& u, const Y& yield, const I& i)
+{
+    if (i.dimension() != 1 || yield.dimension() != 2) {
+        return false;
+    }
+
+    if (u.size() != i.size() || u.size() != yield.shape(0)) {
+        return false;
+    }
+
+    using index_type = typename I::value_type;
+    index_type n = static_cast<ptrdiff_t>(yield.shape(1));
+
+    for (size_t p = 0; p < yield.shape(0); ++p) {
+        if (i(p) <= 0 || i(p) >= n - 2) {
+            return false;
+        }
+
+        if (u.flat(p) < yield(p, i(p)) || u.flat(p) > yield(p, i(p) + 1)) {
+            return false;
+        }
+
+        if (!std::is_sorted(&yield(p, 0), &yield(p, 0) + yield.shape(1))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * @brief A piece-wise quadratic local potential energy.
  * The resulting force is piece-wise linear:
  * \f$ f_\mathrm{pot}^{(i)} =  \mu (u_{\min}^{(i)} - u_i) \f$.
@@ -120,13 +157,11 @@ public:
             std::array<stype, 1>{m_N}
         );
 
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(check_disorder(u, yield, i));
+
         for (stype p = 0; p < m_N; ++p) {
             const auto* l = &yield(p, i(p));
             f.flat(p) = 0.5 * (*(l) + *(l + 1)) - u.flat(p);
-            FRICTIONQPOTSPRINGBLOCK_DEBUG(
-                i(p) > 0 && i(p) < static_cast<ptrdiff_t>(m_chunk->chunk_size()) - 1
-            );
-            FRICTIONQPOTSPRINGBLOCK_DEBUG(u.flat(p) >= *(l) && u.flat(p) <= *(l + 1));
         }
 
         f *= m_mu;
@@ -349,6 +384,8 @@ public:
             std::array<stype, 1>{m_N}
         );
 
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(check_disorder(u, yield, i));
+
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
             double xi = 0.5 * (*(y) + *(y + 1));
@@ -395,6 +432,8 @@ public:
             xt::no_ownership(),
             std::array<stype, 1>{m_N}
         );
+
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(check_disorder(u, yield, i));
 
         for (stype p = 0; p < m_N; ++p) {
             auto* y = &yield(p, i(p));
