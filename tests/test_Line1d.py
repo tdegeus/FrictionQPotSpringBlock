@@ -235,11 +235,17 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             nchunk=100,
         )
 
+        i_n = system.chunk.index_at_align.copy()
         system.trigger(0, 0.2)
 
         u = np.zeros(N)
         u[0] = 0.5 + 0.1
         self.assertTrue(np.allclose(system.u, u))
+
+        ret = system.minimise_truncate(i_n=i_n, A_truncate=1)
+        self.assertTrue(np.sum(system.chunk.index_at_align != i_n) >= 1)
+        self.assertGreater(ret, 0)
+        self.assertGreater(system.residual, 1e-5)
 
     def test_advanceToFixedForce(self):
         N = 3

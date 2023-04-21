@@ -1674,6 +1674,81 @@ public:
     }
 
     /**
+     * @copydoc minimise(double, size_t, size_t, bool, bool)
+     *
+     * @param A_truncate
+     *     Truncate if `A_truncate` blocks have yielded at least once (return > 0).
+     *     Only considered if `A_truncate > 0`.
+     *
+     * @param S_truncate
+     *     Truncate if the number of times blocks yielded is equal to `S_truncate` (return > 0).
+     *     Only considered if `S_truncate > 0`.
+     *
+     * @param i_n Reference potential index of the first integration point.
+     */
+    virtual size_t minimise_truncate(
+        array_type::tensor<ptrdiff_t, rank> i_n,
+        size_t A_truncate = 0,
+        size_t S_truncate = 0,
+        double tol = 1e-5,
+        size_t niter_tol = 10,
+        size_t max_iter = 1e9,
+        bool time_activity = true,
+        bool max_iter_is_error = true
+    )
+    {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::has_shape(i_n, m_u.shape()));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(time_activity);
+        (void)(time_activity);
+
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList residuals(niter_tol);
+
+        long s = 0;
+        long s_n = 0;
+        bool init = true;
+        size_t step;
+
+        for (step = 1; step < max_iter + 1; ++step) {
+
+            this->timeStep();
+            residuals.roll_insert(this->residual());
+
+            size_t a = (size_t)xt::sum(xt::not_equal(m_chunk->index_at_align(), i_n))();
+            s = xt::sum(xt::abs(m_chunk->index_at_align() - i_n))();
+            if (s != s_n) {
+                if (init) {
+                    init = false;
+                    m_qs_inc_first = m_inc;
+                }
+                m_qs_inc_last = m_inc;
+            }
+            s_n = s;
+
+            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
+                this->quench();
+                return 0;
+            }
+
+            if (A_truncate > 0 && a >= A_truncate) {
+                return step;
+            }
+
+            if (S_truncate > 0 && s >= (long)S_truncate) {
+                return step;
+            }
+        }
+
+        if (max_iter_is_error) {
+            throw std::runtime_error("No convergence found");
+        }
+
+        return step;
+    }
+
+    /**
      * @brief Find maximum particle displacement for which the system is linear and uniform.
      *
      * @param direction If `+1`: move right. If `-1` move left.
