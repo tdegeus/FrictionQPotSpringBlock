@@ -459,6 +459,9 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((size_t)u.size() == (size_t)f.size() == m_N);
+
         for (size_type p = 1; p < m_N - 1; ++p) {
             f(p) = u(p - 1) - 2 * u(p) + u(p + 1);
         }
@@ -527,6 +530,12 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::has_shape(u, f.shape()));
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(
+            (size_type)u.shape(0) == m_rows && (size_type)u.shape(1) == m_cols
+        );
+
         std::array<size_type, 2> edge_rows = {0, m_rows - 1};
         std::array<size_type, 2> edge_cols = {0, m_cols - 1};
 
@@ -658,6 +667,12 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::has_shape(u, f.shape()));
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(
+            (size_type)u.shape(0) == m_rows && (size_type)u.shape(1) == m_cols
+        );
+
         double mk4_3 = m_k4 / 3.0;
         double mk4_23 = 2.0 * mk4_3;
         std::array<size_type, 2> edge_rows = {0, m_rows - 1};
@@ -748,6 +763,9 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((size_t)u.size() == (size_t)f.size() == m_N);
+
         for (size_type p = 1; p < m_N - 1; ++p) {
             double dup = u(p + 1) - u(p);
             double dun = u(p - 1) - u(p);
