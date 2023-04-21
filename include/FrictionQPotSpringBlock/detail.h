@@ -139,6 +139,8 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((stype)u.size() == m_N && (stype)f.size() == m_N);
+
         m_chunk->align(u);
 
         // this does not allocate data, but only creates a view
@@ -174,7 +176,7 @@ public:
     template <class T>
     double maxUniformDisplacement(const T& u, int direction) const
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(direction == 1 || direction == -1);
         m_chunk->align(u);
 
         if (direction > 0) {
@@ -191,7 +193,7 @@ public:
     template <class T>
     void trigger(T& u, size_t p, double eps, int direction) const
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((stype)p < m_N);
         m_chunk->align(u);
 
         if (direction > 0) {
@@ -234,6 +236,8 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((stype)u.size() == m_N && (stype)f.size() == m_N);
+
         m_chunk->align(u);
 
         // this does not allocate data, but only creates a view
@@ -278,7 +282,7 @@ public:
     template <class T>
     double maxUniformDisplacement(const T& u, int direction) const
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(direction == 1 || direction == -1);
         m_chunk->align(u);
 
         bool positive = direction > 0;
@@ -335,7 +339,7 @@ public:
     template <class T>
     void trigger(T& u, size_t p, double eps, int direction) const
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(p < m_N);
 
         if (direction > 0) {
             u.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
@@ -375,6 +379,8 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((stype)u.size() == m_N && (stype)f.size() == m_N);
+
         m_chunk->align(u);
 
         // this does not allocate data, but only creates a view
@@ -408,7 +414,7 @@ public:
     template <class T>
     double maxUniformDisplacement(const T& u, int direction) const
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(direction == 1 || direction == -1);
         (void)(u);
         (void)(direction);
         throw std::runtime_error("Operation not possible.");
@@ -421,7 +427,7 @@ public:
     template <class T>
     void trigger(T& u, size_t p, double eps, int direction) const
     {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(p < m_N);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(p < m_N);
 
         if (direction > 0) {
             u.flat(p) = m_chunk->template right_of_align<T>().flat(p) + 0.5 * eps;
@@ -459,8 +465,8 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 1);
-        FRICTIONQPOTSPRINGBLOCK_DEBUG((size_t)u.size() == (size_t)f.size() == m_N);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == 1 && f.dimension() == 1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((size_type)u.size() == m_N && (size_type)f.size() == m_N);
 
         for (size_type p = 1; p < m_N - 1; ++p) {
             f(p) = u(p - 1) - 2 * u(p) + u(p + 1);
@@ -530,7 +536,7 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == 2 && f.dimension() == 2);
         FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::has_shape(u, f.shape()));
         FRICTIONQPOTSPRINGBLOCK_DEBUG(
             (size_type)u.shape(0) == m_rows && (size_type)u.shape(1) == m_cols
@@ -667,7 +673,7 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 2);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == 2 && f.dimension() == 2);
         FRICTIONQPOTSPRINGBLOCK_DEBUG(xt::has_shape(u, f.shape()));
         FRICTIONQPOTSPRINGBLOCK_DEBUG(
             (size_type)u.shape(0) == m_rows && (size_type)u.shape(1) == m_cols
@@ -763,8 +769,8 @@ public:
     template <class T>
     void force(const T& u, T& f)
     {
-        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == f.dimension() == 1);
-        FRICTIONQPOTSPRINGBLOCK_DEBUG((size_t)u.size() == (size_t)f.size() == m_N);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG(u.dimension() == 1 && f.dimension() == 1);
+        FRICTIONQPOTSPRINGBLOCK_DEBUG((size_type)u.size() == m_N && (size_type)f.size() == m_N);
 
         for (size_type p = 1; p < m_N - 1; ++p) {
             double dup = u(p + 1) - u(p);
@@ -1147,7 +1153,7 @@ public:
     void set_t(double arg)
     {
         m_inc = static_cast<decltype(m_inc)>(std::round(arg / m_dt));
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(xt::allclose(this->t(), arg));
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::allclose(this->t(), arg));
     }
 
     /**
@@ -1490,7 +1496,7 @@ public:
      */
     void timeSteps(size_t n)
     {
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(n + 1 < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(n + 1 < std::numeric_limits<long>::max());
         for (size_t step = 0; step < n; ++step) {
             this->timeStep();
         }
@@ -1550,7 +1556,7 @@ public:
      */
     void flowSteps(size_t n, double v_frame)
     {
-        FRICTIONQPOTSPRINGBLOCK_REQUIRE(n + 1 < std::numeric_limits<long>::max());
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(n + 1 < std::numeric_limits<long>::max());
 
         for (size_t step = 0; step < n; ++step) {
             m_u_frame += v_frame * m_dt;
@@ -1675,6 +1681,7 @@ public:
      */
     double maxUniformDisplacement(int direction)
     {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT(direction == 1 || direction == -1);
         return m_potential->maxUniformDisplacement(m_u, direction);
     };
 
@@ -1745,6 +1752,7 @@ public:
      */
     void trigger(size_t p, double eps, int direction = 1)
     {
+        FRICTIONQPOTSPRINGBLOCK_ASSERT((size_type)p < m_N);
         return m_potential->trigger(m_u, p, eps, direction);
         this->updated_u();
     };
