@@ -1407,6 +1407,15 @@ public:
     }
 
     /**
+     * @brief The time step (parameter).
+     * @return Float.
+     */
+    auto dt() const
+    {
+        return m_dt;
+    }
+
+    /**
      * @brief The increment number.
      * @return Signed integer.
      */

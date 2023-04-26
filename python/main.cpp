@@ -96,6 +96,7 @@ void mySystemNd(Binder& cls)
     cls.def_property("inc", &System::inc, &System::set_inc, "Increment");
     cls.def_property("t", &System::t, &System::set_t, "Time");
     cls.def_property("u_frame", &System::u_frame, &System::set_u_frame, "Frame position");
+    cls.def_property_readonly("dt", &System::dt, "Time step");
     cls.def_property_readonly(
         "f", &System::f, "Residual forces", py::return_value_policy::reference_internal
     );
