@@ -1014,7 +1014,12 @@ public:
  * @tparam Interactions Interactions forces (called from updated_u()).
  * @tparam External External forces (called from updated_inc()).
  */
-template <size_t rank, class Potential, class Generator, class Interactions, class External = void>
+template <
+    size_t rank,
+    class Potential,
+    class Generator,
+    class Interactions = void,
+    class External = void>
 class System {
 protected:
     size_type m_N; ///< @copybrief detail::System::size
@@ -1066,7 +1071,7 @@ protected:
         double dt,
         Potential* potential,
         Generator* chunk,
-        Interactions* interactions,
+        Interactions* interactions = nullptr,
         External* external = nullptr
     )
     {
@@ -1264,7 +1269,9 @@ protected:
      */
     void computeForceInteractions()
     {
-        m_interactions->force(m_u, m_f_interactions);
+        if constexpr (!std::is_same<Interactions, void>::value) {
+            m_interactions->force(m_u, m_f_interactions);
+        }
     }
 
     /**

@@ -16,6 +16,7 @@
 #define FRICTIONQPOTSPRINGBLOCK_USE_XTENSOR_PYTHON
 #include <FrictionQPotSpringBlock/Line1d.h>
 #include <FrictionQPotSpringBlock/Line2d.h>
+#include <FrictionQPotSpringBlock/Particles.h>
 #include <prrng.h>
 
 namespace py = pybind11;
@@ -263,6 +264,200 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
 
             cls.def("__repr__", [](const S&) {
                 return "<FrictionQPotSpringBlock.detail.RandomNormalForcing_1>";
+            });
+        }
+    }
+
+    // ---------------------------------
+    // FrictionQPotSpringBlock.Particles
+    // ---------------------------------
+
+    {
+
+        py::module sm = m.def_submodule("Particles", "Particles");
+        namespace SM = FrictionQPotSpringBlock::Particles;
+
+        sm.def(
+            "version_dependencies",
+            &SM::version_dependencies,
+            "Return version information of library and its dependencies."
+        );
+
+        sm.def("version_compiler", &SM::version_compiler, "Return compiler information.");
+
+        {
+            using S = SM::System_Cuspy;
+
+            py::class_<S> cls(sm, "System_Cuspy");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
+            );
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Particle.System_Cuspy>";
+            });
+        }
+
+        {
+            using S = SM::System_Cuspy_RandomForcing;
+
+            py::class_<S> cls(sm, "System_Cuspy_RandomForcing");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    uint64_t,
+                    const xt::pytensor<ptrdiff_t, 1>&,
+                    const xt::pytensor<ptrdiff_t, 1>&,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("mean"),
+                py::arg("stddev"),
+                py::arg("seed_forcing"),
+                py::arg("dinc_init"),
+                py::arg("dinc"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
+            );
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+            mySystemNdExternal<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Particles.System_Cuspy_RandomForcing>";
+            });
+        }
+
+        {
+            using S = SM::System_SemiSmooth;
+
+            py::class_<S> cls(sm, "System_SemiSmooth");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("kappa"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
+            );
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Particles.System_SemiSmooth>";
+            });
+        }
+
+        {
+            using S = SM::System_Smooth;
+
+            py::class_<S> cls(sm, "System_Smooth");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
+            );
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdAthermal<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Particles.System_Smooth>";
             });
         }
     }
