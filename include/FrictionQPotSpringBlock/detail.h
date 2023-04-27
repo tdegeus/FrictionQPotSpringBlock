@@ -1139,6 +1139,24 @@ public:
     }
 
     /**
+     * @brief The time step (parameter).
+     * @return Float.
+     */
+    auto dt() const
+    {
+        return m_dt;
+    }
+
+    /**
+     * @brief The stiffness of the loading frame (parameter).
+     * @return Float.
+     */
+    auto k_frame() const
+    {
+        return m_k_frame;
+    }
+
+    /**
      * @brief Class that generates and external force that is add to the residual force.
      * @return Reference.
      */
@@ -1404,15 +1422,6 @@ public:
     auto t() const
     {
         return static_cast<double>(m_inc) * m_dt;
-    }
-
-    /**
-     * @brief The time step (parameter).
-     * @return Float.
-     */
-    auto dt() const
-    {
-        return m_dt;
     }
 
     /**
@@ -1854,6 +1863,7 @@ public:
      *
      * @warning Assumes mechanical equilibrium. No assertions are made on this.
      *
+     * @param f_frame Target value for the mean of f_frame().
      * @param allow_plastic Allow plastic events during the advance.
      */
     void advanceToFixedForce(double f_frame, bool allow_plastic = false)
