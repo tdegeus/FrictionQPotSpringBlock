@@ -72,6 +72,8 @@ void mySystemNd(Binder& cls)
     cls.def_property_readonly(
         "shape", &System::shape, "Shape of the system", py::return_value_policy::reference_internal
     );
+    cls.def_property_readonly("dt", &System::dt, "Time step (parameter)");
+    cls.def_property_readonly("k_frame", &System::k_frame, "Loading frame stiffness (parameter)");
     cls.def_property(
         "u",
         &System::u,
@@ -96,7 +98,6 @@ void mySystemNd(Binder& cls)
     cls.def_property("inc", &System::inc, &System::set_inc, "Increment");
     cls.def_property("t", &System::t, &System::set_t, "Time");
     cls.def_property("u_frame", &System::u_frame, &System::set_u_frame, "Frame position");
-    cls.def_property_readonly("dt", &System::dt, "Time step");
     cls.def_property_readonly(
         "f", &System::f, "Residual forces", py::return_value_policy::reference_internal
     );
@@ -147,7 +148,7 @@ void mySystemNd(Binder& cls)
         &System::advanceToFixedForce,
         "advanceToFixedForce",
         py::arg("f_frame"),
-        py::arg("allow_plastic") = false,
+        py::arg("allow_plastic") = false
     );
 }
 
