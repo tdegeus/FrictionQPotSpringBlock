@@ -1853,12 +1853,16 @@ public:
      * the mean of f_frame() is equal to a target value, and mechanical equilibrium is maintained.
      *
      * @warning Assumes mechanical equilibrium. No assertions are made on this.
+     *
+     * @param allow_plastic Allow plastic events during the advance.
      */
-    void advanceToFixedForce(double f_frame)
+    void advanceToFixedForce(double f_frame, bool allow_plastic = false)
     {
         auto i_n = m_chunk->index_at_align();
         this->advanceUniformly((f_frame - xt::mean(m_f_frame)()) / m_mu, false);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(xt::all(xt::equal(m_chunk->index_at_align(), i_n)));
+        FRICTIONQPOTSPRINGBLOCK_REQUIRE(
+            allow_plastic || xt::all(xt::equal(m_chunk->index_at_align(), i_n))
+        );
     }
 
 protected:

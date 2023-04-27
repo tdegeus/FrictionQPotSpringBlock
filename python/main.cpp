@@ -146,7 +146,8 @@ void mySystemNd(Binder& cls)
         "advanceToFixedForce",
         &System::advanceToFixedForce,
         "advanceToFixedForce",
-        py::arg("f_frame")
+        py::arg("f_frame"),
+        py::arg("allow_plastic") = false,
     );
 }
 
