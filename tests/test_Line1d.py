@@ -73,7 +73,7 @@ class Test_Uniform(unittest.TestCase):
 
         # by construction u = 0 which is a local minimum in all potentials
         for system in systems:
-            self.assertLess(system.residual, 1e-5)
+            self.assertLess(system.norm_static_residual, 1e-5)
             self.assertTrue(np.allclose(system.f, 0.0))
             self.assertTrue(np.allclose(system.f_potential, 0.0))
             self.assertTrue(np.allclose(system.f_frame, 0.0))
@@ -110,7 +110,7 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         )
 
         # by construction u = 0 which is a local minimum in all potentials
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.f, 0.0))
         self.assertTrue(np.allclose(system.f_potential, 0.0))
         self.assertTrue(np.allclose(system.f_frame, 0.0))
@@ -191,11 +191,11 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             offset=-49.5,
             nchunk=100,
         )
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
         i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, False)
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.u, (0.5 - 0.1) * np.ones(N)))
         self.assertTrue(np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1)
@@ -263,12 +263,12 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
             offset=-49.5,
             nchunk=100,
         )
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         system.advanceToFixedForce(0.1)
         self.assertAlmostEqual(np.mean(system.f_frame), 0.1)
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         system.advanceToFixedForce(0.0)
         self.assertAlmostEqual(np.mean(system.f_frame), 0.0)
         self.assertTrue(np.allclose(system.u, 0.0))
@@ -362,7 +362,7 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
             offset=-49.5,
             nchunk=100,
         )
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
         u0 = system.u.copy()
         uf0 = system.u_frame
@@ -375,12 +375,12 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
 
         self.assertAlmostEqual(system.maxUniformDisplacement(), np.min(upper - system.u))
         system.eventDrivenStep(eps=eps, kick=False)
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.u, upper - 0.5 * eps))
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0.5 * eps)
 
         system.eventDrivenStep(eps=eps, kick=True)
-        self.assertGreater(system.residual, 1e-5)
+        self.assertGreater(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.u, upper + 0.5 * eps))
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
 
@@ -389,12 +389,12 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
 
         self.assertAlmostEqual(system.maxUniformDisplacement(-1), np.min(system.u - lower))
         system.eventDrivenStep(eps=eps, kick=False, direction=-1)
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.u, lower + 0.5 * eps))
         self.assertAlmostEqual(system.maxUniformDisplacement(-1), 0.5 * eps)
 
         system.eventDrivenStep(eps=eps, kick=True, direction=-1)
-        self.assertGreater(system.residual, 1e-5)
+        self.assertGreater(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.u, lower - 0.5 * eps))
         self.assertAlmostEqual(system.maxUniformDisplacement(), 0)
 
@@ -420,7 +420,7 @@ class Test_System_Cuspy_Quartic(unittest.TestCase):
             nchunk=100,
         )
 
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
         du = float(np.random.random(1))
         u0 = np.array([du, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -460,7 +460,7 @@ class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
             nchunk=100,
         )
 
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
         u0 = np.array([du, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         laplace = np.array([-2 * du, du, 0, 0, 0, 0, 0, 0, 0, du])
@@ -535,11 +535,11 @@ class Test_System_Cuspy_LongRange(unittest.TestCase):
             nchunk=100,
         )
 
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
         i_n = system.chunk.index_at_align
         system.eventDrivenStep(0.2, False)
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.u, (0.5 - 0.1) * np.ones(N)))
         self.assertTrue(np.all(system.chunk.index_at_align == i_n))
         self.assertAlmostEqual(system.u_frame, (0.5 - 0.1) * (1.0 + 0.1) / 0.1)
@@ -585,18 +585,18 @@ class Test_System_Cuspy_Laplace_RandomForcing(unittest.TestCase):
             offset=-49.5,
             nchunk=100,
         )
-        self.assertLess(system.residual, 1e-5)
+        self.assertLess(system.norm_static_residual, 1e-5)
 
         gen = prrng.pcg32(0)
 
         system.inc += 1
         system.refresh()
-        self.assertGreater(system.residual, 1e-5)
+        self.assertGreater(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.external.f_thermal, gen.normal([system.size], 0, 1)))
 
         system.inc += 1
         system.refresh()
-        self.assertGreater(system.residual, 1e-5)
+        self.assertGreater(system.norm_static_residual, 1e-5)
         self.assertTrue(np.allclose(system.external.f_thermal, gen.normal([system.size], 0, 1)))
 
 

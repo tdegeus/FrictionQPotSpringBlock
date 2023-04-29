@@ -285,7 +285,7 @@ public:
 
             this->computeForceInteractions();
             xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_frame;
-            residuals.roll_insert(this->residual());
+            residuals.roll_insert(this->norm_residual());
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
                 this->quench(); // no dynamics are run: make sure that the user is not confused

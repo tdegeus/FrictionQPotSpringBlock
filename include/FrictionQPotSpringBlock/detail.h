@@ -1448,13 +1448,25 @@ public:
     }
 
     /**
-     * @brief Residual.
-     *
-     * Tthe ratio between the norm of f() and f_frame().
-     *
+     * @brief The maximum of the norms of the normalised residual force and damping force.
      * @return Float.
      */
-    double residual() const
+    double norm_static_residual() const
+    {
+        double r_fres = std::max(xt::norm_l2(m_f_damping)(), xt::norm_l2(m_f)());
+        double r_fext = xt::norm_l2(m_f_frame)();
+        if (r_fext != 0.0) {
+            return r_fres / r_fext;
+        }
+        return r_fres;
+    }
+
+    /**
+     * @brief The norm of the normalised residual force.
+     * @details The ratio between the norm of f() and f_frame().
+     * @return Float.
+     */
+    double norm_residual() const
     {
         double r_fres = xt::norm_l2(m_f)();
         double r_fext = xt::norm_l2(m_f_frame)();
@@ -1530,7 +1542,7 @@ public:
     /**
      * @brief Perform a series of time-steps until the next plastic event, or equilibrium.
      *
-     * @param tol Relative force tolerance for equilibrium. See residual() for definition.
+     * @param tol Relative force tolerance for equilibrium. Definition: norm_static_residual().
      * @param niter_tol Enforce the residual check for `niter_tol` consecutive increments.
      * @param max_iter Maximum number of iterations. Throws `std::runtime_error` otherwise.
      * @return
@@ -1555,7 +1567,7 @@ public:
                 return step;
             }
 
-            residuals.roll_insert(this->residual());
+            residuals.roll_insert(this->norm_static_residual());
 
             if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
                 this->quench();
@@ -1594,7 +1606,7 @@ public:
      *      Minimise energy: run timeStep() until a mechanical equilibrium has been reached.
      *
      * @param tol
-     *      Relative force tolerance for equilibrium. See residual() for definition.
+     *      Relative force tolerance for equilibrium. Definition: norm_static_residual().
      *
      * @param niter_tol
      *      Enforce the residual check for `niter_tol` consecutive increments.
@@ -1645,7 +1657,7 @@ public:
         for (step = 1; step < max_iter + 1; ++step) {
 
             this->timeStep();
-            residuals.roll_insert(this->residual());
+            residuals.roll_insert(this->norm_static_residual());
 
             if (time_activity) {
                 s = xt::sum(xt::abs(m_chunk->index_at_align() - i_n))();
