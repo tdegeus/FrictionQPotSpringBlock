@@ -62,9 +62,10 @@ for step in range(nstep):
 
 base = pathlib.Path(__file__)
 with h5py.File(base.parent / (base.stem + ".h5")) as file:
+    print(ret_S - file["S"][...])
+    assert np.all(ret_S == file["S"][...])
     assert np.allclose(ret_u_frame, file["x_frame"][...])
     assert np.allclose(ret_f_frame, file["f_frame"][...])
-    assert np.all(ret_S == file["S"][...])
 
 if plot:
     fig, ax = plt.subplots()
