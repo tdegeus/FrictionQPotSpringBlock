@@ -165,10 +165,22 @@ public:
  * @brief #System_Cuspy_Laplace assuming overdamped dynamics.
  * This system is meant only for minimisation during which the no-passing condition is used.
  * No dynamics can be simulated.
+ *
+ * @warning
+ *      Minimisation is based on the no-passing condition and does not follow the dynamics.
+ *      The time is not updated.
  */
-class System_Cuspy_Laplace_Nopassing : public System_Cuspy_Laplace {
+class System_Cuspy_Laplace_Nopassing : public detail::System<
+                                           1,
+                                           detail::Cuspy<Generator>,
+                                           Generator,
+                                           detail::Laplace1d,
+                                           void,
+                                           detail::Overdamped> {
 protected:
-    double m_k_interactions; ///< @copybrief detail::Laplace1d::m_k
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
+    detail::Cuspy<Generator> m_pot; ///< @copybrief detail::System::m_potential
+    detail::Laplace1d m_int; ///< @copybrief detail::System::m_interactions
 
 public:
     /**
@@ -197,107 +209,19 @@ public:
         double eta = 0.0,
         double dt = 0.0
     )
-        : System_Cuspy_Laplace(
-              1.0,
-              eta,
-              mu,
-              k_interactions,
-              k_frame,
-              dt,
-              shape,
-              seed,
-              distribution,
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
               parameters,
-              offset,
-              nchunk
-          ),
-          m_k_interactions(k_interactions)
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
     {
-    }
-
-    /**
-     * @warning This function is based on the no-passing condition and does not follow the dynamics.
-     * The time is not updated.
-     *
-     * @copydoc detail::System::minimise
-     */
-    size_t minimise(
-        double tol = 1e-5,
-        size_t niter_tol = 10,
-        size_t max_iter = 1e9,
-        bool time_activity = false,
-        bool max_iter_is_error = true
-    ) override
-    {
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(!time_activity);
-        (void)(time_activity);
-
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
-        FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
-
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        double uneigh;
-        double u;
-        double umin;
-        ptrdiff_t i;
-        ptrdiff_t j;
-        size_t step;
-        m_qs_inc_first = m_inc; // unused
-        m_qs_inc_last = m_inc; // unused
-
-        for (step = 1; step < max_iter + 1; ++step) {
-
-            // "misuse" unused variable
-            xt::noalias(m_v_n) = m_u;
-
-            for (size_type p = 0; p < m_N; ++p) {
-
-                if (p == 0) {
-                    uneigh = m_v_n.back() + m_v_n(1);
-                }
-                else if (p == m_N - 1) {
-                    uneigh = m_v_n(m_N - 2) + m_v_n.front();
-                }
-                else {
-                    uneigh = m_v_n(p - 1) + m_v_n(p + 1);
-                }
-
-                i = m_gen.chunk_index_at_align()(p);
-                auto* y = &m_gen.data()(p, 0);
-
-                while (true) {
-                    umin = 0.5 * (*(y + i) + *(y + i + 1));
-                    u = (m_k_interactions * uneigh + m_k_frame * m_u_frame + m_mu * umin) /
-                        (2 * m_k_interactions + m_k_frame + m_mu);
-                    m_gen.align(p, u);
-                    j = m_gen.chunk_index_at_align()(p);
-                    if (j == i) {
-                        break;
-                    }
-                    i = j;
-                }
-                m_u(p) = u;
-                m_f_frame(p) = m_k_frame * (m_u_frame - u);
-                m_f_potential(p) = m_mu * (umin - u);
-            }
-
-            this->computeForceInteractions();
-            xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_frame;
-            residuals.roll_insert(this->residual());
-
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench(); // no dynamics are run: make sure that the user is not confused
-                return 0;
-            }
-        }
-
-        if (max_iter_is_error) {
-            throw std::runtime_error("No convergence found");
-        }
-
-        return step;
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::Laplace1d(k_interactions, shape[0]);
+        this->initSystem(1.0, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int);
     }
 
 protected:
@@ -339,7 +263,8 @@ class System_Cuspy_Laplace_RandomForcing : public detail::System<
                                                detail::Cuspy<Generator>,
                                                Generator,
                                                detail::Laplace1d,
-                                               detail::RandomNormalForcing<1>> {
+                                               detail::RandomNormalForcing<1>,
+                                               detail::None> {
 protected:
     Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Laplace::m_pot
@@ -393,13 +318,6 @@ public:
     }
 
 protected:
-    /**
-     * \cond
-     */
-    size_t minimise(double, size_t, size_t, bool, bool) override
-    {
-        return 0;
-    };
     size_t quasistaticActivityFirst() const;
     size_t quasistaticActivityLast() const;
     double eventDrivenStep(double, bool, int);

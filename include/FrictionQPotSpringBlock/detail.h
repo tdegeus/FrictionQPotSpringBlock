@@ -460,6 +460,15 @@ public:
     }
 
     /**
+     * @brief Return the stiffness.
+     * @return double
+     */
+    double k() const
+    {
+        return m_k;
+    }
+
+    /**
      * @copydoc Cuspy::force
      */
     template <class T>
@@ -991,6 +1000,26 @@ public:
 };
 
 /**
+ * @brief Signal overdamped minimisation.
+ */
+class Overdamped {
+public:
+    Overdamped()
+    {
+    }
+};
+
+/**
+ * @brief Signal none minimisation.
+ */
+class None {
+public:
+    None()
+    {
+    }
+};
+
+/**
  * @brief System in generic number of dimensions.
  *
  * @details
@@ -1019,7 +1048,8 @@ template <
     class Potential,
     class Generator,
     class Interactions = void,
-    class External = void>
+    class External = void,
+    class Minimisation = void>
 class System {
 protected:
     size_type m_N; ///< @copybrief detail::System::size
@@ -1109,8 +1139,6 @@ protected:
     }
 
 public:
-    virtual ~System() = default;
-
     /**
      * @brief Chunk of (cumulative sum of) random numbers.
      * @return Reference.
@@ -1618,7 +1646,7 @@ public:
      *      -   `0`: if stopped when the residual is reached (and number of steps `< max_iter`).
      *      -   `max_iter`: if no residual was reached, and `max_iter_is_error = false`.
      */
-    virtual size_t minimise(
+    size_t minimise(
         double tol = 1e-5,
         size_t niter_tol = 10,
         size_t max_iter = 1e9,
@@ -1629,39 +1657,103 @@ public:
         FRICTIONQPOTSPRINGBLOCK_ASSERT(tol < 1.0);
         FRICTIONQPOTSPRINGBLOCK_ASSERT(max_iter + 1 < std::numeric_limits<long>::max());
 
-        double tol2 = tol * tol;
-        GooseFEM::Iterate::StopList residuals(niter_tol);
-
-        array_type::tensor<ptrdiff_t, rank> i_n;
-        long s = 0;
-        long s_n = 0;
-        bool init = true;
         size_t step;
+        double tol2 = tol * tol;
+        GooseFEM::Iterate::StopList res(niter_tol);
 
-        if (time_activity) {
-            i_n = m_chunk->index_at_align();
+        if constexpr (std::is_same<Minimisation, None>::value) {
+            throw std::runtime_error("Minimisation not implementated");
         }
+        else if constexpr (std::is_same<Minimisation, Overdamped>::value) {
+            static_assert(std::is_same<Interactions, Laplace1d>::value);
+            FRICTIONQPOTSPRINGBLOCK_ASSERT(!time_activity);
+            (void)(time_activity);
 
-        for (step = 1; step < max_iter + 1; ++step) {
+            double uneigh;
+            double u;
+            double umin;
+            ptrdiff_t i;
+            ptrdiff_t j;
+            m_qs_inc_first = m_inc; // unused
+            m_qs_inc_last = m_inc; // unused
+            double k = m_interactions->k();
 
-            this->timeStep();
-            residuals.roll_insert(this->residual());
+            for (step = 1; step < max_iter + 1; ++step) {
+
+                // "misuse" unused variable
+                xt::noalias(m_v_n) = m_u;
+
+                for (size_type p = 0; p < m_N; ++p) {
+
+                    if (p == 0) {
+                        uneigh = m_v_n.back() + m_v_n(1);
+                    }
+                    else if (p == m_N - 1) {
+                        uneigh = m_v_n(m_N - 2) + m_v_n.front();
+                    }
+                    else {
+                        uneigh = m_v_n(p - 1) + m_v_n(p + 1);
+                    }
+
+                    i = m_chunk->chunk_index_at_align()(p);
+                    auto* y = &m_chunk->data()(p, 0);
+
+                    while (true) {
+                        umin = 0.5 * (*(y + i) + *(y + i + 1));
+                        u = (k * uneigh + m_k_frame * m_u_frame + m_mu * umin) /
+                            (2 * k + m_k_frame + m_mu);
+                        m_chunk->align(p, u);
+                        j = m_chunk->chunk_index_at_align()(p);
+                        if (j == i) {
+                            break;
+                        }
+                        i = j;
+                    }
+                    m_u(p) = u;
+                    m_f_frame(p) = m_k_frame * (m_u_frame - u);
+                    m_f_potential(p) = m_mu * (umin - u);
+                }
+
+                this->computeForceInteractions();
+                xt::noalias(m_f) = m_f_potential + m_f_interactions + m_f_frame;
+                res.roll_insert(this->residual());
+
+                if ((res.descending() && res.all_less(tol)) || res.all_less(tol2)) {
+                    this->quench(); // no dynamics are run: make sure that the user is not confused
+                    return 0;
+                }
+            }
+        }
+        else {
+            array_type::tensor<ptrdiff_t, rank> i_n;
+            long s = 0;
+            long s_n = 0;
+            bool init = true;
 
             if (time_activity) {
-                s = xt::sum(xt::abs(m_chunk->index_at_align() - i_n))();
-                if (s != s_n) {
-                    if (init) {
-                        init = false;
-                        m_qs_inc_first = m_inc;
-                    }
-                    m_qs_inc_last = m_inc;
-                }
-                s_n = s;
+                i_n = m_chunk->index_at_align();
             }
 
-            if ((residuals.descending() && residuals.all_less(tol)) || residuals.all_less(tol2)) {
-                this->quench();
-                return 0;
+            for (step = 1; step < max_iter + 1; ++step) {
+                this->timeStep();
+                res.roll_insert(this->residual());
+
+                if (time_activity) {
+                    s = xt::sum(xt::abs(m_chunk->index_at_align() - i_n))();
+                    if (s != s_n) {
+                        if (init) {
+                            init = false;
+                            m_qs_inc_first = m_inc;
+                        }
+                        m_qs_inc_last = m_inc;
+                    }
+                    s_n = s;
+                }
+
+                if ((res.descending() && res.all_less(tol)) || res.all_less(tol2)) {
+                    this->quench();
+                    return 0;
+                }
             }
         }
 
@@ -1711,7 +1803,7 @@ public:
      *
      * @param i_n Reference potential index of the first integration point.
      */
-    virtual size_t minimise_truncate(
+    size_t minimise_truncate(
         array_type::tensor<ptrdiff_t, rank> i_n,
         size_t A_truncate = 0,
         size_t S_truncate = 0,
