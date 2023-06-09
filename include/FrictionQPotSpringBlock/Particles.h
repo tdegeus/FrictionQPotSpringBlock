@@ -158,9 +158,13 @@ public:
  *
  * To apply a fixed force (athermal or thermal) use a non-zero mean *and* set `k_frame = 0`.
  */
-class System_Cuspy_RandomForcing
-    : public detail::
-          System<1, detail::Cuspy<Generator>, Generator, void, detail::RandomNormalForcing<1>> {
+class System_Cuspy_RandomForcing : public detail::System<
+                                       1,
+                                       detail::Cuspy<Generator>,
+                                       Generator,
+                                       void,
+                                       detail::RandomNormalForcing<1>,
+                                       detail::None> {
 protected:
     Generator m_gen; ///< @copybrief detail::System::m_chunk
     detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy::m_pot
@@ -211,13 +215,6 @@ public:
     }
 
 protected:
-    /**
-     * \cond
-     */
-    size_t minimise(double, size_t, size_t, bool, bool) override
-    {
-        return 0;
-    };
     size_t quasistaticActivityFirst() const;
     size_t quasistaticActivityLast() const;
     double eventDrivenStep(double, bool, int);
