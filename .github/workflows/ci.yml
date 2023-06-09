@@ -29,7 +29,7 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/checkout@v3
       with:
-        repository: tdegeus/prrrng
+        repository: tdegeus/prrng
         path: prrng
         fetch-depth: 0
 
