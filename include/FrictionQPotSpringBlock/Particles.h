@@ -215,6 +215,9 @@ public:
     }
 
 protected:
+    /**
+     * \cond
+     */
     size_t quasistaticActivityFirst() const;
     size_t quasistaticActivityLast() const;
     double eventDrivenStep(double, bool, int);

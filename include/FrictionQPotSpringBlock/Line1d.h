@@ -162,7 +162,7 @@ public:
 };
 
 /**
- * @brief #System_Cuspy_Laplace assuming overdamped dynamics.
+ * @brief System_Cuspy_Laplace() assuming overdamped dynamics.
  * This system is meant only for minimisation during which the no-passing condition is used.
  * No dynamics can be simulated.
  *
@@ -318,6 +318,9 @@ public:
     }
 
 protected:
+    /**
+     * \cond
+     */
     size_t quasistaticActivityFirst() const;
     size_t quasistaticActivityLast() const;
     double eventDrivenStep(double, bool, int);
@@ -541,6 +544,9 @@ public:
     }
 
 protected:
+    /**
+     * \cond
+     */
     size_t quasistaticActivityFirst() const;
     size_t quasistaticActivityLast() const;
     double eventDrivenStep(double, bool, int);
