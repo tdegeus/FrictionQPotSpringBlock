@@ -20,12 +20,20 @@ jobs:
       run:
         shell: bash -e -l {0}
 
-    name: ${{ matrix.runs-on }} • x64 ${{ matrix.args }}
+    name: ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
 
     steps:
 
-    - name: Basic GitHub action setup
+    - name: Clone prrng
+      if: runner.os == 'Linux'
+      uses: actions/checkout@v3
+      with:
+        repository: tdegeus/prrrng
+        path: prrng
+        fetch-depth: 0
+
+    - name: Clone
       uses: actions/checkout@v3
 
     - name: Set conda environment
@@ -34,9 +42,22 @@ jobs:
         environment-file: environment.yaml
         environment-name: myenv
         cache-env: true
+        extra-specs: |
+          boost
+          catch2 >=3.0.0
+
+    - name: Build prrng
+      if: runner.os == 'Linux'
+      working-directory: prrng
+      run: |
+        LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "SETUPTOOLS_SCM_PRETEND_VERSION=$LATEST_TAG" >> $GITHUB_ENV
+        python -m pip install . -v --no-build-isolation
 
     - name: Set dummy version
-      run: echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.0" >> $GITHUB_ENV
+      run: |
+        LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "SETUPTOOLS_SCM_PRETEND_VERSION=$LATEST_TAG" >> $GITHUB_ENV
 
     - name: Configure using CMake
       if: runner.os == 'Linux'
@@ -48,15 +69,7 @@ jobs:
       run: make html
 
     - name: Build and install Python module (in debug mode)
-      if: runner.os == 'Linux'
-      env:
-        CC: gcc-11
-        CXX: g++-11
-      run: SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
-
-    - name: Build and install Python module (in debug mode)
-      if: runner.os != 'Linux'
-      run: SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v
+      run: SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v --no-build-isolation
 
     - name: Run Python tests
       run: python -m unittest discover tests
