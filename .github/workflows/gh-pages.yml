@@ -26,11 +26,19 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set conda environment (using micromamba for speed)
-      uses: mamba-org/provision-with-micromamba@main
+    - name: Create conda environment
+      uses: mamba-org/setup-micromamba@main
       with:
         environment-file: environment.yaml
         environment-name: myenv
+        init-shell: bash
+        cache-environment: true
+        post-cleanup: all
+
+    - name: Export version of this library
+      run: |
+        LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "SETUPTOOLS_SCM_PRETEND_VERSION=$LATEST_TAG" >> $GITHUB_ENV
 
     - name: Configure using CMake
       run: cmake -Bbuild -DBUILD_DOCS=1
