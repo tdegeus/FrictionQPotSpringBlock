@@ -35,6 +35,8 @@ jobs:
 
     - name: Clone
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Set conda environment
       uses: mamba-org/provision-with-micromamba@main
