@@ -619,6 +619,61 @@ PYBIND11_MODULE(_FrictionQPotSpringBlock, m)
         }
 
         {
+            using S = SM::System_Cuspy_Quartic_RandomForcing;
+
+            py::class_<S> cls(sm, "System_Cuspy_Quartic_RandomForcing");
+
+            cls.def(
+                py::init<
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    double,
+                    uint64_t,
+                    const xt::pytensor<ptrdiff_t, 1>&,
+                    const xt::pytensor<ptrdiff_t, 1>&,
+                    const std::array<size_t, 1>&,
+                    uint64_t,
+                    const std::string&,
+                    const std::vector<double>&,
+                    double,
+                    size_t>(),
+                "Constructor.",
+                py::arg("m"),
+                py::arg("eta"),
+                py::arg("mu"),
+                py::arg("a1"),
+                py::arg("a2"),
+                py::arg("k_frame"),
+                py::arg("dt"),
+                py::arg("mean"),
+                py::arg("stddev"),
+                py::arg("seed_forcing"),
+                py::arg("dinc_init"),
+                py::arg("dinc"),
+                py::arg("shape"),
+                py::arg("seed"),
+                py::arg("distribution"),
+                py::arg("parameters"),
+                py::arg("offset") = -100.0,
+                py::arg("nchunk") = 5000
+            );
+
+            mySystemNd<py::class_<S>, S>(cls);
+            mySystemNdDynamics<py::class_<S>, S>(cls);
+            mySystemNdExternal<py::class_<S>, S>(cls);
+
+            cls.def("__repr__", [](const S&) {
+                return "<FrictionQPotSpringBlock.Line1d.System_Cuspy_Quartic_RandomForcing>";
+            });
+        }
+
+        {
             using S = SM::System_SemiSmooth_Laplace;
 
             py::class_<S> cls(sm, "System_SemiSmooth_Laplace");

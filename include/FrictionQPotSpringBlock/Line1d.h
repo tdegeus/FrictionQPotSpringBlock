@@ -477,6 +477,79 @@ public:
 };
 
 /**
+ * @brief See System_Cuspy_Quartic() and System_Cuspy_Laplace_RandomForcing()
+ *
+ */
+class System_Cuspy_Quartic_RandomForcing : public detail::System<
+                                               1,
+                                               detail::Cuspy<Generator>,
+                                               Generator,
+                                               detail::Quartic1d,
+                                               detail::RandomNormalForcing<1>,
+                                               detail::None> {
+protected:
+    Generator m_gen; ///< @copybrief detail::System::m_chunk
+    detail::Cuspy<Generator> m_pot; ///< @copybrief System_Cuspy_Quartic::m_pot
+    detail::Quartic1d m_int; ///< @copybrief System_Cuspy_Quartic::m_int
+    detail::RandomNormalForcing<1> m_ext; ///< Add extra random force to the residual.
+
+public:
+    /**
+     * @copydoc System_Cuspy_Quartic::System_Cuspy_Quartic
+     * @param mean @copybrief detail::RandomNormalForcing::m_mean
+     * @param stddev @copybrief detail::RandomNormalForcing::m_stddev
+     * @param seed_forcing Seed for the random number generator.
+     * @param dinc_init Number of increments to wait to draw the first random force.
+     * @param dinc @copybrief detail::RandomNormalForcing::m_dinc
+     */
+    System_Cuspy_Quartic_RandomForcing(
+        double m,
+        double eta,
+        double mu,
+        double a1,
+        double a2,
+        double k_frame,
+        double dt,
+        double mean,
+        double stddev,
+        uint64_t seed_forcing,
+        const array_type::tensor<ptrdiff_t, 1>& dinc_init,
+        const array_type::tensor<ptrdiff_t, 1>& dinc,
+        const std::array<size_t, 1>& shape,
+        uint64_t seed,
+        const std::string& distribution,
+        const std::vector<double>& parameters,
+        double offset = -100.0,
+        size_t nchunk = 5000
+    )
+        : m_gen(
+              std::array<size_t, 1>{nchunk},
+              xt::eval(seed + xt::arange<uint64_t>(shape[0])),
+              xt::eval(xt::zeros<uint64_t>(shape)),
+              detail::string_to_distribution(distribution),
+              parameters,
+              prrng::alignment(/*buffer*/ 2, /*margin*/ 30, /*min_margin*/ 6, /*strict*/ false)
+          )
+    {
+        m_gen += offset;
+        m_pot = detail::Cuspy<Generator>(mu, &m_gen);
+        m_int = detail::Quartic1d(a1, a2, shape[0]);
+        m_ext = detail::RandomNormalForcing<1>(
+            m_gen.generators().shape(), mean, stddev, seed_forcing, dinc_init, dinc
+        );
+        this->initSystem(m, eta, k_frame, mu, dt, &m_pot, &m_gen, &m_int, &m_ext);
+    }
+
+protected:
+    size_t quasistaticActivityFirst() const;
+    size_t quasistaticActivityLast() const;
+    double eventDrivenStep(double, bool, int);
+    /**
+     * \endcond
+     */
+};
+
+/**
  * Same as System_Cuspy_Laplace() but with a quartic interactions.
  * @copybrief detail::QuarticGradient1d
  */
