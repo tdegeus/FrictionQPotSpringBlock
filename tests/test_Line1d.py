@@ -29,10 +29,10 @@ class Test_Uniform(unittest.TestCase):
         """
 
         N = 5
-        eta = float(np.random.random(1))
-        mu = float(np.random.random(1))
-        k_interactions = float(np.random.random(1))
-        k_frame = float(np.random.random(1))
+        eta = float(np.random.random(1)[0])
+        mu = float(np.random.random(1)[0])
+        k_interactions = float(np.random.random(1)[0])
+        k_frame = float(np.random.random(1)[0])
         par = dict(
             m=1,
             eta=eta,
@@ -89,10 +89,10 @@ class Test_Uniform(unittest.TestCase):
 class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_forces(self):
         N = 5
-        eta = float(np.random.random(1))
-        mu = float(np.random.random(1))
-        k_interactions = float(np.random.random(1))
-        k_frame = float(np.random.random(1))
+        eta = float(np.random.random(1)[0])
+        mu = float(np.random.random(1)[0])
+        k_interactions = float(np.random.random(1)[0])
+        k_frame = float(np.random.random(1)[0])
 
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
@@ -124,8 +124,8 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
         du = np.zeros(N)
         dv = np.zeros(N)
-        du[0] = float(np.random.random(1))
-        dv[2] = float(np.random.random(1))
+        du[0] = float(np.random.random(1)[0])
+        dv[2] = float(np.random.random(1)[0])
         system.u += du
         system.v += dv
         umin = np.floor(du[0] + 0.5)
@@ -145,8 +145,8 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
 
         du = np.zeros(N)
         dv = np.zeros(N)
-        du[1] = 2.0 * float(np.random.random(1))
-        dv[3] = 2.0 * float(np.random.random(1))
+        du[1] = 2.0 * float(np.random.random(1)[0])
+        dv[3] = 2.0 * float(np.random.random(1)[0])
         system.u += du
         system.v += dv
         u = system.u
@@ -285,7 +285,7 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
         yref = np.cumsum(1e-3 + 1.1 * gen.weibull([20000], 2.0), axis=1) - init_offset
 
         # chunked storage of "yref" (same seed)
-        mu = float(np.random.random(1))
+        mu = float(np.random.random(1)[0])
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Laplace(
             m=1.0,
             eta=1.0,
@@ -402,8 +402,8 @@ class Test_System_SemiSmooth_Laplace(unittest.TestCase):
 class Test_System_Cuspy_Quartic(unittest.TestCase):
     def test_interactions(self):
         N = 10
-        a1 = float(np.random.random(1))
-        a2 = float(np.random.random(1))
+        a1 = float(np.random.random(1)[0])
+        a2 = float(np.random.random(1)[0])
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_Quartic(
             m=1,
             eta=1,
@@ -422,7 +422,7 @@ class Test_System_Cuspy_Quartic(unittest.TestCase):
 
         self.assertLess(system.residual, 1e-5)
 
-        du = float(np.random.random(1))
+        du = float(np.random.random(1)[0])
         u0 = np.array([du, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         laplace = np.array([-2 * du, du, 0, 0, 0, 0, 0, 0, 0, du])
         du_p = np.array([-du, 0, 0, 0, 0, 0, 0, 0, 0, du])
@@ -441,9 +441,9 @@ class Test_System_Cuspy_Quartic(unittest.TestCase):
 class Test_System_Cuspy_QuarticGradient(unittest.TestCase):
     def test_interactions(self):
         N = 10
-        k2 = float(np.random.random(1))
-        k4 = float(np.random.random(1))
-        du = float(np.random.random(1))
+        k2 = float(np.random.random(1)[0])
+        k4 = float(np.random.random(1)[0])
+        du = float(np.random.random(1)[0])
         system = FrictionQPotSpringBlock.Line1d.System_Cuspy_QuarticGradient(
             m=1,
             eta=1,

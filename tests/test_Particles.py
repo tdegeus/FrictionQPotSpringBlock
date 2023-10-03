@@ -29,9 +29,9 @@ class Test_Uniform(unittest.TestCase):
         """
 
         N = 5
-        eta = float(np.random.random(1))
-        mu = float(np.random.random(1))
-        k_frame = float(np.random.random(1))
+        eta = float(np.random.random(1)[0])
+        mu = float(np.random.random(1)[0])
+        k_frame = float(np.random.random(1)[0])
         par = dict(
             m=1,
             eta=eta,
@@ -78,9 +78,9 @@ class Test_Uniform(unittest.TestCase):
 class Test_System_Cuspy(unittest.TestCase):
     def test_forces(self):
         N = 5
-        eta = float(np.random.random(1))
-        mu = float(np.random.random(1))
-        k_frame = float(np.random.random(1))
+        eta = float(np.random.random(1)[0])
+        mu = float(np.random.random(1)[0])
+        k_frame = float(np.random.random(1)[0])
 
         system = FrictionQPotSpringBlock.Particles.System_Cuspy(
             m=1.0,
@@ -111,8 +111,8 @@ class Test_System_Cuspy(unittest.TestCase):
 
         du = np.zeros(N)
         dv = np.zeros(N)
-        du[0] = float(np.random.random(1))
-        dv[2] = float(np.random.random(1))
+        du[0] = float(np.random.random(1)[0])
+        dv[2] = float(np.random.random(1)[0])
         system.u += du
         system.v += dv
         umin = np.floor(du[0] + 0.5)
@@ -131,8 +131,8 @@ class Test_System_Cuspy(unittest.TestCase):
 
         du = np.zeros(N)
         dv = np.zeros(N)
-        du[1] = 2.0 * float(np.random.random(1))
-        dv[3] = 2.0 * float(np.random.random(1))
+        du[1] = 2.0 * float(np.random.random(1)[0])
+        dv[3] = 2.0 * float(np.random.random(1)[0])
         system.u += du
         system.v += dv
         u = system.u
@@ -259,7 +259,7 @@ class Test_System_Cuspy(unittest.TestCase):
         yref = np.cumsum(1e-3 + 1.1 * gen.weibull([20000], 2.0), axis=1) - init_offset
 
         # chunked storage of "yref" (same seed)
-        mu = float(np.random.random(1))
+        mu = float(np.random.random(1)[0])
         system = FrictionQPotSpringBlock.Particles.System_Cuspy(
             m=1.0,
             eta=1.0,
