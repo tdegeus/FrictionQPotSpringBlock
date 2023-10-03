@@ -73,6 +73,9 @@ void mySystemNd(Binder& cls)
         "shape", &System::shape, "Shape of the system", py::return_value_policy::reference_internal
     );
     cls.def_property_readonly("dt", &System::dt, "Time step (parameter)");
+    cls.def_property_readonly("mu", &System::mu, "Curvature of each well (parameter)");
+    cls.def_property_readonly("eta", &System::eta, "Damping coefficient (parameter)");
+    cls.def_property_readonly("m", &System::m, "Mass of each particle (parameter)");
     cls.def_property_readonly("k_frame", &System::k_frame, "Loading frame stiffness (parameter)");
     cls.def_property(
         "u",

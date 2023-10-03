@@ -1176,6 +1176,33 @@ public:
     }
 
     /**
+     * @brief The curvature of each well (parameter).
+     * @return Float.
+     */
+    auto mu() const
+    {
+        return m_mu;
+    }
+
+    /**
+     * @brief The damping coefficient (parameter).
+     * @return Float.
+     */
+    auto eta() const
+    {
+        return m_eta;
+    }
+
+    /**
+     * @brief The mass of each particle (parameter).
+     * @return Float.
+     */
+    auto m() const
+    {
+        return m_m;
+    }
+
+    /**
      * @brief The stiffness of the loading frame (parameter).
      * @return Float.
      */
