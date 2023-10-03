@@ -1,7 +1,7 @@
 name: gh-pages
 
 on:
-
+  workflow_dispatch:
   push:
     branches:
     - main
@@ -13,15 +13,15 @@ jobs:
 
   publish:
 
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest]
 
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -e -l {0}
 
     steps:
 
-    - name: Basic GitHub action setup
+    - name: Clone this library
       uses: actions/checkout@v3
       with:
         fetch-depth: 0

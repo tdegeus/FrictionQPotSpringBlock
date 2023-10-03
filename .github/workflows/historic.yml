@@ -19,13 +19,15 @@ jobs:
       run:
         shell: bash -e -l {0}
 
-    name: ${{ matrix.runs-on }} • x64 ${{ matrix.args }}
+    name: ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
 
     steps:
 
-    - name: Basic GitHub action setup
+    - name: Clone this library
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Create conda environment
       uses: mamba-org/setup-micromamba@main
@@ -41,7 +43,7 @@ jobs:
         LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
         echo "SETUPTOOLS_SCM_PRETEND_VERSION=$LATEST_TAG" >> $GITHUB_ENV
 
-    - name: Build and install Python module
+    - name: Build and install Python module (in debug mode)
       run: SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v --no-build-isolation
 
     - name: Run examples
