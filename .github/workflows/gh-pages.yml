@@ -32,7 +32,7 @@ jobs:
         environment-file: environment.yaml
         environment-name: myenv
         init-shell: bash
-        cache-environment: true
+        cache-downloads: true
         post-cleanup: all
 
     - name: Export version of this library
