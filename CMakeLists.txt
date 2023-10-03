@@ -12,7 +12,7 @@ option(BUILD_PYTHON "${PROJECT_NAME}: Build Python API" OFF)
 option(BUILD_DOCS "${PROJECT_NAME}: Build docs (use `make html`)" OFF)
 option(USE_WARNINGS "${PROJECT_NAME}: Build with runtime warnings" ON)
 option(USE_ASSERT "${PROJECT_NAME}: Build with assertions" ON)
-option(USE_DEBUG "${PROJECT_NAME}: Build in debug mode" OFF)
+option(USE_DEBUG "${PROJECT_NAME}: Build with debug assertions" OFF)
 option(USE_SIMD "${PROJECT_NAME}: Build with hardware optimization" OFF)
 
 if(SKBUILD)
