@@ -22,7 +22,7 @@ class Test_System_Cuspy_Laplace(unittest.TestCase):
     def test_interactions(self):
         rows = 5
         cols = 4
-        k_interactions = float(np.random.random(1))
+        k_interactions = float(np.random.random(1)[0])
         system = FrictionQPotSpringBlock.Line2d.System_Cuspy_Laplace(
             m=1,
             eta=1,
