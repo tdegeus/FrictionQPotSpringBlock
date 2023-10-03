@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [macos-latest]
+        runs-on: [ubuntu-latest]
 
     defaults:
       run:
@@ -24,30 +24,66 @@ jobs:
 
     steps:
 
+    - name: Set up Python 3.x to concatenate environment files
+      if: runner.os == 'Linux'
+      uses: actions/setup-python@main
+      with:
+        python-version: 3.x
+
+    - name: Clone prrng
+      uses: actions/checkout@v3
+      with:
+        path: prrng
+        repository: tdegeus/prrng
+        fetch-depth: 0
+
     - name: Clone this library
       uses: actions/checkout@v3
       with:
+        path: here
         fetch-depth: 0
+
+    - name: Concatenate environment files
+      if: runner.os == 'Linux'
+      run: |
+        python -m pip install conda_envfile
+        conda_envfile_merge here/environment.yaml prrng/environment.yaml -o env.yml
+
+    - name: Concatenate environment files
+      if: runner.os != 'Linux'
+      run: |
+        cp here/environment.yaml env.yml
 
     - name: Create conda environment
       uses: mamba-org/setup-micromamba@main
       with:
-        environment-file: environment.yaml
+        environment-file: env.yml
         environment-name: myenv
         init-shell: bash
         cache-downloads: true
         post-cleanup: all
 
+    - name: Install prrng
+      if: runner.os == 'Linux'
+      working-directory: prrng
+      run: |
+        LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        git checkout $LATEST_TAG
+        echo "SETUPTOOLS_SCM_PRETEND_VERSION=$LATEST_TAG" >> $GITHUB_ENV
+        python -m pip install . -v --no-build-isolation
+
     - name: Export version of this library
+      working-directory: here
       run: |
         LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
         echo "SETUPTOOLS_SCM_PRETEND_VERSION=$LATEST_TAG" >> $GITHUB_ENV
 
-    - name: Build and install Python module (in debug mode)
-      run: SKBUILD_CONFIGURE_OPTIONS="-DUSE_DEBUG=1" python -m pip install . -v --no-build-isolation
+    - name: Build and install Python module
+      working-directory: here
+      run: SKBUILD_CONFIGURE_OPTIONS="-DUSE_SIMD=1" python -m pip install . -v --no-build-isolation
 
     - name: Run examples
-      working-directory: examples
+      working-directory: here/examples
       run: |
         python Line1d_Cuspy_Laplace.py
         python Line1d_Cuspy_Laplace_LongRange.py
