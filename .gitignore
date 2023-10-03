@@ -1,6 +1,7 @@
 _skbuild
 _cmake_test_compile
 build
+_version.py
 
 # Prerequisites
 *.d

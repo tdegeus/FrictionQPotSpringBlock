@@ -22,4 +22,5 @@ setup(
     package_dir={"": "python"},
     cmake_install_dir=f"python/{project_name}",
     cmake_minimum_required_version="3.13",
+    python_requires=">=3.6",
 )
